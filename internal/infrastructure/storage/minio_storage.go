@@ -2,14 +2,16 @@
 package storage
 
 import (
-    "context"
-    "fmt"
-    "mime/multipart"
-    "path"
-    "time"
-    
-    "github.com/google/uuid"
-    "github.com/minio/minio-go/v7"
+	"context"
+	"fmt"
+	"mime/multipart"
+	"net/url"
+	"path"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
 )
 
 type StorageService interface {
@@ -69,4 +71,20 @@ func (s *minioStorage) GetFileURL(ctx context.Context, objectName string) (strin
         return "", err
     }
     return url.String(), nil
+}
+
+func extractObjectName(fileURL string) string {
+    // Parse URL to extract object name
+    parsedURL, err := url.Parse(fileURL)
+    if err != nil {
+        return ""
+    }
+    
+    // Remove bucket name from path
+    parts := strings.SplitN(parsedURL.Path, "/", 3)
+    if len(parts) >= 3 {
+        return parts[2]
+    }
+    
+    return ""
 }

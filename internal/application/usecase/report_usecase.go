@@ -2,6 +2,9 @@
 package usecase
 
 import (
+	"building-report-backend/internal/application/dto"
+	"building-report-backend/internal/domain/entity"
+	"building-report-backend/internal/domain/repository"
 	"building-report-backend/internal/infrastructure/storage"
 	"context"
 	"mime/multipart"

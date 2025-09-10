@@ -2,18 +2,19 @@
 package container
 
 import (
-    "gorm.io/gorm"
-    "github.com/minio/minio-go/v7"
+	"building-report-backend/internal/application/usecase"
+	"building-report-backend/internal/domain/repository"
+	"building-report-backend/internal/infrastructure/auth"
+	"building-report-backend/internal/infrastructure/persistence/postgres"
+	"building-report-backend/internal/infrastructure/storage"
+	"building-report-backend/internal/interfaces/http/handler"
+	"building-report-backend/pkg/config"
     "github.com/redis/go-redis/v9"
-    
-    "your-module/internal/domain/repository"
-    "your-module/internal/application/usecase"
-    "your-module/internal/infrastructure/persistence/postgres"
-    "your-module/internal/infrastructure/persistence/redis"
-    "your-module/internal/infrastructure/storage"
-    "your-module/internal/infrastructure/auth"
-    "your-module/internal/interfaces/http/handler"
-    "your-module/pkg/config"
+    redisPkg "building-report-backend/internal/infrastructure/persistence/redis"
+	
+	"github.com/minio/minio-go/v7"
+	
+	"gorm.io/gorm"
 )
 
 type Container struct {
@@ -51,7 +52,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mi
     // Initialize repositories
     container.UserRepo = postgres.NewUserRepository(db)
     container.ReportRepo = postgres.NewReportRepository(db)
-    container.CacheRepo = redis.NewCacheRepository(redisClient)
+    container.CacheRepo = redisPkg.NewCacheRepository(redisClient)
 
     // Initialize services
     container.StorageService = storage.NewMinioStorage(
@@ -59,7 +60,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mi
         cfg.Minio.BucketName,
         cfg.Minio.PublicURL,
     )
-    container.AuthService = auth.NewJWTService(cfg.JWT.Secret)
+    container.AuthService = auth.NewJWTService(cfg.JWT.Secret, cfg.JWT.ExpiryHours)
 
     // Initialize use cases
     container.AuthUseCase = usecase.NewAuthUseCase(

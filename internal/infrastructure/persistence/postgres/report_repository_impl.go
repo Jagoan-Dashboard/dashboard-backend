@@ -2,11 +2,12 @@
 package postgres
 
 import (
-    "context"
-    "github.com/google/uuid"
-    "gorm.io/gorm"
-    "your-module/internal/domain/entity"
-    "your-module/internal/domain/repository"
+	"building-report-backend/internal/domain/entity"
+	"building-report-backend/internal/domain/repository"
+	"context"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type reportRepositoryImpl struct {
