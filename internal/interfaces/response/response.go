@@ -1,4 +1,4 @@
-// internal/interfaces/response/response.go
+
 package response
 
 import (

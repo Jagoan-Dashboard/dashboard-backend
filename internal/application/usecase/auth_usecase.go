@@ -1,4 +1,4 @@
-// internal/application/usecase/auth_usecase.go
+
 package usecase
 
 import (
@@ -39,7 +39,7 @@ func NewAuthUseCase(
 }
 
 func (uc *AuthUseCase) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.AuthResponse, error) {
-    // Check if user exists
+    
     existingUser, _ := uc.userRepo.FindByUsername(ctx, req.Username)
     if existingUser != nil {
         return nil, ErrUserExists
@@ -50,7 +50,7 @@ func (uc *AuthUseCase) Register(ctx context.Context, req *dto.RegisterRequest) (
         return nil, ErrUserExists
     }
 
-    // Create new user
+    
     user := &entity.User{
         Username: req.Username,
         Email:    req.Email,
@@ -63,20 +63,20 @@ func (uc *AuthUseCase) Register(ctx context.Context, req *dto.RegisterRequest) (
         return nil, err
     }
 
-    // Generate token
+    
     token, err := uc.authService.GenerateToken(user.ID, user.Username, string(user.Role))
     if err != nil {
         return nil, err
     }
 
-    // Cache user data
+    
     cacheKey := "user:" + user.ID.String()
     uc.cache.Set(ctx, cacheKey, user, 24*time.Hour)
 
     return &dto.AuthResponse{
         Token:     token,
         User:      user,
-        ExpiresIn: 24 * 3600, // 24 hours in seconds
+        ExpiresIn: 24 * 3600, 
     }, nil
 }
 
@@ -94,13 +94,13 @@ func (uc *AuthUseCase) Login(ctx context.Context, req *dto.LoginRequest) (*dto.A
         return nil, errors.New("user account is inactive")
     }
 
-    // Generate token
+    
     token, err := uc.authService.GenerateToken(user.ID, user.Username, string(user.Role))
     if err != nil {
         return nil, err
     }
 
-    // Cache user data
+    
     cacheKey := "user:" + user.ID.String()
     uc.cache.Set(ctx, cacheKey, user, 24*time.Hour)
 
@@ -112,7 +112,7 @@ func (uc *AuthUseCase) Login(ctx context.Context, req *dto.LoginRequest) (*dto.A
 }
 
 func (uc *AuthUseCase) GetUserByID(ctx context.Context, userID string) (*entity.User, error) {
-    // Check cache first
+    
     cacheKey := "user:" + userID
     var user entity.User
     
@@ -121,7 +121,7 @@ func (uc *AuthUseCase) GetUserByID(ctx context.Context, userID string) (*entity.
         return &user, nil
     }
 
-    // If not in cache, get from database
+    
     userUUID, err := uuid.Parse(userID)
     if err != nil {
         return nil, err
@@ -132,7 +132,7 @@ func (uc *AuthUseCase) GetUserByID(ctx context.Context, userID string) (*entity.
         return nil, err
     }
 
-    // Cache the result
+    
     uc.cache.Set(ctx, cacheKey, dbUser, 24*time.Hour)
 
     return dbUser, nil

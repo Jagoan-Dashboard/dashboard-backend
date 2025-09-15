@@ -1,4 +1,4 @@
-// pkg/database/postgres.go
+
 package database
 
 import (
@@ -24,12 +24,15 @@ func NewPostgresDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
         return nil, err
     }
 
-    // Auto migrate schemas
-    err = db.AutoMigrate(
-        &entity.User{},
-        &entity.Report{},
-        &entity.ReportPhoto{},
-    )
+err = db.AutoMigrate(
+    &entity.User{},
+    &entity.Report{},
+    &entity.ReportPhoto{},
+    &entity.SpatialPlanningReport{},    
+    &entity.SpatialPlanningPhoto{},  
+    &entity.WaterResourcesReport{},   
+    &entity.WaterResourcesPhoto{},
+)
     if err != nil {
         return nil, err
     }

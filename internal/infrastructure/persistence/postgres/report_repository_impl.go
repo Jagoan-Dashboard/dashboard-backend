@@ -1,4 +1,4 @@
-// internal/infrastructure/persistence/postgres/report_repository_impl.go
+
 package postgres
 
 import (
@@ -51,7 +51,7 @@ func (r *reportRepositoryImpl) FindAll(ctx context.Context, limit, offset int, f
 
     query := r.db.WithContext(ctx).Model(&entity.Report{})
 
-    // Apply filters
+    
     if village, ok := filters["village"].(string); ok && village != "" {
         query = query.Where("village ILIKE ?", "%"+village+"%")
     }
@@ -65,10 +65,10 @@ func (r *reportRepositoryImpl) FindAll(ctx context.Context, limit, offset int, f
         query = query.Where("report_status = ?", reportStatus)
     }
 
-    // Count total
+    
     query.Count(&total)
 
-    // Get paginated results
+    
     err := query.
         Preload("Photos").
         Limit(limit).

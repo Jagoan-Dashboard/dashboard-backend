@@ -1,4 +1,4 @@
-// internal/infrastructure/persistence/postgres/user_repository_impl.go
+
 package postgres
 
 import (

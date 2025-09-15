@@ -1,4 +1,4 @@
-// pkg/cache/redis.go
+
 package cache
 
 import (
@@ -16,7 +16,7 @@ func NewRedisClient(cfg config.RedisConfig) *redis.Client {
         DB:       cfg.DB,
     })
 
-    // Test connection
+    
     ctx := context.Background()
     if err := client.Ping(ctx).Err(); err != nil {
         panic(fmt.Sprintf("Failed to connect to Redis: %v", err))

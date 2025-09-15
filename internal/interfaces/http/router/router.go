@@ -1,4 +1,4 @@
-// internal/interfaces/http/router/router.go
+
 package router
 
 import (
@@ -9,10 +9,10 @@ import (
 )
 
 func SetupRoutes(app *fiber.App, cont *container.Container) {
-    // API v1 group
+    
     api := app.Group("/api/v1")
 
-    // Health check
+    
     api.Get("/health", func(c *fiber.Ctx) error {
         return c.JSON(fiber.Map{
             "status": "ok",
@@ -20,18 +20,18 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
         })
     })
 
-    // Auth routes (public)
+    
     authRoutes := api.Group("/auth")
     authRoutes.Post("/register", cont.AuthHandler.Register)
     authRoutes.Post("/login", cont.AuthHandler.Login)
 
-    // Protected routes
+    
     protected := api.Use(middleware.AuthMiddleware(cont.AuthService))
     
-    // User routes
+    
     protected.Get("/profile", cont.AuthHandler.GetProfile)
 
-    // Report routes
+    
     reportRoutes := protected.Group("/reports")
     reportRoutes.Get("/", cont.ReportHandler.ListReports)
     reportRoutes.Get("/:id", cont.ReportHandler.GetReport)
@@ -39,9 +39,36 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     reportRoutes.Put("/:id", cont.ReportHandler.UpdateReport)
     reportRoutes.Delete("/:id", cont.ReportHandler.DeleteReport)
 
-    // Admin only routes
+    
+    spatialRoutes := protected.Group("/spatial-planning")
+    spatialRoutes.Get("/", cont.SpatialPlanningHandler.ListReports)
+    spatialRoutes.Get("/statistics", cont.SpatialPlanningHandler.GetStatistics)
+    spatialRoutes.Get("/:id", cont.SpatialPlanningHandler.GetReport)
+    spatialRoutes.Post("/", cont.SpatialPlanningHandler.CreateReport)
+    spatialRoutes.Put("/:id", cont.SpatialPlanningHandler.UpdateReport)
+    spatialRoutes.Delete("/:id", cont.SpatialPlanningHandler.DeleteReport)
+
+    waterRoutes := protected.Group("/water-resources")
+    waterRoutes.Get("/", cont.WaterResourcesHandler.ListReports)
+waterRoutes.Get("/priority", cont.WaterResourcesHandler.ListByPriority)
+waterRoutes.Get("/statistics", cont.WaterResourcesHandler.GetStatistics)
+waterRoutes.Get("/urgent", cont.WaterResourcesHandler.GetUrgentReports)
+waterRoutes.Get("/damage-by-area", cont.WaterResourcesHandler.GetDamageByArea)
+waterRoutes.Get("/:id", cont.WaterResourcesHandler.GetReport)
+waterRoutes.Post("/", cont.WaterResourcesHandler.CreateReport)
+waterRoutes.Put("/:id", cont.WaterResourcesHandler.UpdateReport)
+waterRoutes.Delete("/:id", cont.WaterResourcesHandler.DeleteReport)
+
+
+adminWaterRoutes := protected.Group("/admin/water-resources", middleware.RequireRole("ADMIN"))
+adminWaterRoutes.Put("/:id/status", cont.WaterResourcesHandler.UpdateStatus)
+
+    
     adminRoutes := protected.Group("/admin", middleware.RequireRole("ADMIN"))
     adminRoutes.Get("/users", func(c *fiber.Ctx) error {
         return c.JSON(fiber.Map{"message": "Admin users list"})
     })
+
+    adminSpatialRoutes := protected.Group("/admin/spatial-planning", middleware.RequireRole("ADMIN"))
+    adminSpatialRoutes.Put("/:id/status", cont.SpatialPlanningHandler.UpdateStatus)
 }

@@ -1,4 +1,4 @@
-// pkg/container/container.go
+
 package container
 
 import (
@@ -23,22 +23,28 @@ type Container struct {
     Redis          *redis.Client
     MinioClient    *minio.Client
     
-    // Repositories
+    
     UserRepo       repository.UserRepository
     ReportRepo     repository.ReportRepository
     CacheRepo      repository.CacheRepository
+    SpatialPlanningRepo repository.SpatialPlanningRepository
+    WaterResourcesRepo repository.WaterResourcesRepository
     
-    // Services
+    
     StorageService storage.StorageService
     AuthService    auth.JWTService
+    SpatialPlanningUseCase *usecase.SpatialPlanningUseCase
+    WaterResourcesUseCase *usecase.WaterResourcesUseCase
     
-    // Use Cases
+    
     AuthUseCase    *usecase.AuthUseCase
     ReportUseCase  *usecase.ReportUseCase
     
-    // Handlers
+    
     AuthHandler    *handler.AuthHandler
     ReportHandler  *handler.ReportHandler
+    SpatialPlanningHandler *handler.SpatialPlanningHandler
+    WaterResourcesHandler *handler.WaterResourcesHandler
 }
 
 func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, minioClient *minio.Client) *Container {
@@ -49,12 +55,14 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mi
         MinioClient: minioClient,
     }
 
-    // Initialize repositories
+    
     container.UserRepo = postgres.NewUserRepository(db)
     container.ReportRepo = postgres.NewReportRepository(db)
     container.CacheRepo = redisPkg.NewCacheRepository(redisClient)
+    container.SpatialPlanningRepo = postgres.NewSpatialPlanningRepository(db)
+    container.WaterResourcesRepo = postgres.NewWaterResourcesRepository(db)
 
-    // Initialize services
+    
     container.StorageService = storage.NewMinioStorage(
         minioClient,
         cfg.Minio.BucketName,
@@ -62,7 +70,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mi
     )
     container.AuthService = auth.NewJWTService(cfg.JWT.Secret, cfg.JWT.ExpiryHours)
 
-    // Initialize use cases
+    
     container.AuthUseCase = usecase.NewAuthUseCase(
         container.UserRepo,
         container.AuthService,
@@ -74,9 +82,29 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mi
         container.CacheRepo,
     )
 
-    // Initialize handlers
+    container.SpatialPlanningUseCase = usecase.NewSpatialPlanningUseCase(
+        container.SpatialPlanningRepo,
+        container.StorageService,
+        container.CacheRepo,
+    )
+
+    container.WaterResourcesUseCase = usecase.NewWaterResourcesUseCase(
+        container.WaterResourcesRepo,
+        container.StorageService,
+        container.CacheRepo,
+    )
+
+    
     container.AuthHandler = handler.NewAuthHandler(container.AuthUseCase)
+    
     container.ReportHandler = handler.NewReportHandler(container.ReportUseCase)
+    container.SpatialPlanningHandler = handler.NewSpatialPlanningHandler(
+        container.SpatialPlanningUseCase,
+    )
+
+    container.WaterResourcesHandler = handler.NewWaterResourcesHandler(
+        container.WaterResourcesUseCase,
+    )
 
     return container
 }

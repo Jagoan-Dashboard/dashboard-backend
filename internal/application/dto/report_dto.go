@@ -1,4 +1,4 @@
-// internal/application/dto/report_dto.go
+
 package dto
 
 import (

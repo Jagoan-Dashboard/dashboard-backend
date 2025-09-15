@@ -1,4 +1,4 @@
-// internal/domain/entity/report.go
+
 package entity
 
 import (
@@ -34,7 +34,7 @@ type ReportPhoto struct {
     ID         uuid.UUID `json:"id" gorm:"type:uuid;primary_key"`
     ReportID   uuid.UUID `json:"report_id" gorm:"type:uuid;not null"`
     PhotoURL   string    `json:"photo_url" gorm:"not null"`
-    PhotoType  string    `json:"photo_type" gorm:"type:varchar(50)"` // closeup / overall
+    PhotoType  string    `json:"photo_type" gorm:"type:varchar(50)"` 
     CreatedAt  time.Time `json:"created_at"`
 }
 

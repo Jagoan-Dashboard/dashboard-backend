@@ -1,4 +1,4 @@
-// internal/interfaces/http/middleware/auth_middleware.go
+
 package middleware
 
 import (
@@ -26,7 +26,7 @@ func AuthMiddleware(jwtService auth.JWTService) fiber.Handler {
             return response.Unauthorized(c, "Invalid or expired token", err)
         }
 
-        // Set user info in context
+        
         c.Locals("userID", claims.UserID)
         c.Locals("username", claims.Username)
         c.Locals("role", claims.Role)

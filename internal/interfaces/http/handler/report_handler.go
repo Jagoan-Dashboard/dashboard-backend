@@ -1,4 +1,4 @@
-// internal/interfaces/http/handler/report_handler.go
+
 package handler
 
 import (
@@ -27,15 +27,15 @@ func (h *ReportHandler) CreateReport(c *fiber.Ctx) error {
         return response.BadRequest(c, "Invalid request body", err)
     }
 
-    // Validate request
+    
     if err := req.Validate(); err != nil {
         return response.ValidationError(c, err)
     }
 
-    // Get user ID from context (set by auth middleware)
+    
     userID := c.Locals("userID").(uuid.UUID)
 
-    // Handle file uploads
+    
     form, err := c.MultipartForm()
     if err != nil {
         return response.BadRequest(c, "Failed to parse multipart form", err)

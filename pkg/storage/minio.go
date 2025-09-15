@@ -1,4 +1,4 @@
-// pkg/storage/minio.go
+
 package storage
 
 import (
@@ -19,7 +19,7 @@ func NewMinioClient(cfg config.MinioConfig) (*minio.Client, error) {
         return nil, err
     }
 
-    // Check if bucket exists, create if not
+    
     ctx := context.Background()
     exists, err := client.BucketExists(ctx, cfg.BucketName)
     if err != nil {
@@ -33,7 +33,7 @@ func NewMinioClient(cfg config.MinioConfig) (*minio.Client, error) {
         }
         log.Printf("Bucket %s created successfully", cfg.BucketName)
         
-        // Set bucket policy to public read
+        
         policy := `{
             "Version": "2012-10-17",
             "Statement": [

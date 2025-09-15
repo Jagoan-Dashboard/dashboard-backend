@@ -1,4 +1,4 @@
-// internal/application/usecase/report_usecase.go
+
 package usecase
 
 import (
@@ -49,7 +49,7 @@ func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReport
         CreatedBy:            userID,
     }
 
-    // Handle optional fields
+    
     if req.WorkType != "" {
         workType := entity.WorkType(req.WorkType)
         report.WorkType = &workType
@@ -59,7 +59,7 @@ func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReport
         report.ConditionAfterRehab = &condition
     }
 
-    // Upload photos to MinIO
+    
     for i, photo := range photos {
         photoType := "overall"
         if i == 0 {
@@ -81,14 +81,14 @@ func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReport
         return nil, err
     }
 
-    // Invalidate cache
+    
     uc.cache.Delete(ctx, "reports:list")
 
     return report, nil
 }
 
 func (uc *ReportUseCase) GetReport(ctx context.Context, id uuid.UUID) (*entity.Report, error) {
-    // Check cache first
+    
     cacheKey := "report:" + id.String()
     
     report, err := uc.reportRepo.FindByID(ctx, id)
@@ -96,8 +96,8 @@ func (uc *ReportUseCase) GetReport(ctx context.Context, id uuid.UUID) (*entity.R
         return nil, err
     }
 
-    // Cache the result
-    uc.cache.Set(ctx, cacheKey, report, 3600) // 1 hour
+    
+    uc.cache.Set(ctx, cacheKey, report, 3600) 
 
     return report, nil
 }
@@ -125,25 +125,25 @@ func (uc *ReportUseCase) UpdateReport(ctx context.Context, id uuid.UUID, req *dt
         return nil, err
     }
 
-    // Check permission
+    
     if report.CreatedBy != userID {
         return nil, ErrUnauthorized
     }
 
-    // Update fields
+    
     if req.BuildingName != "" {
         report.BuildingName = req.BuildingName
     }
     if req.ReportStatus != "" {
         report.ReportStatus = entity.ReportStatusType(req.ReportStatus)
     }
-    // ... update other fields
+    
 
     if err := uc.reportRepo.Update(ctx, report); err != nil {
         return nil, err
     }
 
-    // Invalidate cache
+    
     uc.cache.Delete(ctx, "report:"+id.String())
     uc.cache.Delete(ctx, "reports:list")
 
@@ -156,12 +156,12 @@ func (uc *ReportUseCase) DeleteReport(ctx context.Context, id uuid.UUID, userID 
         return err
     }
 
-    // Check permission
+    
     if report.CreatedBy != userID {
         return ErrUnauthorized
     }
 
-    // Delete photos from MinIO
+    
     for _, photo := range report.Photos {
         uc.storage.DeleteFile(ctx, photo.PhotoURL)
     }
@@ -170,7 +170,7 @@ func (uc *ReportUseCase) DeleteReport(ctx context.Context, id uuid.UUID, userID 
         return err
     }
 
-    // Invalidate cache
+    
     uc.cache.Delete(ctx, "report:"+id.String())
     uc.cache.Delete(ctx, "reports:list")
 

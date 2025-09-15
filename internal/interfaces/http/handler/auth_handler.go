@@ -1,4 +1,4 @@
-// internal/interfaces/http/handler/auth_handler.go
+
 package handler
 
 import (
