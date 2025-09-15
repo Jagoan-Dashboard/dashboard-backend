@@ -32,6 +32,10 @@ err = db.AutoMigrate(
     &entity.SpatialPlanningPhoto{},  
     &entity.WaterResourcesReport{},   
     &entity.WaterResourcesPhoto{},
+    &entity.BinaMargaReport{},
+    &entity.BinaMargaPhoto{},
+    &entity.AgricultureReport{},   
+    &entity.AgriculturePhoto{},
 )
     if err != nil {
         return nil, err

@@ -1,0 +1,456 @@
+package postgres
+
+import (
+	"context"
+	"time"
+
+	"building-report-backend/internal/domain/entity"
+	"building-report-backend/internal/domain/repository"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
+
+type binaMargaRepositoryImpl struct {
+	db *gorm.DB
+}
+
+func NewBinaMargaRepository(db *gorm.DB) repository.BinaMargaRepository {
+	return &binaMargaRepositoryImpl{db: db}
+}
+
+func (r *binaMargaRepositoryImpl) Create(ctx context.Context, report *entity.BinaMargaReport) error {
+	return r.db.WithContext(ctx).Create(report).Error
+}
+
+func (r *binaMargaRepositoryImpl) Update(ctx context.Context, report *entity.BinaMargaReport) error {
+	report.UpdatedAt = time.Now()
+	return r.db.WithContext(ctx).Save(report).Error
+}
+
+func (r *binaMargaRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).
+		Where("id = ?", id).
+		Delete(&entity.BinaMargaReport{}).Error
+}
+
+func (r *binaMargaRepositoryImpl) FindByID(ctx context.Context, id uuid.UUID) (*entity.BinaMargaReport, error) {
+	var report entity.BinaMargaReport
+	err := r.db.WithContext(ctx).
+		Preload("Photos").
+		Where("id = ?", id).
+		First(&report).Error
+	if err != nil {
+		return nil, err
+	}
+	return &report, nil
+}
+
+func (r *binaMargaRepositoryImpl) FindAll(ctx context.Context, limit, offset int, filters map[string]interface{}) ([]*entity.BinaMargaReport, int64, error) {
+	var (
+		reports []*entity.BinaMargaReport
+		total   int64
+	)
+
+	query := r.db.WithContext(ctx).Model(&entity.BinaMargaReport{})
+
+	
+	if v, ok := filters["institution_unit"].(string); ok && v != "" {
+		query = query.Where("institution_unit = ?", v)
+	}
+	if v, ok := filters["road_type"].(string); ok && v != "" {
+		query = query.Where("road_type = ?", v)
+	}
+	if v, ok := filters["road_class"].(string); ok && v != "" {
+		query = query.Where("road_class = ?", v)
+	}
+	if v, ok := filters["damage_type"].(string); ok && v != "" {
+		query = query.Where("damage_type = ?", v)
+	}
+	if v, ok := filters["damage_level"].(string); ok && v != "" {
+		query = query.Where("damage_level = ?", v)
+	}
+	if v, ok := filters["urgency_level"].(string); ok && v != "" {
+		query = query.Where("urgency_level = ?", v)
+	}
+	if v, ok := filters["traffic_impact"].(string); ok && v != "" {
+		query = query.Where("traffic_impact = ?", v)
+	}
+	if v, ok := filters["status"].(string); ok && v != "" {
+		query = query.Where("status = ?", v)
+	}
+	if v, ok := filters["road_name"].(string); ok && v != "" {
+		query = query.Where("road_name ILIKE ?", "%"+v+"%")
+	}
+	
+	if v, ok := filters["start_date"].(string); ok && v != "" {
+		query = query.Where("report_datetime >= ?", v)
+	}
+	if v, ok := filters["end_date"].(string); ok && v != "" {
+		query = query.Where("report_datetime <= ?", v)
+	}
+
+	
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	
+	orderExpr := "CASE " +
+		"WHEN urgency_level = 'DARURAT' THEN 0 " +
+		"WHEN urgency_level = 'TINGGI' THEN 1 " +
+		"WHEN urgency_level = 'SEDANG' THEN 2 " +
+		"ELSE 3 END, " +
+		"CASE " +
+		"WHEN traffic_impact = 'TERPUTUS' THEN 0 " +
+		"WHEN traffic_impact = 'SANGAT_TERGANGGU' THEN 1 " +
+		"WHEN traffic_impact = 'TERGANGGU' THEN 2 " +
+		"ELSE 3 END, " +
+		"created_at DESC"
+
+	
+	err := query.
+		Preload("Photos").
+		Limit(limit).
+		Offset(offset).
+		Order(orderExpr).
+		Find(&reports).Error
+
+	return reports, total, err
+}
+
+func (r *binaMargaRepositoryImpl) FindBlockedRoads(ctx context.Context, limit int) ([]*entity.BinaMargaReport, error) {
+	var reports []*entity.BinaMargaReport
+	err := r.db.WithContext(ctx).
+		Preload("Photos").
+		Where("traffic_impact = ?", entity.TrafficImpactBlocked).
+		Where("status NOT IN ('COMPLETED', 'REJECTED')").
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&reports).Error
+	return reports, err
+}
+
+func (r *binaMargaRepositoryImpl) UpdateStatus(ctx context.Context, id uuid.UUID, status entity.BinaMargaStatus, notes string) error {
+	updates := map[string]interface{}{
+		"status":     status,
+		"updated_at": time.Now(),
+	}
+	if notes != "" {
+		updates["notes"] = notes
+	}
+	return r.db.WithContext(ctx).
+		Model(&entity.BinaMargaReport{}).
+		Where("id = ?", id).
+		Updates(updates).Error
+}
+
+func (r *binaMargaRepositoryImpl) GetStatistics(ctx context.Context) (map[string]interface{}, error) {
+	stats := make(map[string]interface{})
+
+	
+	var total int64
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).Count(&total).Error
+	stats["total_reports"] = total
+
+	
+	var emergencyCount int64
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Where("urgency_level = ?", entity.RoadUrgencyEmergency).
+		Where("status NOT IN ('COMPLETED', 'REJECTED')").
+		Count(&emergencyCount).Error
+	stats["emergency_reports"] = emergencyCount
+
+	
+	var blockedCount int64
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Where("traffic_impact = ?", entity.TrafficImpactBlocked).
+		Where("status NOT IN ('COMPLETED', 'REJECTED')").
+		Count(&blockedCount).Error
+	stats["blocked_roads"] = blockedCount
+
+	
+	var totalArea float64
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Select("COALESCE(SUM(damaged_area), 0)").
+		Scan(&totalArea).Error
+	stats["total_damaged_area_sqm"] = totalArea
+
+	var totalLength float64
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Select("COALESCE(SUM(damaged_length), 0)").
+		Scan(&totalLength).Error
+	stats["total_damaged_length_m"] = totalLength
+
+	
+	type kvCount struct {
+		Key   string `json:"key" gorm:"column:key"`
+		Count int64  `json:"count" gorm:"column:count"`
+	}
+
+	var roadTypeCounts []struct {
+		RoadType string `json:"road_type"`
+		Count    int64  `json:"count"`
+	}
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Select("road_type, COUNT(*) as count").
+		Group("road_type").
+		Scan(&roadTypeCounts).Error
+	stats["road_type_distribution"] = roadTypeCounts
+
+	var damageTypeCounts []struct {
+		DamageType string `json:"damage_type"`
+		Count      int64  `json:"count"`
+	}
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Select("damage_type, COUNT(*) as count").
+		Group("damage_type").
+		Scan(&damageTypeCounts).Error
+	stats["damage_type_distribution"] = damageTypeCounts
+
+	var damageLevelCounts []struct {
+		Level string `json:"level"`
+		Count int64  `json:"count"`
+	}
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Select("damage_level as level, COUNT(*) as count").
+		Group("damage_level").
+		Scan(&damageLevelCounts).Error
+	stats["damage_level_counts"] = damageLevelCounts
+
+	var urgencyLevelCounts []struct {
+		Level string `json:"level"`
+		Count int64  `json:"count"`
+	}
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Select("urgency_level as level, COUNT(*) as count").
+		Group("urgency_level").
+		Scan(&urgencyLevelCounts).Error
+	stats["urgency_level_counts"] = urgencyLevelCounts
+
+	var statusCounts []struct {
+		Status string `json:"status"`
+		Count  int64  `json:"count"`
+	}
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Select("status, COUNT(*) as count").
+		Group("status").
+		Scan(&statusCounts).Error
+	stats["status_distribution"] = statusCounts
+
+	var trafficImpactCounts []struct {
+		Impact string `json:"impact"`
+		Count  int64  `json:"count"`
+	}
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Select("traffic_impact as impact, COUNT(*) as count").
+		Group("traffic_impact").
+		Scan(&trafficImpactCounts).Error
+	stats["traffic_impact_counts"] = trafficImpactCounts
+
+	var totalBudget float64
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Where("status NOT IN ('COMPLETED', 'REJECTED')").
+		Select("COALESCE(SUM(estimated_budget), 0)").
+		Scan(&totalBudget).Error
+	stats["estimated_total_budget"] = totalBudget
+
+	var avgRepairTime float64
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Where("estimated_repair_time > 0").
+		Select("COALESCE(AVG(estimated_repair_time), 0)").
+		Scan(&avgRepairTime).Error
+	stats["average_repair_time_days"] = avgRepairTime
+
+	return stats, nil
+}
+
+func (r *binaMargaRepositoryImpl) GetDamageStatisticsByRoadType(ctx context.Context, startDate, endDate time.Time) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+	const q = `
+		SELECT 
+			road_type,
+			road_class,
+			COUNT(*) AS report_count,
+			SUM(damaged_area) AS total_damaged_area,
+			SUM(damaged_length) AS total_damaged_length,
+			SUM(estimated_budget) AS total_estimated_budget,
+			AVG(estimated_repair_time) AS avg_repair_time,
+			COUNT(CASE WHEN urgency_level = 'DARURAT' THEN 1 END) AS emergency_count
+		FROM bina_marga_reports
+		WHERE report_datetime BETWEEN ? AND ?
+		GROUP BY road_type, road_class
+		ORDER BY total_damaged_area DESC`
+	err := r.db.WithContext(ctx).Raw(q, startDate, endDate).Scan(&results).Error
+	return results, err
+}
+
+func (r *binaMargaRepositoryImpl) GetDamageStatisticsByLocation(ctx context.Context, bounds map[string]float64) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+	const q = `
+		SELECT 
+			road_name,
+			road_type,
+			road_class,
+			latitude,
+			longitude,
+			damage_type,
+			damage_level,
+			urgency_level,
+			traffic_impact,
+			damaged_area,
+			damaged_length,
+			status,
+			created_at
+		FROM bina_marga_reports
+		WHERE latitude BETWEEN ? AND ?
+		  AND longitude BETWEEN ? AND ?
+		ORDER BY urgency_level DESC, created_at DESC`
+	err := r.db.WithContext(ctx).Raw(q, bounds["south"], bounds["north"], bounds["west"], bounds["east"]).Scan(&results).Error
+	return results, err
+}
+
+func (r *binaMargaRepositoryImpl) CalculateTotalDamageArea(ctx context.Context) (float64, error) {
+	var total float64
+	err := r.db.WithContext(ctx).
+		Model(&entity.BinaMargaReport{}).
+		Select("COALESCE(SUM(damaged_area), 0)").
+		Scan(&total).Error
+	return total, err
+}
+
+func (r *binaMargaRepositoryImpl) CalculateTotalDamageLength(ctx context.Context) (float64, error) {
+	var total float64
+	err := r.db.WithContext(ctx).
+		Model(&entity.BinaMargaReport{}).
+		Select("COALESCE(SUM(damaged_length), 0)").
+		Scan(&total).Error
+	return total, err
+}
+
+func (r *binaMargaRepositoryImpl) CountReportsByUrgency(ctx context.Context, urgency entity.RoadUrgencyLevel) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&entity.BinaMargaReport{}).
+		Where("urgency_level = ?", urgency).
+		Count(&count).Error
+	return count, err
+}
+
+func (r *binaMargaRepositoryImpl) GetRepairTimeAnalysis(ctx context.Context) (map[string]interface{}, error) {
+	analysis := make(map[string]interface{})
+
+	type RepairTimeByLevel struct {
+		DamageLevel   string  `json:"damage_level"`
+		AvgRepairTime float64 `json:"avg_repair_time"`
+		MinRepairTime int     `json:"min_repair_time"`
+		MaxRepairTime int     `json:"max_repair_time"`
+		Count         int64   `json:"count"`
+	}
+	var byLevel []RepairTimeByLevel
+	r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Select(`damage_level,
+		        AVG(estimated_repair_time)  AS avg_repair_time,
+		        MIN(estimated_repair_time)  AS min_repair_time,
+		        MAX(estimated_repair_time)  AS max_repair_time,
+		        COUNT(*)                    AS count`).
+		Where("estimated_repair_time > 0").
+		Group("damage_level").
+		Scan(&byLevel)
+	analysis["repair_time_by_level"] = byLevel
+
+	type RepairTimeByClass struct {
+		RoadClass     string  `json:"road_class"`
+		AvgRepairTime float64 `json:"avg_repair_time"`
+		Count         int64   `json:"count"`
+	}
+	var byClass []RepairTimeByClass
+	r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Select(`road_class,
+		        AVG(estimated_repair_time) AS avg_repair_time,
+		        COUNT(*)                   AS count`).
+		Where("estimated_repair_time > 0").
+		Group("road_class").
+		Scan(&byClass)
+	analysis["repair_time_by_class"] = byClass
+
+	return analysis, nil
+}
+
+func (r *binaMargaRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entity.BinaMargaReport, int64, error) {
+	var (
+		reports []*entity.BinaMargaReport
+		total   int64
+	)
+	query := r.db.WithContext(ctx).
+		Model(&entity.BinaMargaReport{}).
+		Where("created_by = ?", userID)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := query.
+		Preload("Photos").
+		Limit(limit).
+		Offset(offset).
+		Order("created_at DESC").
+		Find(&reports).Error
+
+	return reports, total, err
+}
+
+func (r *binaMargaRepositoryImpl) FindByPriority(ctx context.Context, limit, offset int) ([]*entity.BinaMargaReport, int64, error) {
+	var (
+		reports []*entity.BinaMargaReport
+		total   int64
+	)
+
+	const prioritySQL = `
+		SELECT *,
+			( CASE WHEN urgency_level = 'DARURAT' THEN 100
+			       WHEN urgency_level = 'TINGGI'  THEN 75
+			       WHEN urgency_level = 'SEDANG'  THEN 50
+			       ELSE 25 END
+			  + CASE WHEN damage_level = 'BERAT' THEN 50
+			         WHEN damage_level = 'SEDANG' THEN 30
+			         ELSE 15 END
+			  + CASE WHEN road_class = 'ARTERI'   THEN 40
+			         WHEN road_class = 'KOLEKTOR' THEN 30
+			         WHEN road_class = 'LOKAL'    THEN 20
+			         ELSE 10 END
+			  + CASE WHEN traffic_impact = 'TERPUTUS'         THEN 60
+			         WHEN traffic_impact = 'SANGAT_TERGANGGU'  THEN 40
+			         WHEN traffic_impact = 'TERGANGGU'         THEN 20
+			         ELSE 5 END
+			  + CASE WHEN damaged_area > 100 THEN 25
+			         WHEN damaged_area > 50  THEN 15
+			         ELSE 0 END ) AS priority_score
+		FROM bina_marga_reports
+		WHERE status NOT IN ('COMPLETED', 'REJECTED')
+		ORDER BY priority_score DESC, created_at DESC
+		LIMIT ? OFFSET ?`
+
+	err := r.db.WithContext(ctx).Raw(prioritySQL, limit, offset).Scan(&reports).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	_ = r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+		Where("status NOT IN ('COMPLETED', 'REJECTED')").
+		Count(&total).Error
+
+	return reports, total, nil
+}
+
+func (r *binaMargaRepositoryImpl) FindEmergencyReports(ctx context.Context, limit int) ([]*entity.BinaMargaReport, error) {
+	var reports []*entity.BinaMargaReport
+	err := r.db.WithContext(ctx).
+		Preload("Photos").
+		Where("urgency_level = ?", entity.RoadUrgencyEmergency).
+		Where("status NOT IN ('COMPLETED', 'REJECTED')").
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&reports).Error
+	return reports, err
+}

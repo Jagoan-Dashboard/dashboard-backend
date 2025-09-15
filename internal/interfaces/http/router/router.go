@@ -60,6 +60,50 @@ waterRoutes.Put("/:id", cont.WaterResourcesHandler.UpdateReport)
 waterRoutes.Delete("/:id", cont.WaterResourcesHandler.DeleteReport)
 
 
+    binaMargaRoutes := protected.Group("/bina-marga")
+    binaMargaRoutes.Get("/", cont.BinaMargaHandler.ListReports)
+    binaMargaRoutes.Get("/priority", cont.BinaMargaHandler.ListByPriority)
+    binaMargaRoutes.Get("/statistics", cont.BinaMargaHandler.GetStatistics)
+    binaMargaRoutes.Get("/emergency", cont.BinaMargaHandler.GetEmergencyReports)
+    binaMargaRoutes.Get("/blocked", cont.BinaMargaHandler.GetBlockedRoads)
+    binaMargaRoutes.Get("/damage-by-road-type", cont.BinaMargaHandler.GetDamageByRoadType)
+    binaMargaRoutes.Get("/damage-by-location", cont.BinaMargaHandler.GetDamageByLocation)
+    binaMargaRoutes.Get("/:id", cont.BinaMargaHandler.GetReport)
+    binaMargaRoutes.Post("/", cont.BinaMargaHandler.CreateReport)
+    binaMargaRoutes.Put("/:id", cont.BinaMargaHandler.UpdateReport)
+    binaMargaRoutes.Delete("/:id", cont.BinaMargaHandler.DeleteReport)
+
+    agricultureRoutes := protected.Group("/agriculture")
+
+
+agricultureRoutes.Get("/", cont.AgricultureHandler.ListReports)
+agricultureRoutes.Get("/:id", cont.AgricultureHandler.GetReport)
+agricultureRoutes.Post("/", cont.AgricultureHandler.CreateReport)
+agricultureRoutes.Put("/:id", cont.AgricultureHandler.UpdateReport)
+agricultureRoutes.Delete("/:id", cont.AgricultureHandler.DeleteReport)
+
+
+agricultureRoutes.Get("/statistics/overview", cont.AgricultureHandler.GetStatistics)
+agricultureRoutes.Get("/statistics/commodity-production", cont.AgricultureHandler.GetCommodityProduction)
+agricultureRoutes.Get("/statistics/technology-adoption", cont.AgricultureHandler.GetTechnologyAdoptionStats)
+agricultureRoutes.Get("/statistics/farmer-needs", cont.AgricultureHandler.GetFarmerNeedsAnalysis)
+
+
+agricultureRoutes.Get("/extension-officer/:officer/reports", cont.AgricultureHandler.GetByExtensionOfficer)
+agricultureRoutes.Get("/extension-officer/performance", cont.AgricultureHandler.GetExtensionOfficerPerformance)
+
+
+agricultureRoutes.Get("/village/:village/reports", cont.AgricultureHandler.GetReportsByVillage)
+agricultureRoutes.Get("/reports/by-date-range", cont.AgricultureHandler.GetReportsByDateRange)
+
+
+agricultureRoutes.Get("/pest-disease/reports", cont.AgricultureHandler.GetPestDiseaseReports)
+
+
+agricultureRoutes.Get("/dashboard/summary", cont.AgricultureHandler.GetDashboardSummary)
+
+
+
 adminWaterRoutes := protected.Group("/admin/water-resources", middleware.RequireRole("ADMIN"))
 adminWaterRoutes.Put("/:id/status", cont.WaterResourcesHandler.UpdateStatus)
 
@@ -71,4 +115,32 @@ adminWaterRoutes.Put("/:id/status", cont.WaterResourcesHandler.UpdateStatus)
 
     adminSpatialRoutes := protected.Group("/admin/spatial-planning", middleware.RequireRole("ADMIN"))
     adminSpatialRoutes.Put("/:id/status", cont.SpatialPlanningHandler.UpdateStatus)
+
+    
+    adminBinaMargaRoutes := adminRoutes.Group("/bina-marga")
+    adminBinaMargaRoutes.Put("/:id/status", cont.BinaMargaHandler.UpdateStatus)
+
+    
+    dashboardRoutes := protected.Group("/dashboard")
+    dashboardRoutes.Get("/overview", func(c *fiber.Ctx) error {
+        return c.JSON(fiber.Map{
+            "message": "Dashboard overview endpoint - implement consolidated statistics",
+        })
+    })
+    dashboardRoutes.Get("/urgent-reports", func(c *fiber.Ctx) error {
+        return c.JSON(fiber.Map{
+            "message": "All urgent reports across all modules",
+        })
+    })
+
+    
+adminAgricultureRoutes := adminRoutes.Group("/agriculture")
+adminAgricultureRoutes.Get("/reports/all", func(c *fiber.Ctx) error {
+    
+    return c.JSON(fiber.Map{"message": "Admin view all agriculture reports"})
+})
+adminAgricultureRoutes.Get("/analytics/advanced", func(c *fiber.Ctx) error {
+    
+    return c.JSON(fiber.Map{"message": "Advanced agriculture analytics"})
+})
 }
