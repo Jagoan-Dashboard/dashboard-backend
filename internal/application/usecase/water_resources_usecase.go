@@ -35,6 +35,7 @@ func NewWaterResourcesUseCase(
 
 func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.CreateWaterResourcesRequest, photos []*multipart.FileHeader, userID uuid.UUID) (*entity.WaterResourcesReport, error) {
     report := &entity.WaterResourcesReport{
+        ID:                    uuid.New(),
         ReporterName:          req.ReporterName,
         InstitutionUnit:       entity.InstitutionUnitType(req.InstitutionUnit),
         PhoneNumber:           req.PhoneNumber,
@@ -73,6 +74,7 @@ func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.Crea
 
         caption := fmt.Sprintf("%s view - %s", photoAngles[i], report.IrrigationAreaName)
         report.Photos = append(report.Photos, entity.WaterResourcesPhoto{
+            ID:         uuid.New(),
             PhotoURL:   photoURL,
             PhotoAngle: photoAngles[i],
             Caption:    caption,

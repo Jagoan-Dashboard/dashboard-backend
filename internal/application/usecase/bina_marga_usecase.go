@@ -38,6 +38,7 @@ func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBin
     damagedArea := req.DamagedLength * req.DamagedWidth
     
     report := &entity.BinaMargaReport{
+        ID:               uuid.New(),
         ReporterName:     req.ReporterName,
         InstitutionUnit:  entity.InstitutionUnitType(req.InstitutionUnit),
         PhoneNumber:      req.PhoneNumber,
@@ -79,6 +80,7 @@ func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBin
 
         caption := fmt.Sprintf("%s view - %s (%s)", angle, report.RoadName, report.DamageType)
         report.Photos = append(report.Photos, entity.BinaMargaPhoto{
+            ID:         uuid.New(),
             PhotoURL:   photoURL,
             PhotoAngle: angle,
             Caption:    caption,

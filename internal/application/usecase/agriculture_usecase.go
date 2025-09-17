@@ -35,6 +35,7 @@ func NewAgricultureUseCase(
 
 func (uc *AgricultureUseCase) CreateReport(ctx context.Context, req *dto.CreateAgricultureRequest, photos []*multipart.FileHeader, userID uuid.UUID) (*entity.AgricultureReport, error) {
     report := &entity.AgricultureReport{
+        ID:               uuid.New(),
         ExtensionOfficer: req.ExtensionOfficer,
         VisitDate:        req.VisitDate,
         FarmerName:       req.FarmerName,
@@ -155,6 +156,7 @@ func (uc *AgricultureUseCase) CreateReport(ctx context.Context, req *dto.CreateA
 
         caption := fmt.Sprintf("%s - %s (%s)", photoType, report.FarmerName, report.Village)
         report.Photos = append(report.Photos, entity.AgriculturePhoto{
+            ID:       uuid.New(),
             PhotoURL:  photoURL,
             PhotoType: photoType,
             Caption:   caption,

@@ -1,4 +1,3 @@
-
 package usecase
 
 import (
@@ -10,8 +9,10 @@ import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/internal/domain/repository"
 	"building-report-backend/internal/infrastructure/auth"
+	"building-report-backend/pkg/utils"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -50,11 +51,16 @@ func (uc *AuthUseCase) Register(ctx context.Context, req *dto.RegisterRequest) (
         return nil, ErrUserExists
     }
 
-    
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+    if err != nil {
+        return nil, err
+    }
+
     user := &entity.User{
+        ID:       utils.GenerateUUID(),
         Username: req.Username,
         Email:    req.Email,
-        Password: req.Password,
+        Password: string(hashedPassword),
         Role:     entity.RoleOperator,
         IsActive: true,
     }

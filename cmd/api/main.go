@@ -41,6 +41,7 @@ func main() {
     
     app := fiber.New(fiber.Config{
         ErrorHandler: customErrorHandler,
+        BodyLimit:  10 * 1024 * 1024, // 10 MB
     })
 
     

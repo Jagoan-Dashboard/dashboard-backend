@@ -34,6 +34,7 @@ func NewSpatialPlanningUseCase(
 
 func (uc *SpatialPlanningUseCase) CreateReport(ctx context.Context, req *dto.CreateSpatialPlanningRequest, photos []*multipart.FileHeader, userID uuid.UUID) (*entity.SpatialPlanningReport, error) {
     report := &entity.SpatialPlanningReport{
+        ID:                  uuid.New(),
         ReporterName:        req.ReporterName,
         Institution:         entity.InstitutionType(req.Institution),
         PhoneNumber:         req.PhoneNumber,
@@ -61,6 +62,7 @@ func (uc *SpatialPlanningUseCase) CreateReport(ctx context.Context, req *dto.Cre
 
         caption := fmt.Sprintf("Photo %d", i+1)
         report.Photos = append(report.Photos, entity.SpatialPlanningPhoto{
+            ID:       uuid.New(),
             PhotoURL: photoURL,
             Caption:  caption,
         })

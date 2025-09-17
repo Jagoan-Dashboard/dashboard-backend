@@ -32,6 +32,7 @@ func NewReportUseCase(
 
 func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReportRequest, photos []*multipart.FileHeader, userID uuid.UUID) (*entity.Report, error) {
     report := &entity.Report{
+        ID:                   uuid.New(),
         ReporterName:         req.ReporterName,
         ReporterRole:         entity.ReporterRole(req.ReporterRole),
         Village:              req.Village,
@@ -72,6 +73,7 @@ func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReport
         }
 
         report.Photos = append(report.Photos, entity.ReportPhoto{
+            ID:       uuid.New(),
             PhotoURL:  photoURL,
             PhotoType: photoType,
         })
@@ -81,7 +83,7 @@ func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReport
         return nil, err
     }
 
-    
+
     uc.cache.Delete(ctx, "reports:list")
 
     return report, nil
