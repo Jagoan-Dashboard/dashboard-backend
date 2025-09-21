@@ -36,7 +36,7 @@ type CreateBinaMargaRequest struct {
     
     
     TrafficCondition    string    `json:"traffic_condition" validate:"required"` 
-    TrafficImpact       string    `json:"traffic_impact" validate:"required"`
+    TrafficImpact       string    `json:"traffic_impact"`
     DailyTrafficVolume  int       `json:"daily_traffic_volume" validate:"min=0"`
     UrgencyLevel        string    `json:"urgency_level" validate:"required,oneof=DARURAT CEPAT RUTIN"`
     
