@@ -218,25 +218,6 @@ const (
     RoadClassLingkungan  RoadClass = "LINGKUNGAN"  
 )
 
-
-type RoadDamageType string
-
-const (
-    RoadDamageRetak         RoadDamageType = "RETAK_MEMANJANG"      
-    RoadDamageRetakMelintang RoadDamageType = "RETAK_MELINTANG"     
-    RoadDamageRetakBlok     RoadDamageType = "RETAK_BLOK"          
-    RoadDamageRetakBuaya    RoadDamageType = "RETAK_KULIT_BUAYA"   
-    RoadDamageLubang        RoadDamageType = "LUBANG"              
-    RoadDamageAmblas        RoadDamageType = "AMBLAS"              
-    RoadDamageGelombang     RoadDamageType = "GELOMBANG"           
-    RoadDamageTepiJalan     RoadDamageType = "KERUSAKAN_TEPI"      
-    RoadDamageDrainase      RoadDamageType = "KERUSAKAN_DRAINASE"  
-    RoadDamageJembatan      RoadDamageType = "KERUSAKAN_JEMBATAN"  
-    RoadDamagePerlengkapan  RoadDamageType = "KERUSAKAN_PERLENGKAPAN" 
-    RoadDamageLainnya       RoadDamageType = "LAINNYA"
-)
-
-
 type RoadDamageLevel string
 
 const (
@@ -244,27 +225,6 @@ const (
     RoadDamageLevelModerate RoadDamageLevel = "SEDANG"   
     RoadDamageLevelSevere   RoadDamageLevel = "BERAT"    
 )
-
-
-type TrafficImpact string
-
-const (
-    TrafficImpactMinimal         TrafficImpact = "MINIMAL"           
-    TrafficImpactReduced         TrafficImpact = "TERGANGGU"         
-    TrafficImpactSeverelyReduced TrafficImpact = "SANGAT_TERGANGGU"  
-    TrafficImpactBlocked         TrafficImpact = "TERPUTUS"          
-)
-
-
-type RoadUrgencyLevel string
-
-const (
-    RoadUrgencyLow       RoadUrgencyLevel = "RENDAH"    
-    RoadUrgencyMedium    RoadUrgencyLevel = "SEDANG"    
-    RoadUrgencyHigh      RoadUrgencyLevel = "TINGGI"    
-    RoadUrgencyEmergency RoadUrgencyLevel = "DARURAT"   
-)
-
 
 type BinaMargaStatus string
 
@@ -573,4 +533,92 @@ const (
     WaterAccessJauh    WaterAccess = "JAUH"
     WaterAccessTidakAda WaterAccess = "TIDAK_ADA"
     WaterAccessLainnya WaterAccess = "LAINNYA"
+)
+
+
+type PavementType string
+
+const (
+    PavementAspalFlexible PavementType = "ASPAL_FLEXIBLE"
+    PavementBetonRigid    PavementType = "BETON_RIGID"
+    PavementPaving        PavementType = "PAVING"
+    PavementJalanTanah    PavementType = "JALAN_TANAH"
+)
+
+
+type RoadDamageType string
+
+const (
+    RoadDamageLubang            RoadDamageType = "LUBANG_POTHOLES"
+    RoadDamageRetakBuaya        RoadDamageType = "RETAK_KULIT_BUAYA"
+    RoadDamageAmblas            RoadDamageType = "AMBLAS_LONGSOR"
+    RoadDamagePermukaanAus      RoadDamageType = "PERMUKAAN_AUS_RAVELING"
+    RoadDamageGenaganDrainase   RoadDamageType = "GENANGAN_AIR_DRAINASE_BURUK"
+    RoadDamageRetakMemanjang    RoadDamageType = "RETAK_MEMANJANG"
+    RoadDamageRetakMelintang    RoadDamageType = "RETAK_MELINTANG"
+    RoadDamageRetakBlok         RoadDamageType = "RETAK_BLOK"
+    RoadDamageGelombang         RoadDamageType = "GELOMBANG"
+    RoadDamageTepiJalan         RoadDamageType = "KERUSAKAN_TEPI"
+    RoadDamageDrainase          RoadDamageType = "KERUSAKAN_DRAINASE"
+    RoadDamageJembatan          RoadDamageType = "KERUSAKAN_JEMBATAN"
+    RoadDamagePerlengkapan      RoadDamageType = "KERUSAKAN_PERLENGKAPAN"
+    RoadDamageLainnya           RoadDamageType = "LAINNYA"
+)
+
+
+type BridgeStructureType string
+
+const (
+    BridgeStructureBetonBertulang BridgeStructureType = "BETON_BERTULANG"
+    BridgeStructureBaja           BridgeStructureType = "BAJA"
+    BridgeStructureKayu           BridgeStructureType = "KAYU"
+)
+
+
+type BridgeDamageType string
+
+const (
+    BridgeDamageLantaiRetak    BridgeDamageType = "LANTAI_JEMBATAN_RETAK_RUSAK"
+    BridgeDamageOpritAmblas    BridgeDamageType = "OPRIT_ABUTMENT_AMBLAS"
+    BridgeDamageRangkaRetak    BridgeDamageType = "RANGKA_UTAMA_RETAK"
+    BridgeDamagePondasiTerseret BridgeDamageType = "PONDASI_TERSERET_ARUS"
+    BridgeDamageLainnya        BridgeDamageType = "LAINNYA"
+)
+
+
+type BridgeDamageLevel string
+
+const (
+    BridgeDamageLevelRingan      BridgeDamageLevel = "RINGAN"
+    BridgeDamageLevelSedang      BridgeDamageLevel = "SEDANG"
+    BridgeDamageLevelSevere      BridgeDamageLevel = "BERAT_TIDAK_LAYAK"
+)
+
+
+type TrafficCondition string
+
+const (
+    TrafficConditionNormal         TrafficCondition = "MASIH_BISA_DILALUI"
+    TrafficConditionOneLane        TrafficCondition = "HANYA_SATU_LAJUR_BISA_DILALUI"
+    TrafficConditionBlocked        TrafficCondition = "TIDAK_BISA_DILALUI_PUTUS"
+)
+
+
+type RoadUrgencyLevel string
+
+const (
+    RoadUrgencyEmergency RoadUrgencyLevel = "DARURAT"   
+    RoadUrgencyHigh      RoadUrgencyLevel = "CEPAT"     
+    RoadUrgencyMedium    RoadUrgencyLevel = "RUTIN"     
+    RoadUrgencyLow       RoadUrgencyLevel = "RENDAH"    
+)
+
+
+type TrafficImpact string
+
+const (
+    TrafficImpactMinimal         TrafficImpact = "MINIMAL"           
+    TrafficImpactReduced         TrafficImpact = "TERGANGGU"         
+    TrafficImpactSeverelyReduced TrafficImpact = "SANGAT_TERGANGGU"  
+    TrafficImpactBlocked         TrafficImpact = "TERPUTUS"          
 )
