@@ -1,4 +1,3 @@
-
 package usecase
 
 import (
@@ -7,7 +6,9 @@ import (
 	"building-report-backend/internal/domain/repository"
 	"building-report-backend/internal/infrastructure/storage"
 	"context"
+	"fmt"
 	"mime/multipart"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -177,4 +178,259 @@ func (uc *ReportUseCase) DeleteReport(ctx context.Context, id uuid.UUID, userID 
     uc.cache.Delete(ctx, "reports:list")
 
     return nil
+}
+
+func (uc *ReportUseCase) GetTataBangunanOverview(ctx context.Context, buildingType string) (*dto.TataBangunanOverviewResponse, error) {
+    // Cache key based on building type
+    cacheKey := fmt.Sprintf("tata_bangunan:overview:%s", buildingType)
+    var response dto.TataBangunanOverviewResponse
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return &response, nil
+    }
+
+    // Get basic statistics
+    basicStatsRaw, err := uc.reportRepo.GetStatistics(ctx, buildingType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get basic statistics: %w", err)
+    }
+    
+    response.BasicStats = dto.ReportStatisticsResponse{
+        TotalReports:       basicStatsRaw["total_reports"].(int64),
+        AverageFloorArea:   basicStatsRaw["average_floor_area"].(float64),
+        AverageFloorCount:  basicStatsRaw["average_floor_count"].(float64),
+        DamagedBuildings:   basicStatsRaw["damaged_buildings_count"].(int64),
+    }
+
+    // Get location distribution
+    locationStats, err := uc.reportRepo.GetLocationStatistics(ctx, buildingType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get location statistics: %w", err)
+    }
+    
+    for _, loc := range locationStats {
+        response.LocationDistribution = append(response.LocationDistribution, dto.LocationStatisticsResponse{
+            District:      loc["district"].(string),
+            Village:       loc["village"].(string),
+            BuildingCount: int(loc["building_count"].(int64)),
+            AvgLatitude:   loc["avg_latitude"].(float64),
+            AvgLongitude:  loc["avg_longitude"].(float64),
+            DamagedCount:  int(loc["damaged_count"].(int64)),
+        })
+    }
+
+    // Get status distribution
+    statusStats, err := uc.reportRepo.GetStatusStatistics(ctx, buildingType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get status statistics: %w", err)
+    }
+    
+    for _, status := range statusStats {
+        response.StatusDistribution = append(response.StatusDistribution, dto.StatusStatisticsResponse{
+            Status: status["report_status"].(string),
+            Count:  status["count"].(int64),
+        })
+    }
+
+    // Get work type distribution
+    workTypeStats, err := uc.reportRepo.GetWorkTypeStatistics(ctx, buildingType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get work type statistics: %w", err)
+    }
+    
+    for _, workType := range workTypeStats {
+        response.WorkTypeDistribution = append(response.WorkTypeDistribution, dto.WorkTypeStatisticsResponse{
+            WorkType: workType["work_type"].(string),
+            Count:    workType["count"].(int64),
+        })
+    }
+
+    // Get condition after rehab distribution
+    conditionStats, err := uc.reportRepo.GetConditionAfterRehabStatistics(ctx, buildingType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get condition statistics: %w", err)
+    }
+    
+    for _, condition := range conditionStats {
+        response.ConditionDistribution = append(response.ConditionDistribution, dto.ConditionStatisticsResponse{
+            Condition: condition["condition_after_rehab"].(string),
+            Count:     condition["count"].(int64),
+        })
+    }
+
+    // Get building type distribution (only if getting all types)
+    if buildingType == "" || buildingType == "all" {
+        buildingTypeStats, err := uc.reportRepo.CountByBuildingType(ctx)
+        if err != nil {
+            return nil, fmt.Errorf("failed to get building type statistics: %w", err)
+        }
+        
+        for _, bt := range buildingTypeStats {
+            response.BuildingTypeDistribution = append(response.BuildingTypeDistribution, dto.BuildingTypeStatisticsResponse{
+                BuildingType: bt["building_type"].(string),
+                Count:        bt["count"].(int64),
+            })
+        }
+    }
+
+    // Cache the response for 5 minutes
+    uc.cache.Set(ctx, cacheKey, &response, 300*time.Second)
+
+    return &response, nil
+}
+
+func (uc *ReportUseCase) GetBasicStatistics(ctx context.Context, buildingType string) (*dto.ReportStatisticsResponse, error) {
+    cacheKey := fmt.Sprintf("reports:basic_stats:%s", buildingType)
+    var response dto.ReportStatisticsResponse
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return &response, nil
+    }
+
+    statsRaw, err := uc.reportRepo.GetStatistics(ctx, buildingType)
+    if err != nil {
+        return nil, err
+    }
+
+    response = dto.ReportStatisticsResponse{
+        TotalReports:       statsRaw["total_reports"].(int64),
+        AverageFloorArea:   statsRaw["average_floor_area"].(float64),
+        AverageFloorCount:  statsRaw["average_floor_count"].(float64),
+        DamagedBuildings:   statsRaw["damaged_buildings_count"].(int64),
+    }
+
+    uc.cache.Set(ctx, cacheKey, &response, 300*time.Second)
+    return &response, nil
+}
+
+func (uc *ReportUseCase) GetLocationDistribution(ctx context.Context, buildingType string) ([]dto.LocationStatisticsResponse, error) {
+    cacheKey := fmt.Sprintf("reports:location_dist:%s", buildingType)
+    var response []dto.LocationStatisticsResponse
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    locationStats, err := uc.reportRepo.GetLocationStatistics(ctx, buildingType)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, loc := range locationStats {
+        response = append(response, dto.LocationStatisticsResponse{
+            District:      loc["district"].(string),
+            Village:       loc["village"].(string),
+            BuildingCount: int(loc["building_count"].(int64)),
+            AvgLatitude:   loc["avg_latitude"].(float64),
+            AvgLongitude:  loc["avg_longitude"].(float64),
+            DamagedCount:  int(loc["damaged_count"].(int64)),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 300*time.Second)
+    return response, nil
+}
+
+
+func (uc *ReportUseCase) GetWorkTypeStatistics(ctx context.Context, buildingType string) ([]dto.WorkTypeStatisticsResponse, error) {
+    cacheKey := fmt.Sprintf("reports:work_type_stats:%s", buildingType)
+    var response []dto.WorkTypeStatisticsResponse
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    workTypeStats, err := uc.reportRepo.GetWorkTypeStatistics(ctx, buildingType)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, workType := range workTypeStats {
+        response = append(response, dto.WorkTypeStatisticsResponse{
+            WorkType: workType["work_type"].(string),
+            Count:    workType["count"].(int64),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 300*time.Second)
+    return response, nil
+}
+
+func (uc *ReportUseCase) GetConditionAfterRehabStatistics(ctx context.Context, buildingType string) ([]dto.ConditionStatisticsResponse, error) {
+    cacheKey := fmt.Sprintf("reports:condition_stats:%s", buildingType)
+    var response []dto.ConditionStatisticsResponse
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    conditionStats, err := uc.reportRepo.GetConditionAfterRehabStatistics(ctx, buildingType)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, condition := range conditionStats {
+        response = append(response, dto.ConditionStatisticsResponse{
+            Condition: condition["condition_after_rehab"].(string),
+            Count:     condition["count"].(int64),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 300*time.Second)
+    return response, nil
+}
+
+func (uc *ReportUseCase) GetStatusStatistics(ctx context.Context, buildingType string) ([]dto.StatusStatisticsResponse, error) {
+    cacheKey := fmt.Sprintf("reports:status_stats:%s", buildingType)
+    var response []dto.StatusStatisticsResponse
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    statusStats, err := uc.reportRepo.GetStatusStatistics(ctx, buildingType)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, status := range statusStats {
+        response = append(response, dto.StatusStatisticsResponse{
+            Status: status["report_status"].(string),
+            Count:  status["count"].(int64),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 300*time.Second)
+    return response, nil
+}
+
+func (uc *ReportUseCase) GetBuildingTypeDistribution(ctx context.Context) ([]dto.BuildingTypeStatisticsResponse, error) {
+    cacheKey := "reports:building_type_dist"
+    var response []dto.BuildingTypeStatisticsResponse
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    buildingTypeStats, err := uc.reportRepo.CountByBuildingType(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, bt := range buildingTypeStats {
+        response = append(response, dto.BuildingTypeStatisticsResponse{
+            BuildingType: bt["building_type"].(string),
+            Count:        bt["count"].(int64),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 600*time.Second) // Cache for 10 minutes
+    return response, nil
 }

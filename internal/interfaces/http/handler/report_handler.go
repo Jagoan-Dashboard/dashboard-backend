@@ -1,10 +1,10 @@
-
 package handler
 
 import (
 	"building-report-backend/internal/application/dto"
 	"building-report-backend/internal/application/usecase"
 	"building-report-backend/internal/interfaces/response"
+	"fmt"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -124,4 +124,127 @@ func (h *ReportHandler) DeleteReport(c *fiber.Ctx) error {
     }
 
     return response.Success(c, "Report deleted successfully", nil)
+}
+
+func (h *ReportHandler) GetTataBangunanOverview(c *fiber.Ctx) error {
+    buildingType := c.Query("building_type", "all") // all, SEKOLAH, PUSKESMAS, PASAR, etc.
+    
+    // Validate building type
+    validBuildingTypes := map[string]bool{
+        "all":                    true,
+        "SEKOLAH":               true,
+        "PUSKESMAS_POSYANDU":    true,
+        "PASAR":                 true,
+        "SARANA_OLAHRAGA":       true,
+        "KANTOR_PEMERINTAH":     true,
+        "FASILITAS_UMUM":        true,
+        "LAINNYA":               true,
+    }
+    
+    if !validBuildingTypes[buildingType] {
+        return response.BadRequest(c, "Invalid building type", fmt.Errorf("building_type must be one of: all, SEKOLAH, PUSKESMAS_POSYANDU, PASAR, SARANA_OLAHRAGA, KANTOR_PEMERINTAH, FASILITAS_UMUM, LAINNYA"))
+    }
+    
+    // Convert "all" to empty string for repository layer
+    queryBuildingType := buildingType
+    if buildingType == "all" {
+        queryBuildingType = ""
+    }
+
+    overview, err := h.reportUseCase.GetTataBangunanOverview(c.Context(), queryBuildingType)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve tata bangunan overview", err)
+    }
+
+    return response.Success(c, "Tata bangunan overview retrieved successfully", overview)
+}
+
+// GetBasicStatistics handles basic statistics endpoint
+func (h *ReportHandler) GetBasicStatistics(c *fiber.Ctx) error {
+    buildingType := c.Query("building_type", "all")
+    
+    if buildingType == "all" {
+        buildingType = ""
+    }
+
+    stats, err := h.reportUseCase.GetBasicStatistics(c.Context(), buildingType)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve basic statistics", err)
+    }
+
+    return response.Success(c, "Basic statistics retrieved successfully", stats)
+}
+
+// GetLocationDistribution handles location distribution for mapping
+func (h *ReportHandler) GetLocationDistribution(c *fiber.Ctx) error {
+    buildingType := c.Query("building_type", "all")
+    
+    if buildingType == "all" {
+        buildingType = ""
+    }
+
+    locations, err := h.reportUseCase.GetLocationDistribution(c.Context(), buildingType)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve location distribution", err)
+    }
+
+    return response.Success(c, "Location distribution retrieved successfully", locations)
+}
+
+// GetWorkTypeStatistics handles work type statistics
+func (h *ReportHandler) GetWorkTypeStatistics(c *fiber.Ctx) error {
+    buildingType := c.Query("building_type", "all")
+    
+    if buildingType == "all" {
+        buildingType = ""
+    }
+
+    workTypeStats, err := h.reportUseCase.GetWorkTypeStatistics(c.Context(), buildingType)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve work type statistics", err)
+    }
+
+    return response.Success(c, "Work type statistics retrieved successfully", workTypeStats)
+}
+
+// GetConditionAfterRehabStatistics handles condition after rehab statistics
+func (h *ReportHandler) GetConditionAfterRehabStatistics(c *fiber.Ctx) error {
+    buildingType := c.Query("building_type", "all")
+    
+    if buildingType == "all" {
+        buildingType = ""
+    }
+
+    conditionStats, err := h.reportUseCase.GetConditionAfterRehabStatistics(c.Context(), buildingType)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve condition after rehab statistics", err)
+    }
+
+    return response.Success(c, "Condition after rehab statistics retrieved successfully", conditionStats)
+}
+
+// GetStatusStatistics handles status statistics
+func (h *ReportHandler) GetStatusStatistics(c *fiber.Ctx) error {
+    buildingType := c.Query("building_type", "all")
+    
+    if buildingType == "all" {
+        buildingType = ""
+    }
+
+    statusStats, err := h.reportUseCase.GetStatusStatistics(c.Context(), buildingType)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve status statistics", err)
+    }
+
+    return response.Success(c, "Status statistics retrieved successfully", statusStats)
+}
+
+// GetBuildingTypeDistribution handles building type distribution
+func (h *ReportHandler) GetBuildingTypeDistribution(c *fiber.Ctx) error {
+    buildingTypeStats, err := h.reportUseCase.GetBuildingTypeDistribution(c.Context())
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve building type distribution", err)
+    }
+
+    return response.Success(c, "Building type distribution retrieved successfully", buildingTypeStats)
 }

@@ -54,3 +54,56 @@ type PaginatedReportsResponse struct {
     PerPage    int              `json:"per_page"`
     TotalPages int64            `json:"total_pages"`
 }
+
+
+type ReportStatisticsResponse struct {
+    TotalReports       int64                    `json:"total_reports"`
+    AverageFloorArea   float64                  `json:"average_floor_area"`
+    AverageFloorCount  float64                  `json:"average_floor_count"`
+    DamagedBuildings   int64                    `json:"damaged_buildings_count"`
+}
+
+type LocationStatisticsResponse struct {
+    District      string  `json:"district"`
+    Village       string  `json:"village"`
+    BuildingCount int     `json:"building_count"`
+    AvgLatitude   float64 `json:"avg_latitude"`
+    AvgLongitude  float64 `json:"avg_longitude"`
+    DamagedCount  int     `json:"damaged_count"`
+}
+
+type WorkTypeStatisticsResponse struct {
+    WorkType string `json:"work_type"`
+    Count    int64  `json:"count"`
+}
+
+type ConditionStatisticsResponse struct {
+    Condition string `json:"condition_after_rehab"`
+    Count     int64  `json:"count"`
+}
+
+type StatusStatisticsResponse struct {
+    Status string `json:"report_status"`
+    Count  int64  `json:"count"`
+}
+
+type BuildingTypeStatisticsResponse struct {
+    BuildingType string `json:"building_type"`
+    Count        int64  `json:"count"`
+}
+
+type TataBangunanOverviewResponse struct {
+    // Baris pertama
+    BasicStats          ReportStatisticsResponse         `json:"basic_stats"`
+    
+    // Baris kedua
+    LocationDistribution []LocationStatisticsResponse    `json:"location_distribution"`
+    StatusDistribution   []StatusStatisticsResponse      `json:"status_distribution"`
+    
+    // Baris ketiga
+    WorkTypeDistribution []WorkTypeStatisticsResponse    `json:"work_type_distribution"`
+    ConditionDistribution []ConditionStatisticsResponse  `json:"condition_distribution"`
+    
+    // Summary by building type
+    BuildingTypeDistribution []BuildingTypeStatisticsResponse `json:"building_type_distribution"`
+}

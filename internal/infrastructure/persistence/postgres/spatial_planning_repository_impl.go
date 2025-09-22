@@ -170,3 +170,224 @@ func (r *spatialPlanningRepositoryImpl) GetStatistics(ctx context.Context) (map[
     
     return stats, nil
 }
+
+
+func (r *spatialPlanningRepositoryImpl) GetTataRuangStatistics(ctx context.Context, areaCategory string) (map[string]interface{}, error) {
+    stats := make(map[string]interface{})
+    
+    query := r.db.WithContext(ctx).Model(&entity.SpatialPlanningReport{})
+    if areaCategory != "" && areaCategory != "all" {
+        query = query.Where("area_category = ?", areaCategory)
+    }
+    
+    // Total reports
+    var totalReports int64
+    query.Count(&totalReports)
+    stats["total_reports"] = totalReports
+    
+    // Since we don't have exact length/area measurements in current schema,
+    // we'll calculate estimated values based on violation level and type
+    // You can modify this based on actual field names if they exist
+    
+    // Estimated total violation length (hypothetical calculation)
+    var estimatedTotalLength float64
+    query.Select(`
+        COALESCE(SUM(
+            CASE 
+                WHEN violation_level = 'BERAT' THEN 100.0
+                WHEN violation_level = 'SEDANG' THEN 50.0
+                WHEN violation_level = 'RINGAN' THEN 20.0
+                ELSE 30.0
+            END
+        ), 0) as estimated_length
+    `).Scan(&estimatedTotalLength)
+    stats["estimated_total_length_m"] = estimatedTotalLength
+    
+    // Estimated total violation area (hypothetical calculation)
+    var estimatedTotalArea float64
+    query.Select(`
+        COALESCE(SUM(
+            CASE 
+                WHEN violation_level = 'BERAT' AND violation_type LIKE '%SEMPADAN%' THEN 500.0
+                WHEN violation_level = 'BERAT' THEN 1000.0
+                WHEN violation_level = 'SEDANG' AND violation_type LIKE '%SEMPADAN%' THEN 200.0
+                WHEN violation_level = 'SEDANG' THEN 400.0
+                WHEN violation_level = 'RINGAN' THEN 100.0
+                ELSE 150.0
+            END
+        ), 0) as estimated_area
+    `).Scan(&estimatedTotalArea)
+    stats["estimated_total_area_m2"] = estimatedTotalArea
+    
+    // Count urgent reports
+    var urgentCount int64
+    query.Where("urgency_level = ?", "MENDESAK").Count(&urgentCount)
+    stats["urgent_reports_count"] = urgentCount
+    
+    return stats, nil
+}
+
+func (r *spatialPlanningRepositoryImpl) GetLocationDistribution(ctx context.Context, areaCategory string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            COALESCE(SPLIT_PART(address, ',', -1), 'Unknown') as district,
+            COALESCE(SPLIT_PART(address, ',', -2), 'Unknown') as village,
+            COUNT(*) as violation_count,
+            AVG(latitude) as avg_latitude,
+            AVG(longitude) as avg_longitude,
+            COUNT(CASE WHEN urgency_level = 'MENDESAK' THEN 1 END) as urgent_count,
+            COUNT(CASE WHEN violation_level = 'BERAT' THEN 1 END) as severe_count
+        FROM spatial_planning_reports
+        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+    `
+    
+    args := []interface{}{}
+    if areaCategory != "" && areaCategory != "all" {
+        query += " AND area_category = ?"
+        args = append(args, areaCategory)
+    }
+    
+    query += `
+        GROUP BY district, village
+        HAVING AVG(latitude) IS NOT NULL AND AVG(longitude) IS NOT NULL
+        ORDER BY violation_count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    return results, err
+}
+
+func (r *spatialPlanningRepositoryImpl) GetUrgencyLevelStatistics(ctx context.Context, areaCategory string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            urgency_level,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+        FROM spatial_planning_reports
+    `
+    
+    args := []interface{}{}
+    if areaCategory != "" && areaCategory != "all" {
+        query += " WHERE area_category = ?"
+        args = append(args, areaCategory)
+    }
+    
+    query += `
+        GROUP BY urgency_level
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    return results, err
+}
+
+func (r *spatialPlanningRepositoryImpl) GetViolationTypeStatistics(ctx context.Context, areaCategory string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            violation_type,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage,
+            COUNT(CASE WHEN violation_level = 'BERAT' THEN 1 END) as severe_count,
+            COUNT(CASE WHEN urgency_level = 'MENDESAK' THEN 1 END) as urgent_count
+        FROM spatial_planning_reports
+    `
+    
+    args := []interface{}{}
+    if areaCategory != "" && areaCategory != "all" {
+        query += " WHERE area_category = ?"
+        args = append(args, areaCategory)
+    }
+    
+    query += `
+        GROUP BY violation_type
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    return results, err
+}
+
+func (r *spatialPlanningRepositoryImpl) GetViolationLevelStatistics(ctx context.Context, areaCategory string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            violation_level,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage,
+            COUNT(CASE WHEN urgency_level = 'MENDESAK' THEN 1 END) as urgent_count
+        FROM spatial_planning_reports
+    `
+    
+    args := []interface{}{}
+    if areaCategory != "" && areaCategory != "all" {
+        query += " WHERE area_category = ?"
+        args = append(args, areaCategory)
+    }
+    
+    query += `
+        GROUP BY violation_level
+        ORDER BY 
+            CASE violation_level 
+                WHEN 'BERAT' THEN 1 
+                WHEN 'SEDANG' THEN 2 
+                WHEN 'RINGAN' THEN 3 
+                ELSE 4 
+            END
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    return results, err
+}
+
+func (r *spatialPlanningRepositoryImpl) GetAreaCategoryDistribution(ctx context.Context) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            area_category,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage,
+            COUNT(CASE WHEN urgency_level = 'MENDESAK' THEN 1 END) as urgent_count,
+            COUNT(CASE WHEN violation_level = 'BERAT' THEN 1 END) as severe_count
+        FROM spatial_planning_reports
+        GROUP BY area_category
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query).Scan(&results).Error
+    return results, err
+}
+
+func (r *spatialPlanningRepositoryImpl) GetEnvironmentalImpactStatistics(ctx context.Context, areaCategory string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            environmental_impact,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage,
+            COUNT(CASE WHEN violation_level = 'BERAT' THEN 1 END) as severe_count
+        FROM spatial_planning_reports
+    `
+    
+    args := []interface{}{}
+    if areaCategory != "" && areaCategory != "all" {
+        query += " WHERE area_category = ?"
+        args = append(args, areaCategory)
+    }
+    
+    query += `
+        GROUP BY environmental_impact
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    return results, err
+}

@@ -16,4 +16,12 @@ type SpatialPlanningRepository interface {
     UpdateStatus(ctx context.Context, id uuid.UUID, status entity.SpatialReportStatus) error
     CountByStatus(ctx context.Context, status entity.SpatialReportStatus) (int64, error)
     GetStatistics(ctx context.Context) (map[string]interface{}, error)
+
+    GetTataRuangStatistics(ctx context.Context, areaCategory string) (map[string]interface{}, error)
+    GetLocationDistribution(ctx context.Context, areaCategory string) ([]map[string]interface{}, error)
+    GetUrgencyLevelStatistics(ctx context.Context, areaCategory string) ([]map[string]interface{}, error)
+    GetViolationTypeStatistics(ctx context.Context, areaCategory string) ([]map[string]interface{}, error)
+    GetViolationLevelStatistics(ctx context.Context, areaCategory string) ([]map[string]interface{}, error)
+    GetAreaCategoryDistribution(ctx context.Context) ([]map[string]interface{}, error)
+    GetEnvironmentalImpactStatistics(ctx context.Context, areaCategory string) ([]map[string]interface{}, error)
 }

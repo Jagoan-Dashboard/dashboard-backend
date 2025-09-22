@@ -1,17 +1,17 @@
-
 package usecase
 
 import (
-    "context"
-    "mime/multipart"
-    "fmt"
-    
-    "building-report-backend/internal/application/dto"
-    "building-report-backend/internal/domain/entity"
-    "building-report-backend/internal/domain/repository"
-    "building-report-backend/internal/infrastructure/storage"
-    
-    "github.com/google/uuid"
+	"context"
+	"fmt"
+	"mime/multipart"
+	"time"
+
+	"building-report-backend/internal/application/dto"
+	"building-report-backend/internal/domain/entity"
+	"building-report-backend/internal/domain/repository"
+	"building-report-backend/internal/infrastructure/storage"
+
+	"github.com/google/uuid"
 )
 
 type SpatialPlanningUseCase struct {
@@ -261,5 +261,323 @@ func (uc *SpatialPlanningUseCase) GetStatistics(ctx context.Context) (*dto.Spati
     
     uc.cache.Set(ctx, cacheKey, response, 300)
 
+    return response, nil
+}
+
+
+func (uc *SpatialPlanningUseCase) GetTataRuangOverview(ctx context.Context, areaCategory string) (*dto.TataRuangOverviewResponse, error) {
+    // Cache key based on area category
+    cacheKey := fmt.Sprintf("tata_ruang:overview:%s", areaCategory)
+    var response dto.TataRuangOverviewResponse
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return &response, nil
+    }
+
+    // Get basic statistics
+    basicStatsRaw, err := uc.spatialRepo.GetTataRuangStatistics(ctx, areaCategory)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get basic statistics: %w", err)
+    }
+    
+    response.BasicStats = dto.TataRuangBasicStatistics{
+        TotalReports:            basicStatsRaw["total_reports"].(int64),
+        EstimatedTotalLengthM:   basicStatsRaw["estimated_total_length_m"].(float64),
+        EstimatedTotalAreaM2:    basicStatsRaw["estimated_total_area_m2"].(float64),
+        UrgentReportsCount:      basicStatsRaw["urgent_reports_count"].(int64),
+    }
+
+    // Get location distribution
+    locationStats, err := uc.spatialRepo.GetLocationDistribution(ctx, areaCategory)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get location distribution: %w", err)
+    }
+    
+    for _, loc := range locationStats {
+        response.LocationDistribution = append(response.LocationDistribution, dto.TataRuangLocationDistribution{
+            District:       loc["district"].(string),
+            Village:        loc["village"].(string),
+            ViolationCount: int(loc["violation_count"].(int64)),
+            AvgLatitude:    loc["avg_latitude"].(float64),
+            AvgLongitude:   loc["avg_longitude"].(float64),
+            UrgentCount:    int(loc["urgent_count"].(int64)),
+            SevereCount:    int(loc["severe_count"].(int64)),
+        })
+    }
+
+    // Get urgency level statistics
+    urgencyStats, err := uc.spatialRepo.GetUrgencyLevelStatistics(ctx, areaCategory)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get urgency statistics: %w", err)
+    }
+    
+    for _, urgency := range urgencyStats {
+        response.UrgencyStatistics = append(response.UrgencyStatistics, dto.TataRuangUrgencyStatistics{
+            UrgencyLevel: urgency["urgency_level"].(string),
+            Count:        urgency["count"].(int64),
+            Percentage:   urgency["percentage"].(float64),
+        })
+    }
+
+    // Get violation type statistics
+    violationTypeStats, err := uc.spatialRepo.GetViolationTypeStatistics(ctx, areaCategory)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get violation type statistics: %w", err)
+    }
+    
+    for _, vt := range violationTypeStats {
+        response.ViolationTypeStatistics = append(response.ViolationTypeStatistics, dto.TataRuangViolationTypeStatistics{
+            ViolationType: vt["violation_type"].(string),
+            Count:         vt["count"].(int64),
+            Percentage:    vt["percentage"].(float64),
+            SevereCount:   int(vt["severe_count"].(int64)),
+            UrgentCount:   int(vt["urgent_count"].(int64)),
+        })
+    }
+
+    // Get violation level statistics
+    violationLevelStats, err := uc.spatialRepo.GetViolationLevelStatistics(ctx, areaCategory)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get violation level statistics: %w", err)
+    }
+    
+    for _, vl := range violationLevelStats {
+        response.ViolationLevelStatistics = append(response.ViolationLevelStatistics, dto.TataRuangViolationLevelStatistics{
+            ViolationLevel: vl["violation_level"].(string),
+            Count:          vl["count"].(int64),
+            Percentage:     vl["percentage"].(float64),
+            UrgentCount:    int(vl["urgent_count"].(int64)),
+        })
+    }
+
+    // Get area category distribution (only if getting all categories)
+    if areaCategory == "" || areaCategory == "all" {
+        areaCategoryStats, err := uc.spatialRepo.GetAreaCategoryDistribution(ctx)
+        if err != nil {
+            return nil, fmt.Errorf("failed to get area category distribution: %w", err)
+        }
+        
+        for _, ac := range areaCategoryStats {
+            response.AreaCategoryDistribution = append(response.AreaCategoryDistribution, dto.TataRuangAreaCategoryDistribution{
+                AreaCategory: ac["area_category"].(string),
+                Count:        ac["count"].(int64),
+                Percentage:   ac["percentage"].(float64),
+                UrgentCount:  int(ac["urgent_count"].(int64)),
+                SevereCount:  int(ac["severe_count"].(int64)),
+            })
+        }
+    }
+
+    // Get environmental impact statistics
+    environmentalStats, err := uc.spatialRepo.GetEnvironmentalImpactStatistics(ctx, areaCategory)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get environmental impact statistics: %w", err)
+    }
+    
+    for _, env := range environmentalStats {
+        response.EnvironmentalImpactStatistics = append(response.EnvironmentalImpactStatistics, dto.TataRuangEnvironmentalImpactStatistics{
+            EnvironmentalImpact: env["environmental_impact"].(string),
+            Count:               env["count"].(int64),
+            Percentage:          env["percentage"].(float64),
+            SevereCount:         int(env["severe_count"].(int64)),
+        })
+    }
+
+    // Cache the response for 5 minutes
+    uc.cache.Set(ctx, cacheKey, &response, 300*time.Second)
+
+    return &response, nil
+}
+
+func (uc *SpatialPlanningUseCase) GetTataRuangBasicStatistics(ctx context.Context, areaCategory string) (*dto.TataRuangBasicStatistics, error) {
+    cacheKey := fmt.Sprintf("tata_ruang:basic_stats:%s", areaCategory)
+    var response dto.TataRuangBasicStatistics
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return &response, nil
+    }
+
+    statsRaw, err := uc.spatialRepo.GetTataRuangStatistics(ctx, areaCategory)
+    if err != nil {
+        return nil, err
+    }
+
+    response = dto.TataRuangBasicStatistics{
+        TotalReports:            statsRaw["total_reports"].(int64),
+        EstimatedTotalLengthM:   statsRaw["estimated_total_length_m"].(float64),
+        EstimatedTotalAreaM2:    statsRaw["estimated_total_area_m2"].(float64),
+        UrgentReportsCount:      statsRaw["urgent_reports_count"].(int64),
+    }
+
+    uc.cache.Set(ctx, cacheKey, &response, 300*time.Second)
+    return &response, nil
+}
+
+func (uc *SpatialPlanningUseCase) GetTataRuangLocationDistribution(ctx context.Context, areaCategory string) ([]dto.TataRuangLocationDistribution, error) {
+    cacheKey := fmt.Sprintf("tata_ruang:location_dist:%s", areaCategory)
+    var response []dto.TataRuangLocationDistribution
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    locationStats, err := uc.spatialRepo.GetLocationDistribution(ctx, areaCategory)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, loc := range locationStats {
+        response = append(response, dto.TataRuangLocationDistribution{
+            District:       loc["district"].(string),
+            Village:        loc["village"].(string),
+            ViolationCount: int(loc["violation_count"].(int64)),
+            AvgLatitude:    loc["avg_latitude"].(float64),
+            AvgLongitude:   loc["avg_longitude"].(float64),
+            UrgentCount:    int(loc["urgent_count"].(int64)),
+            SevereCount:    int(loc["severe_count"].(int64)),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 300*time.Second)
+    return response, nil
+}
+
+func (uc *SpatialPlanningUseCase) GetAreaCategoryDistribution(ctx context.Context) ([]dto.TataRuangAreaCategoryDistribution, error) {
+    cacheKey := "tata_ruang:area_category_dist"
+    var response []dto.TataRuangAreaCategoryDistribution
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    areaCategoryStats, err := uc.spatialRepo.GetAreaCategoryDistribution(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, ac := range areaCategoryStats {
+        response = append(response, dto.TataRuangAreaCategoryDistribution{
+            AreaCategory: ac["area_category"].(string),
+            Count:        ac["count"].(int64),
+            Percentage:   ac["percentage"].(float64),
+            UrgentCount:  int(ac["urgent_count"].(int64)),
+            SevereCount:  int(ac["severe_count"].(int64)),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 600*time.Second) // Cache for 10 minutes
+    return response, nil
+}
+
+
+func (uc *SpatialPlanningUseCase) GetUrgencyLevelStatistics(ctx context.Context, areaCategory string) ([]dto.TataRuangUrgencyStatistics, error) {
+    cacheKey := fmt.Sprintf("tata_ruang:urgency_stats:%s", areaCategory)
+    var response []dto.TataRuangUrgencyStatistics
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    urgencyStats, err := uc.spatialRepo.GetUrgencyLevelStatistics(ctx, areaCategory)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, urgency := range urgencyStats {
+        response = append(response, dto.TataRuangUrgencyStatistics{
+            UrgencyLevel: urgency["urgency_level"].(string),
+            Count:        urgency["count"].(int64),
+            Percentage:   urgency["percentage"].(float64),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 300*time.Second)
+    return response, nil
+}
+
+func (uc *SpatialPlanningUseCase) GetViolationTypeStatistics(ctx context.Context, areaCategory string) ([]dto.TataRuangViolationTypeStatistics, error) {
+    cacheKey := fmt.Sprintf("tata_ruang:violation_type_stats:%s", areaCategory)
+    var response []dto.TataRuangViolationTypeStatistics
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    violationStats, err := uc.spatialRepo.GetViolationTypeStatistics(ctx, areaCategory)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, vt := range violationStats {
+        response = append(response, dto.TataRuangViolationTypeStatistics{
+            ViolationType: vt["violation_type"].(string),
+            Count:         vt["count"].(int64),
+            Percentage:    vt["percentage"].(float64),
+            SevereCount:   int(vt["severe_count"].(int64)),
+            UrgentCount:   int(vt["urgent_count"].(int64)),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 300*time.Second)
+    return response, nil
+}
+
+func (uc *SpatialPlanningUseCase) GetViolationLevelStatistics(ctx context.Context, areaCategory string) ([]dto.TataRuangViolationLevelStatistics, error) {
+    cacheKey := fmt.Sprintf("tata_ruang:violation_level_stats:%s", areaCategory)
+    var response []dto.TataRuangViolationLevelStatistics
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    levelStats, err := uc.spatialRepo.GetViolationLevelStatistics(ctx, areaCategory)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, vl := range levelStats {
+        response = append(response, dto.TataRuangViolationLevelStatistics{
+            ViolationLevel: vl["violation_level"].(string),
+            Count:          vl["count"].(int64),
+            Percentage:     vl["percentage"].(float64),
+            UrgentCount:    int(vl["urgent_count"].(int64)),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 300*time.Second)
+    return response, nil
+}
+
+func (uc *SpatialPlanningUseCase) GetEnvironmentalImpactStatistics(ctx context.Context, areaCategory string) ([]dto.TataRuangEnvironmentalImpactStatistics, error) {
+    cacheKey := fmt.Sprintf("tata_ruang:environmental_impact_stats:%s", areaCategory)
+    var response []dto.TataRuangEnvironmentalImpactStatistics
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return response, nil
+    }
+
+    impactStats, err := uc.spatialRepo.GetEnvironmentalImpactStatistics(ctx, areaCategory)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, env := range impactStats {
+        response = append(response, dto.TataRuangEnvironmentalImpactStatistics{
+            EnvironmentalImpact: env["environmental_impact"].(string),
+            Count:               env["count"].(int64),
+            Percentage:          env["percentage"].(float64),
+            SevereCount:         int(env["severe_count"].(int64)),
+        })
+    }
+
+    uc.cache.Set(ctx, cacheKey, response, 300*time.Second)
     return response, nil
 }

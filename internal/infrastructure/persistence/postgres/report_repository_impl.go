@@ -98,3 +98,156 @@ func (r *reportRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UUI
 
     return reports, total, err
 }
+
+func (r *reportRepositoryImpl) GetStatistics(ctx context.Context, buildingType string) (map[string]interface{}, error) {
+    stats := make(map[string]interface{})
+    
+    query := r.db.WithContext(ctx).Model(&entity.Report{})
+    if buildingType != "" && buildingType != "all" {
+        query = query.Where("building_type = ?", buildingType)
+    }
+    
+    // Total reports
+    var totalReports int64
+    query.Count(&totalReports)
+    stats["total_reports"] = totalReports
+    
+    // Average floor area
+    var avgFloorArea float64
+    query.Select("COALESCE(AVG(floor_area), 0)").Scan(&avgFloorArea)
+    stats["average_floor_area"] = avgFloorArea
+    
+    // Average floor count
+    var avgFloorCount float64
+    query.Select("COALESCE(AVG(floor_count), 0)").Scan(&avgFloorCount)
+    stats["average_floor_count"] = avgFloorCount
+    
+    // Count damaged buildings (assuming buildings needing rehabilitation are "damaged")
+    var damagedCount int64
+    query.Where("report_status = ?", "REHABILITASI").Count(&damagedCount)
+    stats["damaged_buildings_count"] = damagedCount
+    
+    return stats, nil
+}
+
+func (r *reportRepositoryImpl) GetLocationStatistics(ctx context.Context, buildingType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            district,
+            village,
+            COUNT(*) as building_count,
+            AVG(latitude) as avg_latitude,
+            AVG(longitude) as avg_longitude,
+            COUNT(CASE WHEN report_status = 'REHABILITASI' THEN 1 END) as damaged_count
+        FROM reports
+    `
+    
+    args := []interface{}{}
+    if buildingType != "" && buildingType != "all" {
+        query += " WHERE building_type = ?"
+        args = append(args, buildingType)
+    }
+    
+    query += `
+        GROUP BY district, village
+        ORDER BY building_count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    return results, err
+}
+
+func (r *reportRepositoryImpl) GetWorkTypeStatistics(ctx context.Context, buildingType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            work_type,
+            COUNT(*) as count
+        FROM reports
+        WHERE work_type IS NOT NULL AND work_type != ''
+    `
+    
+    args := []interface{}{}
+    if buildingType != "" && buildingType != "all" {
+        query += " AND building_type = ?"
+        args = append(args, buildingType)
+    }
+    
+    query += `
+        GROUP BY work_type
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    return results, err
+}
+
+func (r *reportRepositoryImpl) GetConditionAfterRehabStatistics(ctx context.Context, buildingType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            condition_after_rehab,
+            COUNT(*) as count
+        FROM reports
+        WHERE condition_after_rehab IS NOT NULL AND condition_after_rehab != ''
+    `
+    
+    args := []interface{}{}
+    if buildingType != "" && buildingType != "all" {
+        query += " AND building_type = ?"
+        args = append(args, buildingType)
+    }
+    
+    query += `
+        GROUP BY condition_after_rehab
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    return results, err
+}
+
+func (r *reportRepositoryImpl) GetStatusStatistics(ctx context.Context, buildingType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            report_status,
+            COUNT(*) as count
+        FROM reports
+    `
+    
+    args := []interface{}{}
+    if buildingType != "" && buildingType != "all" {
+        query += " WHERE building_type = ?"
+        args = append(args, buildingType)
+    }
+    
+    query += `
+        GROUP BY report_status
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    return results, err
+}
+
+func (r *reportRepositoryImpl) CountByBuildingType(ctx context.Context) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            building_type,
+            COUNT(*) as count
+        FROM reports
+        GROUP BY building_type
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query).Scan(&results).Error
+    return results, err
+}
