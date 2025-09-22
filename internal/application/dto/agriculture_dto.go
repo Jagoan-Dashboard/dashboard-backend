@@ -1,4 +1,3 @@
-
 package dto
 
 import (
@@ -7,17 +6,18 @@ import (
 )
 
 type CreateAgricultureRequest struct {
+    // Data Penyuluh
     ExtensionOfficer       string    `json:"extension_officer" validate:"required"`
     VisitDate              time.Time `json:"visit_date" validate:"required"`
     FarmerName             string    `json:"farmer_name" validate:"required"`
     FarmerGroup            string    `json:"farmer_group,omitempty"`
-    FarmerGroupType        string    `json:"farmer_group_type,omitempty"`
+    FarmerGroupType        string    `json:"farmer_group_type,omitempty"` // POKTAN, GAPOKTAN
     Village                string    `json:"village" validate:"required"`
     District               string    `json:"district" validate:"required"`
     Latitude               float64   `json:"latitude" validate:"required,min=-90,max=90"`
     Longitude              float64   `json:"longitude" validate:"required,min=-180,max=180"`
     
-    
+    // Pangan (Food Crops)
     FoodCommodity          string    `json:"food_commodity,omitempty"`
     FoodLandStatus         string    `json:"food_land_status,omitempty"`
     FoodLandArea           float64   `json:"food_land_area,omitempty"`
@@ -28,7 +28,7 @@ type CreateAgricultureRequest struct {
     FoodDelayReason        string    `json:"food_delay_reason,omitempty"`
     FoodTechnology         string    `json:"food_technology,omitempty"`
     
-    
+    // Hortikultura (Horticulture)
     HortiCommodity         string    `json:"horti_commodity,omitempty"`
     HortiSubCommodity      string    `json:"horti_sub_commodity,omitempty"`
     HortiLandStatus        string    `json:"horti_land_status,omitempty"`
@@ -41,7 +41,7 @@ type CreateAgricultureRequest struct {
     HortiTechnology        string    `json:"horti_technology,omitempty"`
     PostHarvestProblems    string    `json:"post_harvest_problems,omitempty"`
     
-    
+    // Perkebunan (Plantation)
     PlantationCommodity    string    `json:"plantation_commodity,omitempty"`
     PlantationLandStatus   string    `json:"plantation_land_status,omitempty"`
     PlantationLandArea     float64   `json:"plantation_land_area,omitempty"`
@@ -53,19 +53,19 @@ type CreateAgricultureRequest struct {
     PlantationTechnology   string    `json:"plantation_technology,omitempty"`
     ProductionProblems     string    `json:"production_problems,omitempty"`
     
-    
+    // Hama dan Penyakit (Pest and Disease)
     HasPestDisease         bool      `json:"has_pest_disease"`
     PestDiseaseType        string    `json:"pest_disease_type,omitempty"`
-    PestDiseaseCommodity   string    `json:"pest_disease_commodity,omitempty"`
+    PestDiseaseCommodity   string    `json:"pest_disease_commodity,omitempty"` // PANGAN, HORTIKULTURA, PERKEBUNAN
     AffectedArea           string    `json:"affected_area,omitempty"`
     ControlAction          string    `json:"control_action,omitempty"`
     
-    
+    // Cuaca dan Lingkungan (Weather and Environment)
     WeatherCondition       string    `json:"weather_condition" validate:"required"`
     WeatherImpact          string    `json:"weather_impact" validate:"required"`
     MainConstraint         string    `json:"main_constraint" validate:"required"`
     
-    
+    // Harapan dan Kebutuhan Petani (Farmer Needs and Aspirations)
     FarmerHope             string    `json:"farmer_hope" validate:"required"`
     TrainingNeeded         string    `json:"training_needed" validate:"required"`
     UrgentNeeds            string    `json:"urgent_needs" validate:"required"`
@@ -78,6 +78,7 @@ func (r *CreateAgricultureRequest) Validate() error {
 }
 
 type UpdateAgricultureRequest struct {
+    // Data Penyuluh
     ExtensionOfficer       string  `json:"extension_officer,omitempty"`
     FarmerName             string  `json:"farmer_name,omitempty"`
     FarmerGroup            string  `json:"farmer_group,omitempty"`
@@ -85,7 +86,7 @@ type UpdateAgricultureRequest struct {
     Village                string  `json:"village,omitempty"`
     District               string  `json:"district,omitempty"`
     
-    
+    // Pangan (Food Crops)
     FoodCommodity          string  `json:"food_commodity,omitempty"`
     FoodLandStatus         string  `json:"food_land_status,omitempty"`
     FoodLandArea           float64 `json:"food_land_area,omitempty"`
@@ -96,7 +97,7 @@ type UpdateAgricultureRequest struct {
     FoodDelayReason        string  `json:"food_delay_reason,omitempty"`
     FoodTechnology         string  `json:"food_technology,omitempty"`
     
-    
+    // Hortikultura (Horticulture)
     HortiCommodity         string  `json:"horti_commodity,omitempty"`
     HortiSubCommodity      string  `json:"horti_sub_commodity,omitempty"`
     HortiLandStatus        string  `json:"horti_land_status,omitempty"`
@@ -109,7 +110,7 @@ type UpdateAgricultureRequest struct {
     HortiTechnology        string  `json:"horti_technology,omitempty"`
     PostHarvestProblems    string  `json:"post_harvest_problems,omitempty"`
     
-    
+    // Perkebunan (Plantation)
     PlantationCommodity    string  `json:"plantation_commodity,omitempty"`
     PlantationLandStatus   string  `json:"plantation_land_status,omitempty"`
     PlantationLandArea     float64 `json:"plantation_land_area,omitempty"`
@@ -121,19 +122,19 @@ type UpdateAgricultureRequest struct {
     PlantationTechnology   string  `json:"plantation_technology,omitempty"`
     ProductionProblems     string  `json:"production_problems,omitempty"`
     
-    
+    // Hama dan Penyakit (Pest and Disease)
     HasPestDisease         *bool   `json:"has_pest_disease,omitempty"`
     PestDiseaseType        string  `json:"pest_disease_type,omitempty"`
     PestDiseaseCommodity   string  `json:"pest_disease_commodity,omitempty"`
     AffectedArea           string  `json:"affected_area,omitempty"`
     ControlAction          string  `json:"control_action,omitempty"`
     
-    
+    // Cuaca dan Lingkungan (Weather and Environment)
     WeatherCondition       string  `json:"weather_condition,omitempty"`
     WeatherImpact          string  `json:"weather_impact,omitempty"`
     MainConstraint         string  `json:"main_constraint,omitempty"`
     
-    
+    // Harapan dan Kebutuhan Petani (Farmer Needs and Aspirations)
     FarmerHope             string  `json:"farmer_hope,omitempty"`
     TrainingNeeded         string  `json:"training_needed,omitempty"`
     UrgentNeeds            string  `json:"urgent_needs,omitempty"`
@@ -158,20 +159,20 @@ type AgricultureStatisticsResponse struct {
     TotalFarmers              int64                    `json:"total_farmers"`
     TotalLandArea             float64                  `json:"total_land_area_ha"`
     
-    
+    // Commodity Reports
     FoodCropReports           int64                    `json:"food_crop_reports"`
     HorticultureReports       int64                    `json:"horticulture_reports"`
     PlantationReports         int64                    `json:"plantation_reports"`
     
-    
+    // Pest and Disease
     ReportsWithPestDisease    int64                    `json:"reports_with_pest_disease"`
     PestDiseasePercentage     float64                  `json:"pest_disease_percentage"`
     
-    
+    // Problems
     PostHarvestProblemReports int64                    `json:"post_harvest_problem_reports"`
     ProductionProblemReports  int64                    `json:"production_problem_reports"`
     
-    
+    // Distributions
     CommodityDistribution     []map[string]interface{} `json:"commodity_distribution"`
     VillageDistribution       []map[string]interface{} `json:"village_distribution"`
     ExtensionOfficerStats     []map[string]interface{} `json:"extension_officer_stats"`
@@ -182,10 +183,14 @@ type AgricultureStatisticsResponse struct {
     TrainingNeeds             []map[string]interface{} `json:"training_needs"`
     UrgentNeedsDistribution   []map[string]interface{} `json:"urgent_needs_distribution"`
     WeatherImpactCounts       []map[string]interface{} `json:"weather_impact_counts"`
+    WaterAccessDistribution   []map[string]interface{} `json:"water_access_distribution"`
+    PestDiseaseByType         []map[string]interface{} `json:"pest_disease_by_type"`
+    LandStatusDistribution    []map[string]interface{} `json:"land_status_distribution"`
 }
 
 type CommodityProductionResponse struct {
     Commodity     string  `json:"commodity"`
+    CommodityType string  `json:"commodity_type"` // FOOD, HORTICULTURE, PLANTATION
     ReportCount   int     `json:"report_count"`
     TotalArea     float64 `json:"total_area_ha"`
     AverageArea   float64 `json:"average_area_ha"`
@@ -194,10 +199,44 @@ type CommodityProductionResponse struct {
 }
 
 type ExtensionOfficerPerformanceResponse struct {
-    ExtensionOfficer string    `json:"extension_officer"`
-    TotalVisits      int       `json:"total_visits"`
-    FarmersVisited   int       `json:"farmers_visited"`
-    VillagesCovered  int       `json:"villages_covered"`
-    LastVisit        time.Time `json:"last_visit"`
-    AverageVisitsPerMonth float64 `json:"average_visits_per_month"`
+    ExtensionOfficer      string    `json:"extension_officer"`
+    TotalVisits           int       `json:"total_visits"`
+    FarmersVisited        int       `json:"farmers_visited"`
+    VillagesCovered       int       `json:"villages_covered"`
+    LastVisit             time.Time `json:"last_visit"`
+    AverageVisitsPerMonth float64   `json:"average_visits_per_month"`
+    CommodityTypes        []string  `json:"commodity_types"`
+    TotalLandAreaCovered  float64   `json:"total_land_area_covered"`
+}
+
+type VillageAgricultureSummary struct {
+    Village               string  `json:"village"`
+    District              string  `json:"district"`
+    TotalReports          int     `json:"total_reports"`
+    TotalFarmers          int     `json:"total_farmers"`
+    TotalLandArea         float64 `json:"total_land_area"`
+    MainCommodities       []string `json:"main_commodities"`
+    PestDiseaseReports    int     `json:"pest_disease_reports"`
+    MainConstraints       []string `json:"main_constraints"`
+    ExtensionOfficers     []string `json:"extension_officers"`
+}
+
+type FarmerNeedsAnalysisResponse struct {
+    MainConstraints       []map[string]interface{} `json:"main_constraints"`
+    FarmerHopes           []map[string]interface{} `json:"farmer_hopes"`
+    TrainingNeeds         []map[string]interface{} `json:"training_needs"`
+    UrgentNeeds           []map[string]interface{} `json:"urgent_needs"`
+    WaterAccessIssues     []map[string]interface{} `json:"water_access_issues"`
+    TechnologyAdoption    []map[string]interface{} `json:"technology_adoption"`
+    CommonSuggestions     []map[string]interface{} `json:"common_suggestions"`
+}
+
+type PestDiseaseAnalysisResponse struct {
+    TotalReportsWithPestDisease int64                    `json:"total_reports_with_pest_disease"`
+    PestDiseasePercentage       float64                  `json:"pest_disease_percentage"`
+    PestDiseaseByType           []map[string]interface{} `json:"pest_disease_by_type"`
+    PestDiseaseByCommodity      []map[string]interface{} `json:"pest_disease_by_commodity"`
+    AffectedAreaDistribution    []map[string]interface{} `json:"affected_area_distribution"`
+    ControlActionsUsed          []map[string]interface{} `json:"control_actions_used"`
+    SeasonalTrends              []map[string]interface{} `json:"seasonal_trends"`
 }

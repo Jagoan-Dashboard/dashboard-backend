@@ -1,4 +1,3 @@
-
 package handler
 
 import (
@@ -26,7 +25,7 @@ func NewAgricultureHandler(agricultureUseCase *usecase.AgricultureUseCase) *Agri
 func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
     var req dto.CreateAgricultureRequest
     
-    
+    // Parse basic information
     req.ExtensionOfficer = c.FormValue("extension_officer")
     req.FarmerName = c.FormValue("farmer_name")
     req.FarmerGroup = c.FormValue("farmer_group")
@@ -34,7 +33,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
     req.Village = c.FormValue("village")
     req.District = c.FormValue("district")
     
-    
+    // Parse visit date
     visitDateStr := c.FormValue("visit_date")
     if visitDate, err := time.Parse("2006-01-02", visitDateStr); err == nil {
         req.VisitDate = visitDate
@@ -42,7 +41,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         return response.BadRequest(c, "Invalid visit date format, use YYYY-MM-DD", err)
     }
     
-    
+    // Parse coordinates
     if lat, err := strconv.ParseFloat(c.FormValue("latitude"), 64); err == nil {
         req.Latitude = lat
     } else if c.FormValue("latitude") != "" {
@@ -54,7 +53,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         return response.BadRequest(c, "Invalid longitude format", err)
     }
     
-    
+    // Parse Food Crops (Pangan) section
     req.FoodCommodity = c.FormValue("food_commodity")
     if req.FoodCommodity != "" {
         req.FoodLandStatus = c.FormValue("food_land_status")
@@ -71,7 +70,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         req.FoodTechnology = c.FormValue("food_technology")
     }
     
-    
+    // Parse Horticulture (Hortikultura) section
     req.HortiCommodity = c.FormValue("horti_commodity")
     if req.HortiCommodity != "" {
         req.HortiSubCommodity = c.FormValue("horti_sub_commodity")
@@ -90,7 +89,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         req.PostHarvestProblems = c.FormValue("post_harvest_problems")
     }
     
-    
+    // Parse Plantation (Perkebunan) section
     req.PlantationCommodity = c.FormValue("plantation_commodity")
     if req.PlantationCommodity != "" {
         req.PlantationLandStatus = c.FormValue("plantation_land_status")
@@ -108,7 +107,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         req.ProductionProblems = c.FormValue("production_problems")
     }
     
-    
+    // Parse Pest and Disease section
     if hasPest, err := strconv.ParseBool(c.FormValue("has_pest_disease")); err == nil {
         req.HasPestDisease = hasPest
         if hasPest {
@@ -119,32 +118,32 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         }
     }
     
-    
+    // Parse Weather and Environment section
     req.WeatherCondition = c.FormValue("weather_condition")
     req.WeatherImpact = c.FormValue("weather_impact")
     req.MainConstraint = c.FormValue("main_constraint")
     
-    
+    // Parse Farmer Needs and Aspirations section
     req.FarmerHope = c.FormValue("farmer_hope")
     req.TrainingNeeded = c.FormValue("training_needed")
     req.UrgentNeeds = c.FormValue("urgent_needs")
     req.WaterAccess = c.FormValue("water_access")
     req.Suggestions = c.FormValue("suggestions")
 
-    
+    // Validation: At least one commodity must be specified
     if req.FoodCommodity == "" && req.HortiCommodity == "" && req.PlantationCommodity == "" {
         return response.BadRequest(c, "At least one commodity (food/horticulture/plantation) must be specified", nil)
     }
 
-    
+    // Validate the request
     if err := req.Validate(); err != nil {
         return response.ValidationError(c, err)
     }
 
-    
+    // Get user ID from context
     userID := c.Locals("userID").(uuid.UUID)
 
-    
+    // Parse multipart form for photos
     form, err := c.MultipartForm()
     if err != nil {
         return response.BadRequest(c, "Failed to parse multipart form", err)
@@ -155,9 +154,9 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         return response.BadRequest(c, "At least 1 photo required", nil)
     }
 
-    
+    // Validate photo files
     for _, photo := range photos {
-        if photo.Size > 10*1024*1024 { 
+        if photo.Size > 10*1024*1024 { // 10MB limit
             return response.BadRequest(c, "Photo file size too large (max 10MB)", nil)
         }
         
@@ -194,7 +193,7 @@ func (h *AgricultureHandler) ListReports(c *fiber.Ctx) error {
     page, _ := strconv.Atoi(c.Query("page", "1"))
     limit, _ := strconv.Atoi(c.Query("limit", "10"))
     
-    
+    // Validate pagination parameters
     if page < 1 {
         page = 1
     }
@@ -207,15 +206,19 @@ func (h *AgricultureHandler) ListReports(c *fiber.Ctx) error {
         "village":                 c.Query("village"),
         "district":                c.Query("district"),
         "farmer_name":             c.Query("farmer_name"),
+        "farmer_group":            c.Query("farmer_group"),
+        "farmer_group_type":       c.Query("farmer_group_type"),
         "food_commodity":          c.Query("food_commodity"),
         "horti_commodity":         c.Query("horti_commodity"),
         "plantation_commodity":    c.Query("plantation_commodity"),
         "main_constraint":         c.Query("main_constraint"),
+        "weather_condition":       c.Query("weather_condition"),
+        "water_access":            c.Query("water_access"),
         "start_date":              c.Query("start_date"),
         "end_date":                c.Query("end_date"),
     }
 
-    
+    // Parse boolean filters
     if hasPestStr := c.Query("has_pest_disease"); hasPestStr != "" {
         if hasPest, err := strconv.ParseBool(hasPestStr); err == nil {
             filters["has_pest_disease"] = hasPest
@@ -327,7 +330,7 @@ func (h *AgricultureHandler) GetPestDiseaseReports(c *fiber.Ctx) error {
 }
 
 func (h *AgricultureHandler) GetCommodityProduction(c *fiber.Ctx) error {
-    
+    // Default to last 3 months
     endDate := time.Now()
     startDate := endDate.AddDate(0, -3, 0)
     
@@ -347,7 +350,7 @@ func (h *AgricultureHandler) GetCommodityProduction(c *fiber.Ctx) error {
         }
     }
     
-    
+    // Validate date range
     if startDate.After(endDate) {
         return response.BadRequest(c, "Start date cannot be after end date", nil)
     }
@@ -369,7 +372,7 @@ func (h *AgricultureHandler) GetCommodityProduction(c *fiber.Ctx) error {
 }
 
 func (h *AgricultureHandler) GetExtensionOfficerPerformance(c *fiber.Ctx) error {
-    
+    // Default to last 6 months
     endDate := time.Now()
     startDate := endDate.AddDate(0, -6, 0)
     
@@ -424,7 +427,7 @@ func (h *AgricultureHandler) GetReportsByVillage(c *fiber.Ctx) error {
     page, _ := strconv.Atoi(c.Query("page", "1"))
     limit, _ := strconv.Atoi(c.Query("limit", "10"))
 
-    
+    // Create filter for village
     filters := map[string]interface{}{
         "village": village,
     }
@@ -472,30 +475,134 @@ func (h *AgricultureHandler) GetReportsByDateRange(c *fiber.Ctx) error {
 }
 
 func (h *AgricultureHandler) GetDashboardSummary(c *fiber.Ctx) error {
-    
+    // Get overall statistics
     stats, err := h.agricultureUseCase.GetStatistics(c.Context())
     if err != nil {
         return response.InternalError(c, "Failed to retrieve statistics", err)
     }
 
-    
+    // Get recent pest disease reports
     pestReports, err := h.agricultureUseCase.GetPestDiseaseReports(c.Context(), 5)
     if err != nil {
         return response.InternalError(c, "Failed to retrieve pest disease reports", err)
     }
 
-    
+    // Get farmer needs analysis
     farmerNeeds, err := h.agricultureUseCase.GetFarmerNeedsAnalysis(c.Context())
     if err != nil {
         return response.InternalError(c, "Failed to retrieve farmer needs", err)
+    }
+
+    // Get technology adoption stats
+    technologyStats, err := h.agricultureUseCase.GetTechnologyAdoptionStats(c.Context())
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve technology adoption stats", err)
     }
 
     summary := map[string]interface{}{
         "statistics":            stats,
         "recent_pest_reports":   pestReports,
         "farmer_needs_summary":  farmerNeeds,
+        "technology_adoption":   technologyStats,
         "generated_at":          time.Now(),
     }
 
     return response.Success(c, "Dashboard summary retrieved successfully", summary)
 }
+
+func (h *AgricultureHandler) GetReportsByCommodity(c *fiber.Ctx) error {
+    commodityType := c.Query("type") // food, horticulture, plantation
+    commodity := c.Query("commodity")
+    
+    if commodityType == "" {
+        return response.BadRequest(c, "Commodity type parameter is required (food, horticulture, plantation)", nil)
+    }
+
+    page, _ := strconv.Atoi(c.Query("page", "1"))
+    limit, _ := strconv.Atoi(c.Query("limit", "10"))
+
+    filters := map[string]interface{}{}
+    
+    switch commodityType {
+    case "food":
+        if commodity != "" {
+            filters["food_commodity"] = commodity
+        } else {
+            // Get all food crop reports
+            filters["has_food_commodity"] = true
+        }
+    case "horticulture":
+        if commodity != "" {
+            filters["horti_commodity"] = commodity
+        } else {
+            filters["has_horti_commodity"] = true
+        }
+    case "plantation":
+        if commodity != "" {
+            filters["plantation_commodity"] = commodity
+        } else {
+            filters["has_plantation_commodity"] = true
+        }
+    default:
+        return response.BadRequest(c, "Invalid commodity type. Use: food, horticulture, or plantation", nil)
+    }
+
+    result, err := h.agricultureUseCase.ListReports(c.Context(), page, limit, filters)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve reports by commodity", err)
+    }
+
+    return response.Success(c, "Reports by commodity retrieved successfully", result)
+}
+
+// func (h *AgricultureHandler) GetPestDiseaseAnalysis(c *fiber.Ctx) error {
+//     commodityType := c.Query("commodity_type") // Optional filter
+//     startDateStr := c.Query("start_date")
+//     endDateStr := c.Query("end_date")
+    
+//     // Default to last 6 months if no date range provided
+//     var startDate, endDate time.Time
+//     if startDateStr != "" && endDateStr != "" {
+//         var err error
+//         startDate, err = time.Parse("2006-01-02", startDateStr)
+//         if err != nil {
+//             return response.BadRequest(c, "Invalid start_date format, use YYYY-MM-DD", err)
+//         }
+        
+//         endDate, err = time.Parse("2006-01-02", endDateStr)
+//         if err != nil {
+//             return response.BadRequest(c, "Invalid end_date format, use YYYY-MM-DD", err)
+//         }
+//     } else {
+//         endDate = time.Now()
+//         startDate = endDate.AddDate(0, -6, 0)
+//     }
+
+//     analysis, err := h.agricultureUseCase.GetPestDiseaseAnalysis(c.Context(), startDate, endDate, commodityType)
+//     if err != nil {
+//         return response.InternalError(c, "Failed to retrieve pest disease analysis", err)
+//     }
+
+//     return response.Success(c, "Pest disease analysis retrieved successfully", map[string]interface{}{
+//         "analysis":   analysis,
+//         "start_date": startDate.Format("2006-01-02"),
+//         "end_date":   endDate.Format("2006-01-02"),
+//         "filters": map[string]interface{}{
+//             "commodity_type": commodityType,
+//         },
+//     })
+// }
+
+// func (h *AgricultureHandler) GetVillageSummary(c *fiber.Ctx) error {
+//     village := c.Params("village")
+//     if village == "" {
+//         return response.BadRequest(c, "Village name is required", nil)
+//     }
+
+//     summary, err := h.agricultureUseCase.GetVillageAgricultureSummary(c.Context(), village)
+//     if err != nil {
+//         return response.InternalError(c, "Failed to retrieve village agriculture summary", err)
+//     }
+
+//     return response.Success(c, "Village agriculture summary retrieved successfully", summary)
+// }
