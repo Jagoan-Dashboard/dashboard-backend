@@ -462,28 +462,133 @@ func (uc *AgricultureUseCase) GetExecutiveSummary(ctx context.Context) (*dto.Agr
         return &response, nil
     }
 
-    // Convert district production data
-    for _, item := range districtProduction {
-        response.ProductionByDistrict = append(response.ProductionByDistrict, dto.ProductionDistrict{
-            District:      item["district"].(string),
-            Production:    item["production"].(float64),
-            HarvestedArea: item["harvested_area"].(float64),
-            FarmerCount:   int(item["farmer_count"].(int64)),
+    // Get executive summary data
+    summary, err := uc.agricultureRepo.GetExecutiveSummary(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    // Get commodity distribution map
+    commodityMap, err := uc.agricultureRepo.GetCommodityDistributionByDistrict(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    // Get commodity by sector
+    sectorData, err := uc.agricultureRepo.GetCommodityCountBySector(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    // Get land status distribution
+    landStatus, err := uc.agricultureRepo.GetLandStatusDistribution(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    // Get constraints and farmer needs
+    constraints, err := uc.agricultureRepo.GetMainConstraintsDistribution(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    farmerNeeds, err := uc.agricultureRepo.GetFarmerHopesAndNeeds(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    // Build response
+    response.TotalLandArea = summary["total_land_area"].(float64)
+    response.PestDiseaseReports = summary["pest_disease_reports"].(int64)
+    response.TotalExtensionReports = summary["total_extension_reports"].(int64)
+
+    // Convert map data
+    for _, mapItem := range commodityMap {
+        response.CommodityMap = append(response.CommodityMap, dto.CommodityMapPoint{
+            Latitude:      mapItem["latitude"].(float64),
+            Longitude:     mapItem["longitude"].(float64),
+            Village:       mapItem["village"].(string),
+            District:      mapItem["district"].(string),
+            Commodity:     mapItem["commodity"].(string),
+            CommodityType: mapItem["commodity_type"].(string),
+            LandArea:      mapItem["land_area"].(float64),
         })
     }
 
-    // Convert productivity trend data
-    for _, item := range productivityTrend {
-        response.ProductivityTrend = append(response.ProductivityTrend, dto.ProductivityTrend{
-            Year:         int(item["year"].(int64)),
-            Productivity: item["productivity"].(float64),
-            Production:   item["production"].(float64),
-            Area:         item["area"].(float64),
+    // Convert sector data
+    if foodCrops, ok := sectorData["food_crops"].([]map[string]interface{}); ok {
+        for _, item := range foodCrops {
+            response.CommodityBySector.FoodCrops = append(response.CommodityBySector.FoodCrops,
+                dto.CommodityCount{
+                    Name:  item["name"].(string),
+                    Count: item["count"].(int64),
+                })
+        }
+    }
+
+    if horticulture, ok := sectorData["horticulture"].([]map[string]interface{}); ok {
+        for _, item := range horticulture {
+            response.CommodityBySector.Horticulture = append(response.CommodityBySector.Horticulture,
+                dto.CommodityCount{
+                    Name:  item["name"].(string),
+                    Count: item["count"].(int64),
+                })
+        }
+    }
+
+    if plantation, ok := sectorData["plantation"].([]map[string]interface{}); ok {
+        for _, item := range plantation {
+            response.CommodityBySector.Plantation = append(response.CommodityBySector.Plantation,
+                dto.CommodityCount{
+                    Name:  item["name"].(string),
+                    Count: item["count"].(int64),
+                })
+        }
+    }
+
+    // Convert land status
+    for _, item := range landStatus {
+        response.LandStatusDistrib = append(response.LandStatusDistrib, dto.LandStatusCount{
+            Status:     item["status"].(string),
+            Count:      item["count"].(int64),
+            Percentage: item["percentage"].(float64),
         })
     }
 
-    // Cache the response for 30 minutes
-    uc.cache.Set(ctx, cacheKey, &response, 1800*time.Second)
+    // Convert constraints
+    for _, item := range constraints {
+        response.MainConstraints = append(response.MainConstraints, dto.ConstraintCount{
+            Constraint: item["constraint"].(string),
+            Count:      item["count"].(int64),
+            Percentage: item["percentage"].(float64),
+        })
+    }
+
+    // Convert farmer needs
+    if hopes, ok := farmerNeeds["hopes"].([]map[string]interface{}); ok {
+        for _, item := range hopes {
+            response.FarmerHopesNeeds.Hopes = append(response.FarmerHopesNeeds.Hopes,
+                dto.HopeCount{
+                    Hope:       item["hope"].(string),
+                    Count:      item["count"].(int64),
+                    Percentage: item["percentage"].(float64),
+                })
+        }
+    }
+
+    if needs, ok := farmerNeeds["needs"].([]map[string]interface{}); ok {
+        for _, item := range needs {
+            response.FarmerHopesNeeds.Needs = append(response.FarmerHopesNeeds.Needs,
+                dto.NeedCount{
+                    Need:       item["need"].(string),
+                    Count:      item["count"].(int64),
+                    Percentage: item["percentage"].(float64),
+                })
+        }
+    }
+
+    // Cache the response for 10 minutes
+    uc.cache.Set(ctx, cacheKey, &response, 600*time.Second)
 
     return &response, nil
 }
@@ -649,8 +754,57 @@ func (uc *AgricultureUseCase) GetHorticultureStats(ctx context.Context, commodit
     response.PestAffectedArea = stats["pest_affected_area"].(float64)
     response.PestReportCount = stats["pest_report_count"].(int64)
 
-    // Convert data (similar to food crop conversion logic)
-    // ... similar conversion logic as food crop
+    // Convert distribution map
+    for _, item := range distribution {
+        response.DistributionMap = append(response.DistributionMap, dto.CommodityMapPoint{
+            Latitude:      item["latitude"].(float64),
+            Longitude:     item["longitude"].(float64),
+            Village:       item["village"].(string),
+            District:      item["district"].(string),
+            Commodity:     item["commodity"].(string),
+            CommodityType: "HORTICULTURE",
+            LandArea:      item["land_area"].(float64),
+        })
+    }
+
+    // Convert growth phases
+    for _, item := range growthPhases {
+        response.GrowthPhases = append(response.GrowthPhases, dto.GrowthPhaseCount{
+            Phase:      item["phase"].(string),
+            Count:      item["count"].(int64),
+            Percentage: item["percentage"].(float64),
+        })
+    }
+
+    // Convert technology
+    for _, item := range technology {
+        response.TechnologyUsed = append(response.TechnologyUsed, dto.TechnologyCount{
+            Technology: item["technology"].(string),
+            Count:      item["count"].(int64),
+            Percentage: item["percentage"].(float64),
+        })
+    }
+
+    // Convert pest dominance
+    for _, item := range pestDominance {
+        response.PestDominance = append(response.PestDominance, dto.PestDominanceCount{
+            PestType:   item["pest_type"].(string),
+            Count:      item["count"].(int64),
+            Percentage: item["percentage"].(float64),
+        })
+    }
+
+    // Convert harvest schedule
+    for _, item := range harvestSchedule {
+        harvestDate, _ := time.Parse("2006-01-02", item["harvest_date"].(string))
+        response.HarvestSchedule = append(response.HarvestSchedule, dto.HarvestScheduleItem{
+            CommodityDetail: item["commodity_detail"].(string),
+            HarvestDate:     harvestDate,
+            FarmerName:      item["farmer_name"].(string),
+            Village:         item["village"].(string),
+            LandArea:        item["land_area"].(float64),
+        })
+    }
 
     // Cache the response for 15 minutes
     uc.cache.Set(ctx, cacheKey, &response, 900*time.Second)
@@ -673,8 +827,93 @@ func (uc *AgricultureUseCase) GetPlantationStats(ctx context.Context, commodityN
         return nil, err
     }
 
-    // Similar structure as horticulture and food crop
-    // ... implementation details
+    // Get distribution map
+    distribution, err := uc.agricultureRepo.GetPlantationDistribution(ctx, commodityName)
+    if err != nil {
+        return nil, err
+    }
+
+    // Get growth phases
+    growthPhases, err := uc.agricultureRepo.GetPlantationGrowthPhases(ctx, commodityName)
+    if err != nil {
+        return nil, err
+    }
+
+    // Get technology usage
+    technology, err := uc.agricultureRepo.GetPlantationTechnology(ctx, commodityName)
+    if err != nil {
+        return nil, err
+    }
+
+    // Get pest dominance
+    pestDominance, err := uc.agricultureRepo.GetPlantationPestDominance(ctx, commodityName)
+    if err != nil {
+        return nil, err
+    }
+
+    // Get harvest schedule
+    harvestSchedule, err := uc.agricultureRepo.GetPlantationHarvestSchedule(ctx, commodityName)
+    if err != nil {
+        return nil, err
+    }
+
+    // Build response
+    response.LandArea = stats["land_area"].(float64)
+    response.EstimatedProduction = stats["estimated_production"].(float64)
+    response.PestAffectedArea = stats["pest_affected_area"].(float64)
+    response.PestReportCount = stats["pest_report_count"].(int64)
+
+    // Convert distribution map
+    for _, item := range distribution {
+        response.DistributionMap = append(response.DistributionMap, dto.CommodityMapPoint{
+            Latitude:      item["latitude"].(float64),
+            Longitude:     item["longitude"].(float64),
+            Village:       item["village"].(string),
+            District:      item["district"].(string),
+            Commodity:     item["commodity"].(string),
+            CommodityType: "PLANTATION",
+            LandArea:      item["land_area"].(float64),
+        })
+    }
+
+    // Convert growth phases
+    for _, item := range growthPhases {
+        response.GrowthPhases = append(response.GrowthPhases, dto.GrowthPhaseCount{
+            Phase:      item["phase"].(string),
+            Count:      item["count"].(int64),
+            Percentage: item["percentage"].(float64),
+        })
+    }
+
+    // Convert technology
+    for _, item := range technology {
+        response.TechnologyUsed = append(response.TechnologyUsed, dto.TechnologyCount{
+            Technology: item["technology"].(string),
+            Count:      item["count"].(int64),
+            Percentage: item["percentage"].(float64),
+        })
+    }
+
+    // Convert pest dominance
+    for _, item := range pestDominance {
+        response.PestDominance = append(response.PestDominance, dto.PestDominanceCount{
+            PestType:   item["pest_type"].(string),
+            Count:      item["count"].(int64),
+            Percentage: item["percentage"].(float64),
+        })
+    }
+
+    // Convert harvest schedule
+    for _, item := range harvestSchedule {
+        harvestDate, _ := time.Parse("2006-01-02", item["harvest_date"].(string))
+        response.HarvestSchedule = append(response.HarvestSchedule, dto.HarvestScheduleItem{
+            CommodityDetail: item["commodity_detail"].(string),
+            HarvestDate:     harvestDate,
+            FarmerName:      item["farmer_name"].(string),
+            Village:         item["village"].(string),
+            LandArea:        item["land_area"].(float64),
+        })
+    }
 
     // Cache the response for 15 minutes
     uc.cache.Set(ctx, cacheKey, &response, 900*time.Second)
@@ -817,106 +1056,6 @@ func (uc *AgricultureUseCase) GetLandAndIrrigationStats(ctx context.Context, sta
 
     // Cache the response for 20 minutes
     uc.cache.Set(ctx, cacheKey, &response, 1200*time.Second)
-
-    return &response, nil
-} 
-
-Get executive summary data
-    summary, err := uc.agricultureRepo.GetExecutiveSummary(ctx)
-    if err != nil {
-        return nil, err
-    }
-
-    // Get commodity distribution map
-    commodityMap, err := uc.agricultureRepo.GetCommodityDistributionByDistrict(ctx)
-    if err != nil {
-        return nil, err
-    }
-
-    // Get commodity by sector
-    sectorData, err := uc.agricultureRepo.GetCommodityCountBySector(ctx)
-    if err != nil {
-        return nil, err
-    }
-
-    // Get land status distribution
-    landStatus, err := uc.agricultureRepo.GetLandStatusDistribution(ctx)
-    if err != nil {
-        return nil, err
-    }
-
-    // Get constraints and farmer needs
-    constraints, err := uc.agricultureRepo.GetMainConstraintsDistribution(ctx)
-    if err != nil {
-        return nil, err
-    }
-
-    farmerNeeds, err := uc.agricultureRepo.GetFarmerHopesAndNeeds(ctx)
-    if err != nil {
-        return nil, err
-    }
-
-    // Build response
-    response.TotalLandArea = summary["total_land_area"].(float64)
-    response.PestDiseaseReports = summary["pest_disease_reports"].(int64)
-    response.TotalExtensionReports = summary["total_extension_reports"].(int64)
-    
-    // Convert map data
-    for _, mapItem := range commodityMap {
-        response.CommodityMap = append(response.CommodityMap, dto.CommodityMapPoint{
-            Latitude:      mapItem["latitude"].(float64),
-            Longitude:     mapItem["longitude"].(float64),
-            Village:       mapItem["village"].(string),
-            District:      mapItem["district"].(string),
-            Commodity:     mapItem["commodity"].(string),
-            CommodityType: mapItem["commodity_type"].(string),
-            LandArea:      mapItem["land_area"].(float64),
-        })
-    }
-
-    // Convert sector data
-    if foodCrops, ok := sectorData["food_crops"].([]map[string]interface{}); ok {
-        for _, item := range foodCrops {
-            response.CommodityBySector.FoodCrops = append(response.CommodityBySector.FoodCrops, 
-                dto.CommodityCount{
-                    Name:  item["name"].(string),
-                    Count: item["count"].(int64),
-                })
-        }
-    }
-
-    // Convert land status
-    for _, item := range landStatus {
-        response.LandStatusDistrib = append(response.LandStatusDistrib, dto.LandStatusCount{
-            Status:     item["status"].(string),
-            Count:      item["count"].(int64),
-            Percentage: item["percentage"].(float64),
-        })
-    }
-
-    // Convert constraints
-    for _, item := range constraints {
-        response.MainConstraints = append(response.MainConstraints, dto.ConstraintCount{
-            Constraint: item["constraint"].(string),
-            Count:      item["count"].(int64),
-            Percentage: item["percentage"].(float64),
-        })
-    }
-
-    // Convert farmer needs
-    if hopes, ok := farmerNeeds["hopes"].([]map[string]interface{}); ok {
-        for _, item := range hopes {
-            response.FarmerHopesNeeds.Hopes = append(response.FarmerHopesNeeds.Hopes, 
-                dto.HopeCount{
-                    Hope:       item["hope"].(string),
-                    Count:      item["count"].(int64),
-                    Percentage: item["percentage"].(float64),
-                })
-        }
-    }
-
-    // Cache the response for 10 minutes
-    uc.cache.Set(ctx, cacheKey, &response, 600*time.Second)
 
     return &response, nil
 }
