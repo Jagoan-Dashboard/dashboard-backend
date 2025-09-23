@@ -644,3 +644,99 @@ func (uc *BinaMargaUseCase) sendUrgentNotification(ctx context.Context, report *
             report.BridgeName, report.BridgeDamageLevel)
     }
 }
+
+
+func (uc *BinaMargaUseCase) GetDashboard(ctx context.Context, roadType string, startDate, endDate time.Time) (*dto.BinaMargaDashboardResponse, error) {
+    avgSeg, avgArea, avgTraffic, total, err := uc.binaMargaRepo.GetKPIs(ctx, roadType, startDate, endDate)
+    if err != nil {
+        return nil, err
+    }
+
+    // Priority (urgency_level)
+    priorityRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "urgency_level", roadType, startDate, endDate, false, false)
+    if err != nil {
+        return nil, err
+    }
+
+    // Level distribusi
+    roadLevelRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "damage_level", roadType, startDate, endDate, false, true) // onlyRoad
+    if err != nil {
+        return nil, err
+    }
+    bridgeLevelRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "bridge_damage_level", roadType, startDate, endDate, true, false) // onlyBridge
+    if err != nil {
+        return nil, err
+    }
+
+    // Top types
+    roadTypeRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "damage_type", roadType, startDate, endDate, false, true)
+    if err != nil {
+        return nil, err
+    }
+    bridgeTypeRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "bridge_damage_type", roadType, startDate, endDate, true, false)
+    if err != nil {
+        return nil, err
+    }
+
+    // Map points
+    pts, err := uc.binaMargaRepo.GetMapPoints(ctx, roadType, startDate, endDate)
+    if err != nil {
+        return nil, err
+    }
+
+    // Build DTO
+    res := &dto.BinaMargaDashboardResponse{}
+    res.KPIs.AvgSegmentLengthM = avgSeg
+    res.KPIs.AvgDamageAreaM2 = avgArea
+    res.KPIs.AvgDailyTrafficVolume = avgTraffic
+    res.KPIs.TotalReports = total
+
+    res.PriorityDistribution = make([]dto.KeyCount, len(priorityRows))
+    for i, r0 := range priorityRows {
+        res.PriorityDistribution[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
+    }
+
+    res.RoadDamageLevelDistribution = make([]dto.KeyCount, len(roadLevelRows))
+    for i, r0 := range roadLevelRows {
+        res.RoadDamageLevelDistribution[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
+    }
+
+    res.BridgeDamageLevelDistribution = make([]dto.KeyCount, len(bridgeLevelRows))
+    for i, r0 := range bridgeLevelRows {
+        res.BridgeDamageLevelDistribution[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
+    }
+
+    res.TopRoadDamageTypes = make([]dto.KeyCount, len(roadTypeRows))
+    for i, r0 := range roadTypeRows {
+        res.TopRoadDamageTypes[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
+    }
+
+    res.TopBridgeDamageTypes = make([]dto.KeyCount, len(bridgeTypeRows))
+    for i, r0 := range bridgeTypeRows {
+        res.TopBridgeDamageTypes[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
+    }
+
+    res.MapPoints = make([]dto.BinaMargaMapPoint, len(pts))
+    for i, p := range pts {
+        res.MapPoints[i] = dto.BinaMargaMapPoint{
+            Latitude:          p.Latitude,
+            Longitude:         p.Longitude,
+            RoadName:          p.RoadName,
+            RoadType:          p.RoadType,
+            DamageType:        p.DamageType,
+            DamageLevel:       p.DamageLevel,
+            BridgeName:        deref(p.BridgeName),
+            BridgeDamageType:  deref(p.BridgeDamageType),
+            BridgeDamageLevel: deref(p.BridgeDamageLevel),
+            UrgencyLevel:      p.UrgencyLevel,
+        }
+    }
+    return res, nil
+}
+
+func deref(s *string) string {
+    if s == nil {
+        return ""
+    }
+    return *s
+}

@@ -402,3 +402,24 @@ func (h *BinaMargaHandler) GetDashboardSummary(c *fiber.Ctx) error {
 
     return response.Success(c, "Dashboard summary retrieved successfully", summary)
 }
+
+func (h *BinaMargaHandler) GetDashboard(c *fiber.Ctx) error {
+    roadType := c.Query("road_type", "ALL")
+    startStr := c.Query("start_date", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
+    endStr := c.Query("end_date", time.Now().Format("2006-01-02"))
+
+    startDate, err := time.Parse("2006-01-02", startStr)
+    if err != nil {
+        return response.BadRequest(c, "invalid start_date format, use YYYY-MM-DD", err)
+    }
+    endDate, err := time.Parse("2006-01-02", endStr)
+    if err != nil {
+        return response.BadRequest(c, "invalid end_date format, use YYYY-MM-DD", err)
+    }
+
+    data, err := h.binaMargaUseCase.GetDashboard(c.Context(), roadType, startDate, endDate)
+    if err != nil {
+        return response.InternalError(c, "Failed to build bina marga dashboard", err)
+    }
+    return response.Success(c, "Bina Marga dashboard", data)
+}

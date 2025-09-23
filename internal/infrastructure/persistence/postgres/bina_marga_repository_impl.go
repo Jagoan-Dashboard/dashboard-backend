@@ -454,3 +454,139 @@ func (r *binaMargaRepositoryImpl) FindEmergencyReports(ctx context.Context, limi
 		Find(&reports).Error
 	return reports, err
 }
+
+
+func (r *binaMargaRepositoryImpl) baseScoped(ctx context.Context, roadType string, startDate, endDate time.Time) *gorm.DB {
+    q := r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
+        Where("report_datetime BETWEEN ? AND ?", startDate, endDate)
+    if roadType != "" && roadType != "ALL" {
+        q = q.Where("road_type = ?", roadType)
+    }
+    return q
+}
+
+func (r *binaMargaRepositoryImpl) GetKPIs(ctx context.Context, roadType string, startDate, endDate time.Time) (float64, float64, float64, int64, error) {
+    var avgSeg float64
+    if err := r.baseScoped(ctx, roadType, startDate, endDate).
+        Select("COALESCE(AVG(segment_length), 0)").
+        Scan(&avgSeg).Error; err != nil {
+        return 0, 0, 0, 0, err
+    }
+
+    var avgArea float64
+    if err := r.baseScoped(ctx, roadType, startDate, endDate).
+        Select("COALESCE(AVG(COALESCE(total_damaged_area, damaged_area)), 0)").
+        Scan(&avgArea).Error; err != nil {
+        return 0, 0, 0, 0, err
+    }
+
+    var avgTraffic float64
+    if err := r.baseScoped(ctx, roadType, startDate, endDate).
+        Select("COALESCE(AVG(daily_traffic_volume), 0)").
+        Scan(&avgTraffic).Error; err != nil {
+        return 0, 0, 0, 0, err
+    }
+
+    var total int64
+    if err := r.baseScoped(ctx, roadType, startDate, endDate).
+        Count(&total).Error; err != nil {
+        return 0, 0, 0, 0, err
+    }
+
+    return avgSeg, avgArea, avgTraffic, total, nil
+}
+
+func (r *binaMargaRepositoryImpl) GroupCountBy(ctx context.Context, column, roadType string, startDate, endDate time.Time, onlyBridge, onlyRoad bool) ([]struct {
+    Key string
+    Count int64
+}, error) {
+    q := r.baseScoped(ctx, roadType, startDate, endDate)
+    if onlyBridge {
+        q = q.Where("bridge_name IS NOT NULL AND bridge_name <> ''")
+    }
+    if onlyRoad {
+        q = q.Where("(bridge_name IS NULL OR bridge_name = '')")
+    }
+
+    var rows []keyCountRow
+    if err := q.Select(column+" as key, COUNT(*) as count").
+        Group(column).
+        Order("count DESC").
+        Scan(&rows).Error; err != nil {
+        return nil, err
+    }
+
+    out := make([]struct{ Key string; Count int64 }, len(rows))
+    for i, r0 := range rows {
+        out[i] = struct{ Key string; Count int64 }{Key: r0.Key, Count: r0.Count}
+    }
+    return out, nil
+}
+
+func (r *binaMargaRepositoryImpl) GetMapPoints(ctx context.Context, roadType string, startDate, endDate time.Time) ([]struct {
+    Latitude           float64
+    Longitude          float64
+    RoadName           string
+    RoadType           string
+    DamageType         string
+    DamageLevel        string
+    BridgeName         *string
+    BridgeDamageType   *string
+    BridgeDamageLevel  *string
+    UrgencyLevel       string
+}, error) {
+    type row struct {
+        Latitude          float64
+        Longitude         float64
+        RoadName          string
+        RoadType          string
+        DamageType        string
+        DamageLevel       string
+        BridgeName        *string
+        BridgeDamageType  *string
+        BridgeDamageLevel *string
+        UrgencyLevel      string
+    }
+
+    var rows []row
+    if err := r.baseScoped(ctx, roadType, startDate, endDate).
+        Select("latitude, longitude, road_name, road_type, damage_type, damage_level, bridge_name, bridge_damage_type, bridge_damage_level, urgency_level").
+        Where("latitude IS NOT NULL AND longitude IS NOT NULL").
+        Scan(&rows).Error; err != nil {
+        return nil, err
+    }
+
+    out := make([]struct {
+        Latitude           float64
+        Longitude          float64
+        RoadName           string
+        RoadType           string
+        DamageType         string
+        DamageLevel        string
+        BridgeName         *string
+        BridgeDamageType   *string
+        BridgeDamageLevel  *string
+        UrgencyLevel       string
+    }, len(rows))
+    for i, v := range rows {
+        out[i] = struct {
+            Latitude           float64
+            Longitude          float64
+            RoadName           string
+            RoadType           string
+            DamageType         string
+            DamageLevel        string
+            BridgeName         *string
+            BridgeDamageType   *string
+            BridgeDamageLevel  *string
+            UrgencyLevel       string
+        }{
+            Latitude: v.Latitude, Longitude: v.Longitude,
+            RoadName: v.RoadName, RoadType: v.RoadType,
+            DamageType: v.DamageType, DamageLevel: v.DamageLevel,
+            BridgeName: v.BridgeName, BridgeDamageType: v.BridgeDamageType, BridgeDamageLevel: v.BridgeDamageLevel,
+            UrgencyLevel: v.UrgencyLevel,
+        }
+    }
+    return out, nil
+}

@@ -87,3 +87,28 @@ type DamageByAreaResponse struct {
     TotalEstimatedBudget float64 `json:"total_estimated_budget"`
     AvgDamageArea        float64 `json:"avg_damage_area"`
 }
+type KeyCount struct {
+    Key   string `json:"key"`
+    Count int64  `json:"count"`
+}
+
+type DashboardMapPoint struct {
+    Latitude          float64 `json:"latitude"`
+    Longitude         float64 `json:"longitude"`
+    IrrigationArea    string  `json:"irrigation_area_name"`
+    DamageType        string  `json:"damage_type"`
+    DamageLevel       string  `json:"damage_level"`
+    UrgencyCategory   string  `json:"urgency_category"`
+}
+
+type WaterResourcesDashboardResponse struct {
+    KPIs struct {
+        TotalDamageAreaM2   float64 `json:"total_damage_area_m2"`
+        TotalRiceFieldHa    float64 `json:"total_rice_field_ha"`
+        TotalReports        int64   `json:"total_reports"`
+    } `json:"kpis"`
+    MapPoints           []DashboardMapPoint `json:"map_points"`
+    UrgencyDistribution []KeyCount          `json:"urgency_distribution"`
+    TopDamageTypes      []KeyCount          `json:"top_damage_types"`
+    TopDamageLevels     []KeyCount          `json:"top_damage_levels"`
+}

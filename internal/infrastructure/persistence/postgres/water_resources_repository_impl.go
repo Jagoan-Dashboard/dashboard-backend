@@ -1,14 +1,13 @@
-
 package postgres
 
 import (
-    "context"
-    "time"
-    "building-report-backend/internal/domain/entity"
-    "building-report-backend/internal/domain/repository"
-    
-    "github.com/google/uuid"
-    "gorm.io/gorm"
+	"building-report-backend/internal/domain/entity"
+	"building-report-backend/internal/domain/repository"
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type waterResourcesRepositoryImpl struct {
@@ -299,4 +298,121 @@ func (r *waterResourcesRepositoryImpl) CountAffectedFarmers(ctx context.Context)
         Select("COALESCE(SUM(affected_farmers_count), 0)").
         Scan(&count).Error
     return count, err
+}
+type keyCountRow struct {
+    Key   string `gorm:"column:key"`
+    Count int64  `gorm:"column:count"`
+}
+
+func (r *waterResourcesRepositoryImpl) baseScoped(ctx context.Context, irrigationType string, startDate, endDate time.Time) *gorm.DB {
+    q := r.db.WithContext(ctx).Model(&entity.WaterResourcesReport{}).
+        Where("report_datetime BETWEEN ? AND ?", startDate, endDate)
+    if irrigationType != "" && irrigationType != "ALL" {
+        q = q.Where("irrigation_type = ?", irrigationType)
+    }
+    return q
+}
+
+func (r *waterResourcesRepositoryImpl) GetSummaryKPIs(ctx context.Context, irrigationType string, startDate, endDate time.Time) (float64, float64, int64, error) {
+    // Total area (m2) = sum(length*width)
+    var totalArea float64
+    if err := r.baseScoped(ctx, irrigationType, startDate, endDate).
+        Select("COALESCE(SUM(estimated_length * estimated_width), 0)").
+        Scan(&totalArea).Error; err != nil {
+        return 0, 0, 0, err
+    }
+
+    // Total rice field area (ha)
+    var totalRice float64
+    if err := r.baseScoped(ctx, irrigationType, startDate, endDate).
+        Select("COALESCE(SUM(affected_rice_field_area), 0)").
+        Scan(&totalRice).Error; err != nil {
+        return 0, 0, 0, err
+    }
+
+    // Total reports
+    var totalReports int64
+    if err := r.baseScoped(ctx, irrigationType, startDate, endDate).
+        Count(&totalReports).Error; err != nil {
+        return 0, 0, 0, err
+    }
+
+    return totalArea, totalRice, totalReports, nil
+}
+
+func (r *waterResourcesRepositoryImpl) GroupCountBy(ctx context.Context, field, irrigationType string, startDate, endDate time.Time) ([]struct {
+    Key   string
+    Count int64
+}, error) {
+    var rows []keyCountRow
+    q := r.baseScoped(ctx, irrigationType, startDate, endDate).
+        Select(field+" as key, COUNT(*) as count").
+        Group(field).
+        Order("count DESC")
+    if err := q.Scan(&rows).Error; err != nil {
+        return nil, err
+    }
+    // cast ke slice anonim yang sesuai interface
+    out := make([]struct {
+        Key   string
+        Count int64
+    }, len(rows))
+    for i, r0 := range rows {
+        out[i] = struct {
+            Key   string
+            Count int64
+        }{Key: r0.Key, Count: r0.Count}
+    }
+    return out, nil
+}
+
+func (r *waterResourcesRepositoryImpl) GetMapPoints(ctx context.Context, irrigationType string, startDate, endDate time.Time) ([]struct {
+    Latitude        float64
+    Longitude       float64
+    IrrigationArea  string
+    DamageType      string
+    DamageLevel     string
+    UrgencyCategory string
+}, error) {
+    type row struct {
+        Latitude        float64
+        Longitude       float64
+        IrrigationArea  string `gorm:"column:irrigation_area_name"`
+        DamageType      string
+        DamageLevel     string
+        UrgencyCategory string `gorm:"column:urgency_category"`
+    }
+    var rows []row
+    if err := r.baseScoped(ctx, irrigationType, startDate, endDate).
+        Select("latitude, longitude, irrigation_area_name, damage_type, damage_level, urgency_category").
+        Where("latitude IS NOT NULL AND longitude IS NOT NULL").
+        Scan(&rows).Error; err != nil {
+        return nil, err
+    }
+    out := make([]struct {
+        Latitude        float64
+        Longitude       float64
+        IrrigationArea  string
+        DamageType      string
+        DamageLevel     string
+        UrgencyCategory string
+    }, len(rows))
+    for i, v := range rows {
+        out[i] = struct {
+            Latitude        float64
+            Longitude       float64
+            IrrigationArea  string
+            DamageType      string
+            DamageLevel     string
+            UrgencyCategory string
+        }{
+            Latitude:        v.Latitude,
+            Longitude:       v.Longitude,
+            IrrigationArea:  v.IrrigationArea,
+            DamageType:      v.DamageType,
+            DamageLevel:     v.DamageLevel,
+            UrgencyCategory: v.UrgencyCategory,
+        }
+    }
+    return out, nil
 }

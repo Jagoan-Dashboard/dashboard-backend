@@ -26,4 +26,25 @@ type BinaMargaRepository interface {
     CalculateTotalDamageLength(ctx context.Context) (float64, error)
     CountReportsByUrgency(ctx context.Context, urgency entity.RoadUrgencyLevel) (int64, error)
     GetRepairTimeAnalysis(ctx context.Context) (map[string]interface{}, error)
+
+     GetKPIs(ctx context.Context, roadType string, startDate, endDate time.Time) (avgSegLen, avgDamageArea, avgDailyTraffic float64, totalReports int64, err error)
+
+    // generic group-by untuk kolom tertentu, dengan opsi filter jembatan
+    GroupCountBy(ctx context.Context, column, roadType string, startDate, endDate time.Time, onlyBridge, onlyRoad bool) ([]struct {
+        Key   string
+        Count int64
+    }, error)
+
+    GetMapPoints(ctx context.Context, roadType string, startDate, endDate time.Time) ([]struct {
+        Latitude           float64
+        Longitude          float64
+        RoadName           string
+        RoadType           string
+        DamageType         string
+        DamageLevel        string
+        BridgeName         *string
+        BridgeDamageType   *string
+        BridgeDamageLevel  *string
+        UrgencyLevel       string
+    }, error)
 }

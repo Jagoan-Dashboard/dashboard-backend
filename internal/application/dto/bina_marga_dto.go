@@ -134,3 +134,35 @@ type RoadDamageByTypeResponse struct {
     AvgRepairTime        float64 `json:"avg_repair_time_days"`
     EmergencyCount       int     `json:"emergency_count"`
 }
+
+
+type BinaMargaMapPoint struct {
+    Latitude        float64 `json:"latitude"`
+    Longitude       float64 `json:"longitude"`
+    RoadName        string  `json:"road_name"`
+    RoadType        string  `json:"road_type"`
+    DamageType      string  `json:"damage_type,omitempty"`
+    DamageLevel     string  `json:"damage_level,omitempty"`
+    BridgeName      string  `json:"bridge_name,omitempty"`
+    BridgeDamageType  string `json:"bridge_damage_type,omitempty"`
+    BridgeDamageLevel string `json:"bridge_damage_level,omitempty"`
+    UrgencyLevel    string  `json:"urgency_level"`
+}
+
+type BinaMargaDashboardResponse struct {
+    KPIs struct {
+        AvgSegmentLengthM     float64 `json:"avg_segment_length_m"`
+        AvgDamageAreaM2       float64 `json:"avg_damage_area_m2"`
+        AvgDailyTrafficVolume float64 `json:"avg_daily_traffic_volume"`
+        TotalReports          int64   `json:"total_reports"`
+    } `json:"kpis"`
+
+    PriorityDistribution           []KeyCount          `json:"priority_distribution"`
+
+    MapPoints                      []BinaMargaMapPoint `json:"map_points"`
+    RoadDamageLevelDistribution    []KeyCount          `json:"road_damage_level_distribution"`
+    BridgeDamageLevelDistribution  []KeyCount          `json:"bridge_damage_level_distribution"`
+
+    TopRoadDamageTypes             []KeyCount          `json:"top_road_damage_types"`
+    TopBridgeDamageTypes           []KeyCount          `json:"top_bridge_damage_types"`
+}

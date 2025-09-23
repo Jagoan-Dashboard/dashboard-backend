@@ -75,7 +75,7 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     waterRoutes.Post("/", cont.WaterResourcesHandler.CreateReport)
     waterRoutes.Put("/:id", cont.WaterResourcesHandler.UpdateReport)
     waterRoutes.Delete("/:id", cont.WaterResourcesHandler.DeleteReport)
-
+    waterRoutes.Get("/dashboard", cont.WaterResourcesHandler.GetDashboard)
 
     binaMargaRoutes := protected.Group("/bina-marga")
     binaMargaRoutes.Get("/", cont.BinaMargaHandler.ListReports)
@@ -89,6 +89,7 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     binaMargaRoutes.Post("/", cont.BinaMargaHandler.CreateReport)
     binaMargaRoutes.Put("/:id", cont.BinaMargaHandler.UpdateReport)
     binaMargaRoutes.Delete("/:id", cont.BinaMargaHandler.DeleteReport)
+    binaMargaRoutes.Get("/dashboard", cont.BinaMargaHandler.GetDashboard)
 
     agricultureRoutes := protected.Group("/agriculture")
 

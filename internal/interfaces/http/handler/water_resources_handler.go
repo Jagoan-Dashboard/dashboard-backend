@@ -255,3 +255,26 @@ func (h *WaterResourcesHandler) GetDamageByArea(c *fiber.Ctx) error {
 
     return response.Success(c, "Damage statistics by area retrieved successfully", results)
 }
+
+
+func (h *WaterResourcesHandler) GetDashboard(c *fiber.Ctx) error {
+    // Query params
+    irrigationType := c.Query("irrigation_type", "ALL")
+    startStr := c.Query("start_date", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
+    endStr := c.Query("end_date", time.Now().Format("2026-01-02")) // default: hari ini
+
+    startDate, err := time.Parse("2006-01-02", startStr)
+    if err != nil {
+        return response.BadRequest(c, "invalid start_date format, use YYYY-MM-DD", err)
+    }
+    endDate, err := time.Parse("2006-01-02", endStr)
+    if err != nil {
+        return response.BadRequest(c, "invalid end_date format, use YYYY-MM-DD", err)
+    }
+
+    data, err := h.waterUseCase.GetDashboard(c.Context(), irrigationType, startDate, endDate)
+    if err != nil {
+        return response.InternalError(c, "Failed to build water resources dashboard", err)
+    }
+    return response.Success(c, "Water resources dashboard", data)
+}
