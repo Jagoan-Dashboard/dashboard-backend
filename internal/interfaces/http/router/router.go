@@ -92,42 +92,41 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     binaMargaRoutes.Get("/dashboard", cont.BinaMargaHandler.GetDashboard)
 
     agricultureRoutes := protected.Group("/agriculture")
-
+    
+    agricultureRoutes.Get("/executive/dashboard", cont.AgricultureHandler.GetExecutiveDashboard)
+    agricultureRoutes.Get("/commodity/analysis", cont.AgricultureHandler.GetCommodityAnalysis)
+    agricultureRoutes.Get("/food-crop/stats", cont.AgricultureHandler.GetFoodCropStats)
+    agricultureRoutes.Get("/horticulture/stats", cont.AgricultureHandler.GetHorticultureStats)
+    agricultureRoutes.Get("/plantation/stats", cont.AgricultureHandler.GetPlantationStats)
+    agricultureRoutes.Get("/equipment/stats", cont.AgricultureHandler.GetAgriculturalEquipmentStats)
+    agricultureRoutes.Get("/land-irrigation/stats", cont.AgricultureHandler.GetLandAndIrrigationStats)
 
     agricultureRoutes.Get("/", cont.AgricultureHandler.ListReports)
     agricultureRoutes.Get("/:id", cont.AgricultureHandler.GetReport)
     agricultureRoutes.Post("/", cont.AgricultureHandler.CreateReport)
     agricultureRoutes.Put("/:id", cont.AgricultureHandler.UpdateReport)
     agricultureRoutes.Delete("/:id", cont.AgricultureHandler.DeleteReport)
-
-
+    
     agricultureRoutes.Get("/statistics/overview", cont.AgricultureHandler.GetStatistics)
     agricultureRoutes.Get("/statistics/commodity-production", cont.AgricultureHandler.GetCommodityProduction)
     agricultureRoutes.Get("/statistics/technology-adoption", cont.AgricultureHandler.GetTechnologyAdoptionStats)
     agricultureRoutes.Get("/statistics/farmer-needs", cont.AgricultureHandler.GetFarmerNeedsAnalysis)
 
-
     agricultureRoutes.Get("/extension-officer/:officer/reports", cont.AgricultureHandler.GetByExtensionOfficer)
     agricultureRoutes.Get("/extension-officer/performance", cont.AgricultureHandler.GetExtensionOfficerPerformance)
-
 
     agricultureRoutes.Get("/village/:village/reports", cont.AgricultureHandler.GetReportsByVillage)
     agricultureRoutes.Get("/reports/by-date-range", cont.AgricultureHandler.GetReportsByDateRange)
 
-
     agricultureRoutes.Get("/pest-disease/reports", cont.AgricultureHandler.GetPestDiseaseReports)
 
-
     agricultureRoutes.Get("/dashboard/summary", cont.AgricultureHandler.GetDashboardSummary)
-
-
 
     adminWaterRoutes := protected.Group("/admin/water-resources", middleware.RequireRole("ADMIN"))
     adminWaterRoutes.Put("/:id/status", cont.WaterResourcesHandler.UpdateStatus)
 
-        
-        adminRoutes := protected.Group("/admin", middleware.RequireRole("ADMIN"))
-        adminRoutes.Get("/users", func(c *fiber.Ctx) error {
+    adminRoutes := protected.Group("/admin", middleware.RequireRole("ADMIN"))
+           adminRoutes.Get("/users", func(c *fiber.Ctx) error {
             return c.JSON(fiber.Map{"message": "Admin users list"})
         })
 

@@ -555,54 +555,307 @@ func (h *AgricultureHandler) GetReportsByCommodity(c *fiber.Ctx) error {
     return response.Success(c, "Reports by commodity retrieved successfully", result)
 }
 
-// func (h *AgricultureHandler) GetPestDiseaseAnalysis(c *fiber.Ctx) error {
-//     commodityType := c.Query("commodity_type") // Optional filter
-//     startDateStr := c.Query("start_date")
-//     endDateStr := c.Query("end_date")
+// Commodity Analysis Endpoints
+
+func (h *AgricultureHandler) GetCommodityAnalysis(c *fiber.Ctx) error {
+    commodityName := c.Query("commodity_name")
+    if commodityName == "" {
+        return response.BadRequest(c, "commodity_name parameter is required", nil)
+    }
+
+    startDateStr := c.Query("start_date")
+    endDateStr := c.Query("end_date")
     
-//     // Default to last 6 months if no date range provided
-//     var startDate, endDate time.Time
-//     if startDateStr != "" && endDateStr != "" {
-//         var err error
-//         startDate, err = time.Parse("2006-01-02", startDateStr)
-//         if err != nil {
-//             return response.BadRequest(c, "Invalid start_date format, use YYYY-MM-DD", err)
-//         }
-        
-//         endDate, err = time.Parse("2006-01-02", endDateStr)
-//         if err != nil {
-//             return response.BadRequest(c, "Invalid end_date format, use YYYY-MM-DD", err)
-//         }
-//     } else {
-//         endDate = time.Now()
-//         startDate = endDate.AddDate(0, -6, 0)
-//     }
+    if startDateStr == "" || endDateStr == "" {
+        return response.BadRequest(c, "start_date and end_date parameters are required", nil)
+    }
 
-//     analysis, err := h.agricultureUseCase.GetPestDiseaseAnalysis(c.Context(), startDate, endDate, commodityType)
-//     if err != nil {
-//         return response.InternalError(c, "Failed to retrieve pest disease analysis", err)
-//     }
+    startDate, err := time.Parse("2006-01-02", startDateStr)
+    if err != nil {
+        return response.BadRequest(c, "Invalid start_date format, use YYYY-MM-DD", err)
+    }
+    
+    endDate, err := time.Parse("2006-01-02", endDateStr)
+    if err != nil {
+        return response.BadRequest(c, "Invalid end_date format, use YYYY-MM-DD", err)
+    }
 
-//     return response.Success(c, "Pest disease analysis retrieved successfully", map[string]interface{}{
-//         "analysis":   analysis,
-//         "start_date": startDate.Format("2006-01-02"),
-//         "end_date":   endDate.Format("2006-01-02"),
-//         "filters": map[string]interface{}{
-//             "commodity_type": commodityType,
-//         },
-//     })
-// }
+    // Validate date range (max 2 years)
+    if endDate.Sub(startDate) > 2*365*24*time.Hour {
+        return response.BadRequest(c, "Date range cannot exceed 2 years", nil)
+    }
 
-// func (h *AgricultureHandler) GetVillageSummary(c *fiber.Ctx) error {
-//     village := c.Params("village")
-//     if village == "" {
-//         return response.BadRequest(c, "Village name is required", nil)
-//     }
+    analysis, err := h.agricultureUseCase.GetCommodityAnalysis(c.Context(), startDate, endDate, commodityName)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve commodity analysis", err)
+    }
 
-//     summary, err := h.agricultureUseCase.GetVillageAgricultureSummary(c.Context(), village)
-//     if err != nil {
-//         return response.InternalError(c, "Failed to retrieve village agriculture summary", err)
-//     }
+    return response.Success(c, "Commodity analysis retrieved successfully", analysis)
+}
 
-//     return response.Success(c, "Village agriculture summary retrieved successfully", summary)
-// }
+// Food Crop Endpoints
+
+func (h *AgricultureHandler) GetFoodCropStats(c *fiber.Ctx) error {
+    commodityName := c.Query("commodity_name", "")
+    
+    // Validate commodity name if provided
+    if commodityName != "" {
+        if !h.agricultureUseCase.ValidateCommodityName(commodityName, "FOOD") {
+            return response.BadRequest(c, "Invalid food crop commodity name", nil)
+        }
+    }
+    
+    stats, err := h.agricultureUseCase.GetFoodCropStats(c.Context(), commodityName)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve food crop statistics", err)
+    }
+
+    return response.Success(c, "Food crop statistics retrieved successfully", stats)
+}
+
+// Horticulture Endpoints
+
+func (h *AgricultureHandler) GetHorticultureStats(c *fiber.Ctx) error {
+    commodityName := c.Query("commodity_name", "")
+    
+    // Validate commodity name if provided
+    if commodityName != "" {
+        if !h.agricultureUseCase.ValidateCommodityName(commodityName, "HORTICULTURE") {
+            return response.BadRequest(c, "Invalid horticulture commodity name", nil)
+        }
+    }
+    
+    stats, err := h.agricultureUseCase.GetHorticultureStats(c.Context(), commodityName)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve horticulture statistics", err)
+    }
+
+    return response.Success(c, "Horticulture statistics retrieved successfully", stats)
+}
+
+// Executive Dashboard Endpoints
+
+func (h *AgricultureHandler) GetExecutiveDashboard(c *fiber.Ctx) error {
+    summary, err := h.agricultureUseCase.GetExecutiveSummary(c.Context())
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve executive summary", err)
+    }
+
+    return response.Success(c, "Executive summary retrieved successfully", summary)
+}
+
+// Commodity Analysis Endpoints
+
+func (h *AgricultureHandler) GetCommodityAnalysis(c *fiber.Ctx) error {
+    commodityName := c.Query("commodity_name")
+    if commodityName == "" {
+        return response.BadRequest(c, "commodity_name parameter is required", nil)
+    }
+
+    startDateStr := c.Query("start_date")
+    endDateStr := c.Query("end_date")
+    
+    if startDateStr == "" || endDateStr == "" {
+        return response.BadRequest(c, "start_date and end_date parameters are required", nil)
+    }
+
+    startDate, err := time.Parse("2006-01-02", startDateStr)
+    if err != nil {
+        return response.BadRequest(c, "Invalid start_date format, use YYYY-MM-DD", err)
+    }
+    
+    endDate, err := time.Parse("2006-01-02", endDateStr)
+    if err != nil {
+        return response.BadRequest(c, "Invalid end_date format, use YYYY-MM-DD", err)
+    }
+
+    analysis, err := h.agricultureUseCase.GetCommodityAnalysis(c.Context(), startDate, endDate, commodityName)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve commodity analysis", err)
+    }
+
+    return response.Success(c, "Commodity analysis retrieved successfully", analysis)
+}
+
+// Food Crop Endpoints
+
+func (h *AgricultureHandler) GetFoodCropStats(c *fiber.Ctx) error {
+    commodityName := c.Query("commodity_name", "")
+    
+    stats, err := h.agricultureUseCase.GetFoodCropStats(c.Context(), commodityName)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve food crop statistics", err)
+    }
+
+    return response.Success(c, "Food crop statistics retrieved successfully", stats)
+}
+
+// Horticulture Endpoints
+
+func (h *AgricultureHandler) GetHorticultureStats(c *fiber.Ctx) error {
+    commodityName := c.Query("commodity_name", "")
+    
+    stats, err := h.agricultureUseCase.GetHorticultureStats(c.Context(), commodityName)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve horticulture statistics", err)
+    }
+
+    return response.Success(c, "Horticulture statistics retrieved successfully", stats)
+}
+
+// Plantation Endpoints
+
+func (h *AgricultureHandler) GetPlantationStats(c *fiber.Ctx) error {
+    commodityName := c.Query("commodity_name", "")
+    
+    stats, err := h.agricultureUseCase.GetPlantationStats(c.Context(), commodityName)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve plantation statistics", err)
+    }
+
+    return response.Success(c, "Plantation statistics retrieved successfully", stats)
+}
+
+// Agricultural Equipment Endpoints
+
+func (h *AgricultureHandler) GetAgriculturalEquipmentStats(c *fiber.Ctx) error {
+    startDateStr := c.Query("start_date")
+    endDateStr := c.Query("end_date")
+    
+    if startDateStr == "" || endDateStr == "" {
+        return response.BadRequest(c, "start_date and end_date parameters are required", nil)
+    }
+
+    startDate, err := time.Parse("2006-01-02", startDateStr)
+    if err != nil {
+        return response.BadRequest(c, "Invalid start_date format, use YYYY-MM-DD", err)
+    }
+    
+    endDate, err := time.Parse("2006-01-02", endDateStr)
+    if err != nil {
+        return response.BadRequest(c, "Invalid end_date format, use YYYY-MM-DD", err)
+    }
+
+    stats, err := h.agricultureUseCase.GetAgriculturalEquipmentStats(c.Context(), startDate, endDate)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve agricultural equipment statistics", err)
+    }
+
+    return response.Success(c, "Agricultural equipment statistics retrieved successfully", stats)
+}
+
+// Land and Irrigation Endpoints
+
+func (h *AgricultureHandler) GetLandAndIrrigationStats(c *fiber.Ctx) error {
+    startDateStr := c.Query("start_date")
+    endDateStr := c.Query("end_date")
+    
+    if startDateStr == "" || endDateStr == "" {
+        return response.BadRequest(c, "start_date and end_date parameters are required", nil)
+    }
+
+    startDate, err := time.Parse("2006-01-02", startDateStr)
+    if err != nil {
+        return response.BadRequest(c, "Invalid start_date format, use YYYY-MM-DD", err)
+    }
+    
+    endDate, err := time.Parse("2006-01-02", endDateStr)
+    if err != nil {
+        return response.BadRequest(c, "Invalid end_date format, use YYYY-MM-DD", err)
+    }
+
+    stats, err := h.agricultureUseCase.GetLandAndIrrigationStats(c.Context(), startDate, endDate)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve land and irrigation statistics", err)
+    }
+
+    return response.Success(c, "Land and irrigation statistics retrieved successfully", stats)
+}
+
+// Helper Methods
+
+// ValidateDateRange validates if end date is after start date
+func (h *AgricultureHandler) ValidateDateRange(startDate, endDate time.Time) error {
+    if endDate.Before(startDate) {
+        return errors.New("end_date cannot be before start_date")
+    }
+    
+    // Check if date range is not more than 2 years
+    if endDate.Sub(startDate) > 2*365*24*time.Hour {
+        return errors.New("date range cannot exceed 2 years")
+    }
+    
+    return nil
+}
+
+// ParseAndValidateDate parses date string and validates format
+func (h *AgricultureHandler) ParseAndValidateDate(dateStr, fieldName string) (time.Time, error) {
+    if dateStr == "" {
+        return time.Time{}, fmt.Errorf("%s parameter is required", fieldName)
+    }
+    
+    date, err := time.Parse("2006-01-02", dateStr)
+    if err != nil {
+        return time.Time{}, fmt.Errorf("invalid %s format, use YYYY-MM-DD", fieldName)
+    }
+    
+    // Check if date is not in the future
+    if date.After(time.Now()) {
+        return time.Time{}, fmt.Errorf("%s cannot be in the future", fieldName)
+    }
+    
+    // Check if date is not too old (more than 10 years)
+    if date.Before(time.Now().AddDate(-10, 0, 0)) {
+        return time.Time{}, fmt.Errorf("%s cannot be more than 10 years ago", fieldName)
+    }
+    
+    return date, nil
+}
+
+// GetCommodityType returns commodity type based on commodity name
+func (h *AgricultureHandler) GetCommodityType(commodityName string) string {
+    foodCrops := []string{"padi", "jagung", "kedelai", "ubi jalar", "ubi kayu", "kacang tanah"}
+    horticulture := []string{"cabai", "tomat", "wortel", "bawang merah", "bawang putih", "kentang"}
+    plantation := []string{"kelapa", "kopi", "kakao", "karet", "kelapa sawit", "tebu"}
+    
+    commodityLower := strings.ToLower(commodityName)
+    
+    for _, crop := range foodCrops {
+        if strings.Contains(commodityLower, crop) {
+            return "FOOD"
+        }
+    }
+    
+    for _, crop := range horticulture {
+        if strings.Contains(commodityLower, crop) {
+            return "HORTICULTURE"
+        }
+    }
+    
+    for _, crop := range plantation {
+        if strings.Contains(commodityLower, crop) {
+            return "PLANTATION"
+        }
+    }
+    
+    return "UNKNOWN"
+}
+
+// LogRequestMetrics logs request metrics for monitoring
+func (h *AgricultureHandler) LogRequestMetrics(c *fiber.Ctx, endpoint string, duration time.Duration) {
+    log.Printf("[METRICS] Endpoint: %s, Method: %s, Duration: %v, IP: %s, UserAgent: %s",
+        endpoint,
+        c.Method(),
+        duration,
+        c.IP(),
+        c.Get("User-Agent"),
+    )
+}
+
+// HandlePanic recovers from panic and returns proper error response
+func (h *AgricultureHandler) HandlePanic(c *fiber.Ctx) {
+    if r := recover(); r != nil {
+        log.Printf("[PANIC] Agriculture handler panic: %v", r)
+        response.InternalError(c, "Internal server error occurred", fmt.Errorf("%v", r))
+    }
+}
