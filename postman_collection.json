@@ -1,0 +1,1324 @@
+{
+  "info": {
+    "name": "Building Report Backend - GET Endpoints",
+    "description": "Collection of all GET endpoints for Building Report Backend API documentation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "building-report-backend-get-endpoints",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/health",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "health"]
+        },
+        "description": "Health check endpoint to verify service is running"
+      }
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "profile"]
+            },
+            "description": "Get user profile information"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "List Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports"]
+            },
+            "description": "Get list of all reports"
+          }
+        },
+        {
+          "name": "Get Report by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Report ID"
+                }
+              ]
+            },
+            "description": "Get specific report by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tata Bangunan",
+      "item": [
+        {
+          "name": "Get Tata Bangunan Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/tata-bangunan/overview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "tata-bangunan", "overview"]
+            },
+            "description": "Get Tata Bangunan overview statistics"
+          }
+        },
+        {
+          "name": "Get Basic Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/tata-bangunan/basic-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "tata-bangunan", "basic-statistics"]
+            },
+            "description": "Get basic statistics for Tata Bangunan"
+          }
+        },
+        {
+          "name": "Get Location Distribution",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/tata-bangunan/location-distribution",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "tata-bangunan", "location-distribution"]
+            },
+            "description": "Get location distribution for Tata Bangunan"
+          }
+        },
+        {
+          "name": "Get Work Type Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/tata-bangunan/work-type-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "tata-bangunan", "work-type-statistics"]
+            },
+            "description": "Get work type statistics for Tata Bangunan"
+          }
+        },
+        {
+          "name": "Get Condition Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/tata-bangunan/condition-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "tata-bangunan", "condition-statistics"]
+            },
+            "description": "Get condition after rehabilitation statistics"
+          }
+        },
+        {
+          "name": "Get Status Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/tata-bangunan/status-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "tata-bangunan", "status-statistics"]
+            },
+            "description": "Get status statistics for Tata Bangunan"
+          }
+        },
+        {
+          "name": "Get Building Type Distribution",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/tata-bangunan/building-type-distribution",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "tata-bangunan", "building-type-distribution"]
+            },
+            "description": "Get building type distribution statistics"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Spatial Planning",
+      "item": [
+        {
+          "name": "List Spatial Planning Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning"]
+            },
+            "description": "Get list of spatial planning reports"
+          }
+        },
+        {
+          "name": "Get Spatial Planning Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning", "statistics"]
+            },
+            "description": "Get spatial planning statistics"
+          }
+        },
+        {
+          "name": "Get Spatial Planning Report by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Spatial Planning Report ID"
+                }
+              ]
+            },
+            "description": "Get specific spatial planning report by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tata Ruang",
+      "item": [
+        {
+          "name": "Get Tata Ruang Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning/tata-ruang/overview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning", "tata-ruang", "overview"]
+            },
+            "description": "Get Tata Ruang overview statistics"
+          }
+        },
+        {
+          "name": "Get Tata Ruang Basic Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning/tata-ruang/basic-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning", "tata-ruang", "basic-statistics"]
+            },
+            "description": "Get Tata Ruang basic statistics"
+          }
+        },
+        {
+          "name": "Get Tata Ruang Location Distribution",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning/tata-ruang/location-distribution",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning", "tata-ruang", "location-distribution"]
+            },
+            "description": "Get Tata Ruang location distribution"
+          }
+        },
+        {
+          "name": "Get Urgency Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning/tata-ruang/urgency-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning", "tata-ruang", "urgency-statistics"]
+            },
+            "description": "Get urgency level statistics"
+          }
+        },
+        {
+          "name": "Get Violation Type Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning/tata-ruang/violation-type-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning", "tata-ruang", "violation-type-statistics"]
+            },
+            "description": "Get violation type statistics"
+          }
+        },
+        {
+          "name": "Get Violation Level Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning/tata-ruang/violation-level-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning", "tata-ruang", "violation-level-statistics"]
+            },
+            "description": "Get violation level statistics"
+          }
+        },
+        {
+          "name": "Get Area Category Distribution",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning/tata-ruang/area-category-distribution",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning", "tata-ruang", "area-category-distribution"]
+            },
+            "description": "Get area category distribution"
+          }
+        },
+        {
+          "name": "Get Environmental Impact Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/spatial-planning/tata-ruang/environmental-impact-statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "spatial-planning", "tata-ruang", "environmental-impact-statistics"]
+            },
+            "description": "Get environmental impact statistics"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Water Resources",
+      "item": [
+        {
+          "name": "List Water Resources Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/water-resources",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "water-resources"]
+            },
+            "description": "Get list of water resources reports"
+          }
+        },
+        {
+          "name": "List by Priority",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/water-resources/priority",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "water-resources", "priority"]
+            },
+            "description": "Get water resources reports sorted by priority"
+          }
+        },
+        {
+          "name": "Get Water Resources Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/water-resources/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "water-resources", "statistics"]
+            },
+            "description": "Get water resources statistics"
+          }
+        },
+        {
+          "name": "Get Urgent Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/water-resources/urgent",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "water-resources", "urgent"]
+            },
+            "description": "Get urgent water resources reports"
+          }
+        },
+        {
+          "name": "Get Damage by Area",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/water-resources/damage-by-area",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "water-resources", "damage-by-area"]
+            },
+            "description": "Get water resources damage statistics by area"
+          }
+        },
+        {
+          "name": "Get Water Resources Report by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/water-resources/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "water-resources", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Water Resources Report ID"
+                }
+              ]
+            },
+            "description": "Get specific water resources report by ID"
+          }
+        },
+        {
+          "name": "Get Water Resources Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/water-resources/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "water-resources", "dashboard"]
+            },
+            "description": "Get water resources dashboard data"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bina Marga",
+      "item": [
+        {
+          "name": "List Bina Marga Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bina-marga",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bina-marga"]
+            },
+            "description": "Get list of Bina Marga reports"
+          }
+        },
+        {
+          "name": "List by Priority",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bina-marga/priority",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bina-marga", "priority"]
+            },
+            "description": "Get Bina Marga reports sorted by priority"
+          }
+        },
+        {
+          "name": "Get Bina Marga Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bina-marga/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bina-marga", "statistics"]
+            },
+            "description": "Get Bina Marga statistics"
+          }
+        },
+        {
+          "name": "Get Emergency Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bina-marga/emergency",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bina-marga", "emergency"]
+            },
+            "description": "Get emergency Bina Marga reports"
+          }
+        },
+        {
+          "name": "Get Blocked Roads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bina-marga/blocked",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bina-marga", "blocked"]
+            },
+            "description": "Get blocked roads information"
+          }
+        },
+        {
+          "name": "Get Damage by Road Type",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bina-marga/damage-by-road-type",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bina-marga", "damage-by-road-type"]
+            },
+            "description": "Get damage statistics by road type"
+          }
+        },
+        {
+          "name": "Get Damage by Location",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bina-marga/damage-by-location",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bina-marga", "damage-by-location"]
+            },
+            "description": "Get damage statistics by location"
+          }
+        },
+        {
+          "name": "Get Bina Marga Report by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bina-marga/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bina-marga", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Bina Marga Report ID"
+                }
+              ]
+            },
+            "description": "Get specific Bina Marga report by ID"
+          }
+        },
+        {
+          "name": "Get Bina Marga Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bina-marga/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bina-marga", "dashboard"]
+            },
+            "description": "Get Bina Marga dashboard data"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agriculture",
+      "item": [
+        {
+          "name": "Get Executive Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/executive/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "executive", "dashboard"]
+            },
+            "description": "Get agriculture executive dashboard"
+          }
+        },
+        {
+          "name": "Get Commodity Analysis",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/commodity/analysis",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "commodity", "analysis"]
+            },
+            "description": "Get commodity analysis data"
+          }
+        },
+        {
+          "name": "Get Food Crop Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/food-crop/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "food-crop", "stats"]
+            },
+            "description": "Get food crop statistics"
+          }
+        },
+        {
+          "name": "Get Horticulture Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/horticulture/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "horticulture", "stats"]
+            },
+            "description": "Get horticulture statistics"
+          }
+        },
+        {
+          "name": "Get Plantation Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/plantation/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "plantation", "stats"]
+            },
+            "description": "Get plantation statistics"
+          }
+        },
+        {
+          "name": "Get Agricultural Equipment Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/equipment/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "equipment", "stats"]
+            },
+            "description": "Get agricultural equipment statistics"
+          }
+        },
+        {
+          "name": "Get Land and Irrigation Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/land-irrigation/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "land-irrigation", "stats"]
+            },
+            "description": "Get land and irrigation statistics"
+          }
+        },
+        {
+          "name": "List Agriculture Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture"]
+            },
+            "description": "Get list of agriculture reports"
+          }
+        },
+        {
+          "name": "Get Agriculture Report by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Agriculture Report ID"
+                }
+              ]
+            },
+            "description": "Get specific agriculture report by ID"
+          }
+        },
+        {
+          "name": "Get Statistics Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/statistics/overview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "statistics", "overview"]
+            },
+            "description": "Get agriculture statistics overview"
+          }
+        },
+        {
+          "name": "Get Commodity Production",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/statistics/commodity-production",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "statistics", "commodity-production"]
+            },
+            "description": "Get commodity production statistics"
+          }
+        },
+        {
+          "name": "Get Technology Adoption Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/statistics/technology-adoption",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "statistics", "technology-adoption"]
+            },
+            "description": "Get technology adoption statistics"
+          }
+        },
+        {
+          "name": "Get Farmer Needs Analysis",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/statistics/farmer-needs",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "statistics", "farmer-needs"]
+            },
+            "description": "Get farmer needs analysis"
+          }
+        },
+        {
+          "name": "Get Reports by Extension Officer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/extension-officer/:officer/reports",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "extension-officer", ":officer", "reports"],
+              "variable": [
+                {
+                  "key": "officer",
+                  "value": "officer-id",
+                  "description": "Extension Officer ID"
+                }
+              ]
+            },
+            "description": "Get reports by specific extension officer"
+          }
+        },
+        {
+          "name": "Get Extension Officer Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/extension-officer/performance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "extension-officer", "performance"]
+            },
+            "description": "Get extension officer performance data"
+          }
+        },
+        {
+          "name": "Get Reports by Village",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/village/:village/reports",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "village", ":village", "reports"],
+              "variable": [
+                {
+                  "key": "village",
+                  "value": "village-name",
+                  "description": "Village name or ID"
+                }
+              ]
+            },
+            "description": "Get agriculture reports by village"
+          }
+        },
+        {
+          "name": "Get Reports by Date Range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/reports/by-date-range",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "reports", "by-date-range"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2024-01-01",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-12-31",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Get agriculture reports by date range"
+          }
+        },
+        {
+          "name": "Get Pest Disease Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/pest-disease/reports",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "pest-disease", "reports"]
+            },
+            "description": "Get pest and disease reports"
+          }
+        },
+        {
+          "name": "Get Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/agriculture/dashboard/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "agriculture", "dashboard", "summary"]
+            },
+            "description": "Get agriculture dashboard summary"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "users"]
+            },
+            "description": "Get admin users list (Admin role required)"
+          }
+        },
+        {
+          "name": "Get All Agriculture Reports (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/agriculture/reports/all",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "agriculture", "reports", "all"]
+            },
+            "description": "Admin view all agriculture reports"
+          }
+        },
+        {
+          "name": "Get Advanced Agriculture Analytics (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/agriculture/analytics/advanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "agriculture", "analytics", "advanced"]
+            },
+            "description": "Advanced agriculture analytics (Admin role required)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/overview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "overview"]
+            },
+            "description": "Get dashboard overview - consolidated statistics"
+          }
+        },
+        {
+          "name": "Get Urgent Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/urgent-reports",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "urgent-reports"]
+            },
+            "description": "Get all urgent reports across all modules"
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

@@ -6,7 +6,6 @@ import (
     "building-report-backend/internal/domain/entity"
     "building-report-backend/internal/domain/repository"
     
-    "github.com/google/uuid"
     "gorm.io/gorm"
 )
 
@@ -26,11 +25,11 @@ func (r *userRepositoryImpl) Update(ctx context.Context, user *entity.User) erro
     return r.db.WithContext(ctx).Save(user).Error
 }
 
-func (r *userRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *userRepositoryImpl) Delete(ctx context.Context, id string) error {
     return r.db.WithContext(ctx).Where("id = ?", id).Delete(&entity.User{}).Error
 }
 
-func (r *userRepositoryImpl) FindByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
+func (r *userRepositoryImpl) FindByID(ctx context.Context, id string) (*entity.User, error) {
     var user entity.User
     err := r.db.WithContext(ctx).Where("id = ?", id).First(&user).Error
     if err != nil {

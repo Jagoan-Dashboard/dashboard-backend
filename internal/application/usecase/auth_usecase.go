@@ -3,22 +3,24 @@ package usecase
 import (
 	"context"
 	"errors"
-	"time"
 
 	"building-report-backend/internal/application/dto"
+	"building-report-backend/internal/domain/constants"
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/internal/domain/repository"
 	"building-report-backend/internal/infrastructure/auth"
 	"building-report-backend/pkg/utils"
+	"building-report-backend/pkg/validation"
 
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-    ErrUserExists      = errors.New("user already exists")
+    ErrUserExists         = errors.New("user already exists")
     ErrInvalidCredentials = errors.New("invalid credentials")
-    ErrUnauthorized    = errors.New("unauthorized")
+    ErrUnauthorized       = errors.New("unauthorized")
+    ErrUserNotFound       = errors.New("user not found")
+    ErrInactiveUser       = errors.New("user account is inactive")
 )
 
 type AuthUseCase struct {
@@ -40,27 +42,26 @@ func NewAuthUseCase(
 }
 
 func (uc *AuthUseCase) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.AuthResponse, error) {
-    
-    existingUser, _ := uc.userRepo.FindByUsername(ctx, req.Username)
-    if existingUser != nil {
-        return nil, ErrUserExists
+    // Validate input
+    if err := uc.validateRegistrationInput(req); err != nil {
+        return nil, err
     }
 
-    existingUser, _ = uc.userRepo.FindByEmail(ctx, req.Email)
-    if existingUser != nil {
-        return nil, ErrUserExists
+    // Check if user already exists
+    if err := uc.validateUserNotExists(ctx, req.Username, req.Email); err != nil {
+        return nil, err
     }
 
-    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+    password, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
     if err != nil {
         return nil, err
     }
 
     user := &entity.User{
-        ID:       utils.GenerateUUID(),
+        ID:       utils.GenerateULID(),
         Username: req.Username,
         Email:    req.Email,
-        Password: string(hashedPassword),
+        Password: string(password), 
         Role:     entity.RoleOperator,
         IsActive: true,
     }
@@ -69,20 +70,63 @@ func (uc *AuthUseCase) Register(ctx context.Context, req *dto.RegisterRequest) (
         return nil, err
     }
 
-    
+    return uc.generateAuthResponse(ctx, user)
+}
+
+func (uc *AuthUseCase) validateRegistrationInput(req *dto.RegisterRequest) error {
+    if err := validation.ValidateRequired(req.Username, "username"); err != nil {
+        return err
+    }
+
+    if err := validation.ValidateUsername(req.Username); err != nil {
+        return err
+    }
+
+    if err := validation.ValidateRequired(req.Email, "email"); err != nil {
+        return err
+    }
+
+    if err := validation.ValidateEmail(req.Email); err != nil {
+        return err
+    }
+
+    if err := validation.ValidateRequired(req.Password, "password"); err != nil {
+        return err
+    }
+
+    if err := validation.ValidatePassword(req.Password); err != nil {
+        return err
+    }
+
+    return nil
+}
+
+func (uc *AuthUseCase) validateUserNotExists(ctx context.Context, username, email string) error {
+    if existingUser, _ := uc.userRepo.FindByUsername(ctx, username); existingUser != nil {
+        return ErrUserExists
+    }
+
+    if existingUser, _ := uc.userRepo.FindByEmail(ctx, email); existingUser != nil {
+        return ErrUserExists
+    }
+
+    return nil
+}
+
+func (uc *AuthUseCase) generateAuthResponse(ctx context.Context, user *entity.User) (*dto.AuthResponse, error) {
     token, err := uc.authService.GenerateToken(user.ID, user.Username, string(user.Role))
     if err != nil {
         return nil, err
     }
 
-    
-    cacheKey := "user:" + user.ID.String()
-    uc.cache.Set(ctx, cacheKey, user, 24*time.Hour)
+    // Cache user
+    cacheKey := constants.UserCachePrefix + user.ID
+    uc.cache.Set(ctx, cacheKey, user, constants.UserCacheDuration)
 
     return &dto.AuthResponse{
         Token:     token,
         User:      user,
-        ExpiresIn: 24 * 3600, 
+        ExpiresIn: constants.TokenExpirationSecs,
     }, nil
 }
 
@@ -97,49 +141,35 @@ func (uc *AuthUseCase) Login(ctx context.Context, req *dto.LoginRequest) (*dto.A
     }
 
     if !user.IsActive {
-        return nil, errors.New("user account is inactive")
+        return nil, ErrInactiveUser
     }
 
-    
-    token, err := uc.authService.GenerateToken(user.ID, user.Username, string(user.Role))
-    if err != nil {
-        return nil, err
-    }
-
-    
-    cacheKey := "user:" + user.ID.String()
-    uc.cache.Set(ctx, cacheKey, user, 24*time.Hour)
-
-    return &dto.AuthResponse{
-        Token:     token,
-        User:      user,
-        ExpiresIn: 24 * 3600,
-    }, nil
+    return uc.generateAuthResponse(ctx, user)
 }
 
 func (uc *AuthUseCase) GetUserByID(ctx context.Context, userID string) (*entity.User, error) {
-    
-    cacheKey := "user:" + userID
+    // Validate ULID format
+    if !utils.IsValidULID(userID) {
+        return nil, ErrInvalidCredentials
+    }
+
+    // Try to get from cache first
+    cacheKey := constants.UserCachePrefix + userID
     var user entity.User
-    
+
     err := uc.cache.Get(ctx, cacheKey, &user)
     if err == nil {
         return &user, nil
     }
 
-    
-    userUUID, err := uuid.Parse(userID)
+    // Get from database
+    dbUser, err := uc.userRepo.FindByID(ctx, userID)
     if err != nil {
-        return nil, err
+        return nil, ErrUserNotFound
     }
 
-    dbUser, err := uc.userRepo.FindByID(ctx, userUUID)
-    if err != nil {
-        return nil, err
-    }
-
-    
-    uc.cache.Set(ctx, cacheKey, dbUser, 24*time.Hour)
+    // Cache the result
+    uc.cache.Set(ctx, cacheKey, dbUser, constants.UserCacheDuration)
 
     return dbUser, nil
 }

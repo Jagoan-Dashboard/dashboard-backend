@@ -3,11 +3,11 @@ package entity
 
 import (
     "time"
-    "github.com/google/uuid"
+    "building-report-backend/pkg/utils"
 )
 
 type SpatialPlanningReport struct {
-    ID                      uuid.UUID                    `json:"id" gorm:"type:uuid;primary_key"`
+    ID                      string                       `json:"id" gorm:"type:varchar(26);primary_key"`
     ReporterName           string                       `json:"reporter_name" gorm:"not null"`
     Institution            InstitutionType              `json:"institution" gorm:"type:varchar(50)"`
     PhoneNumber            string                       `json:"phone_number" gorm:"type:varchar(20)"`
@@ -24,14 +24,14 @@ type SpatialPlanningReport struct {
     Photos                 []SpatialPlanningPhoto       `json:"photos" gorm:"foreignKey:ReportID"`
     Status                 SpatialReportStatus          `json:"status" gorm:"type:varchar(50);default:'PENDING'"`
     Notes                  string                       `json:"notes" gorm:"type:text"`
-    CreatedBy              uuid.UUID                    `json:"created_by" gorm:"type:uuid"`
+    CreatedBy              string                       `json:"created_by" gorm:"type:varchar(26);not null"`
     CreatedAt              time.Time                    `json:"created_at"`
     UpdatedAt              time.Time                    `json:"updated_at"`
 }
 
 type SpatialPlanningPhoto struct {
-    ID         uuid.UUID `json:"id" gorm:"type:uuid;primary_key"`
-    ReportID   uuid.UUID `json:"report_id" gorm:"type:uuid;not null"`
+    ID         string    `json:"id" gorm:"type:varchar(26);primary_key"`
+    ReportID   string    `json:"report_id" gorm:"type:varchar(26);not null"`
     PhotoURL   string    `json:"photo_url" gorm:"not null"`
     Caption    string    `json:"caption" gorm:"type:varchar(255)"`
     CreatedAt  time.Time `json:"created_at"`
@@ -48,16 +48,20 @@ func (SpatialPlanningPhoto) TableName() string {
 
 
 func (r *SpatialPlanningReport) BeforeCreate() {
-    if r.ID == uuid.Nil {
-        r.ID = uuid.New()
+    if r.ID == "" {
+        r.ID = utils.GenerateULID()
     }
     r.CreatedAt = time.Now()
     r.UpdatedAt = time.Now()
 }
 
+func (r *SpatialPlanningReport) BeforeUpdate() {
+    r.UpdatedAt = time.Now()
+}
+
 func (rp *SpatialPlanningPhoto) BeforeCreate() {
-    if rp.ID == uuid.Nil {
-        rp.ID = uuid.New()
+    if rp.ID == "" {
+        rp.ID = utils.GenerateULID()
     }
     rp.CreatedAt = time.Now()
 }

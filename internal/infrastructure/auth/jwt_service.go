@@ -6,18 +6,17 @@ import (
     "time"
     
     "github.com/golang-jwt/jwt/v5"
-    "github.com/google/uuid"
 )
 
 type JWTService interface {
-    GenerateToken(userID uuid.UUID, username string, role string) (string, error)
+    GenerateToken(userID string, username string, role string) (string, error)
     ValidateToken(tokenString string) (*JWTClaims, error)
 }
 
 type JWTClaims struct {
-    UserID   uuid.UUID `json:"user_id"`
-    Username string    `json:"username"`
-    Role     string    `json:"role"`
+    UserID   string `json:"user_id"`
+    Username string `json:"username"`
+    Role     string `json:"role"`
     jwt.RegisteredClaims
 }
 
@@ -33,7 +32,7 @@ func NewJWTService(secretKey string, expiryHours int) JWTService {
     }
 }
 
-func (s *jwtService) GenerateToken(userID uuid.UUID, username string, role string) (string, error) {
+func (s *jwtService) GenerateToken(userID string, username string, role string) (string, error) {
     claims := &JWTClaims{
         UserID:   userID,
         Username: username,

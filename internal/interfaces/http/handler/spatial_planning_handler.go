@@ -10,7 +10,6 @@ import (
 	"building-report-backend/internal/interfaces/response"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 )
 
 type SpatialPlanningHandler struct {
@@ -66,7 +65,7 @@ func (h *SpatialPlanningHandler) CreateReport(c *fiber.Ctx) error {
     }
 
     
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
     
     form, err := c.MultipartForm()
@@ -88,11 +87,7 @@ func (h *SpatialPlanningHandler) CreateReport(c *fiber.Ctx) error {
 }
 
 func (h *SpatialPlanningHandler) GetReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
+    id := c.Params("id")
 
     report, err := h.spatialUseCase.GetReport(c.Context(), id)
     if err != nil {
@@ -126,12 +121,8 @@ func (h *SpatialPlanningHandler) ListReports(c *fiber.Ctx) error {
 }
 
 func (h *SpatialPlanningHandler) UpdateReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
-
+    id:= c.Params("id")
+   
     var req dto.UpdateSpatialPlanningRequest
     if err := c.BodyParser(&req); err != nil {
         return response.BadRequest(c, "Invalid request body", err)
@@ -141,7 +132,7 @@ func (h *SpatialPlanningHandler) UpdateReport(c *fiber.Ctx) error {
         return response.ValidationError(c, err)
     }
 
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
     report, err := h.spatialUseCase.UpdateReport(c.Context(), id, &req, userID)
     if err != nil {
@@ -155,11 +146,7 @@ func (h *SpatialPlanningHandler) UpdateReport(c *fiber.Ctx) error {
 }
 
 func (h *SpatialPlanningHandler) UpdateStatus(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
+    id := c.Params("id")
 
     var req dto.UpdateSpatialStatusRequest
     if err := c.BodyParser(&req); err != nil {
@@ -178,13 +165,9 @@ func (h *SpatialPlanningHandler) UpdateStatus(c *fiber.Ctx) error {
 }
 
 func (h *SpatialPlanningHandler) DeleteReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
-
-    userID := c.Locals("userID").(uuid.UUID)
+    id := c.Params("id")
+   
+    userID := c.Locals("userID").(string)
 
     if err := h.spatialUseCase.DeleteReport(c.Context(), id, userID); err != nil {
         if err == usecase.ErrUnauthorized {

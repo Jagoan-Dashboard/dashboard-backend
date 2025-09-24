@@ -4,9 +4,9 @@ import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/internal/domain/repository"
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -18,6 +18,7 @@ func NewWaterResourcesRepository(db *gorm.DB) repository.WaterResourcesRepositor
     return &waterResourcesRepositoryImpl{db: db}
 }
 
+// Keep GORM for complex operations with relations
 func (r *waterResourcesRepositoryImpl) Create(ctx context.Context, report *entity.WaterResourcesReport) error {
     return r.db.WithContext(ctx).Create(report).Error
 }
@@ -27,13 +28,12 @@ func (r *waterResourcesRepositoryImpl) Update(ctx context.Context, report *entit
     return r.db.WithContext(ctx).Save(report).Error
 }
 
-func (r *waterResourcesRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
-    return r.db.WithContext(ctx).
-        Where("id = ?", id).
-        Delete(&entity.WaterResourcesReport{}).Error
+func (r *waterResourcesRepositoryImpl) Delete(ctx context.Context, id string) error {
+    query := `DELETE FROM water_resources_reports WHERE id = $1`
+    return r.db.WithContext(ctx).Exec(query, id).Error
 }
 
-func (r *waterResourcesRepositoryImpl) FindByID(ctx context.Context, id uuid.UUID) (*entity.WaterResourcesReport, error) {
+func (r *waterResourcesRepositoryImpl) FindByID(ctx context.Context, id string) (*entity.WaterResourcesReport, error) {
     var report entity.WaterResourcesReport
     err := r.db.WithContext(ctx).
         Preload("Photos").
@@ -46,50 +46,92 @@ func (r *waterResourcesRepositoryImpl) FindByID(ctx context.Context, id uuid.UUI
     return &report, nil
 }
 
+// Raw SQL implementations for all statistics methods
+
 func (r *waterResourcesRepositoryImpl) FindAll(ctx context.Context, limit, offset int, filters map[string]interface{}) ([]*entity.WaterResourcesReport, int64, error) {
     var reports []*entity.WaterResourcesReport
     var total int64
 
-    query := r.db.WithContext(ctx).Model(&entity.WaterResourcesReport{})
+    // Build dynamic query with filters
+    baseQuery := "FROM water_resources_reports"
+    whereClause := ""
+    args := []interface{}{}
+    argIndex := 1
 
+    // Apply filters
+    conditions := []string{}
     
     if institutionUnit, ok := filters["institution_unit"].(string); ok && institutionUnit != "" {
-        query = query.Where("institution_unit = ?", institutionUnit)
+        conditions = append(conditions, fmt.Sprintf("institution_unit = $%d", argIndex))
+        args = append(args, institutionUnit)
+        argIndex++
     }
     if irrigationType, ok := filters["irrigation_type"].(string); ok && irrigationType != "" {
-        query = query.Where("irrigation_type = ?", irrigationType)
+        conditions = append(conditions, fmt.Sprintf("irrigation_type = $%d", argIndex))
+        args = append(args, irrigationType)
+        argIndex++
     }
     if damageType, ok := filters["damage_type"].(string); ok && damageType != "" {
-        query = query.Where("damage_type = ?", damageType)
+        conditions = append(conditions, fmt.Sprintf("damage_type = $%d", argIndex))
+        args = append(args, damageType)
+        argIndex++
     }
     if damageLevel, ok := filters["damage_level"].(string); ok && damageLevel != "" {
-        query = query.Where("damage_level = ?", damageLevel)
+        conditions = append(conditions, fmt.Sprintf("damage_level = $%d", argIndex))
+        args = append(args, damageLevel)
+        argIndex++
     }
     if urgencyCategory, ok := filters["urgency_category"].(string); ok && urgencyCategory != "" {
-        query = query.Where("urgency_category = ?", urgencyCategory)
+        conditions = append(conditions, fmt.Sprintf("urgency_category = $%d", argIndex))
+        args = append(args, urgencyCategory)
+        argIndex++
     }
     if status, ok := filters["status"].(string); ok && status != "" {
-        query = query.Where("status = ?", status)
+        conditions = append(conditions, fmt.Sprintf("status = $%d", argIndex))
+        args = append(args, status)
+        argIndex++
     }
-    
-    
     if irrigationArea, ok := filters["irrigation_area"].(string); ok && irrigationArea != "" {
-        query = query.Where("irrigation_area_name ILIKE ?", "%"+irrigationArea+"%")
+        conditions = append(conditions, fmt.Sprintf("irrigation_area_name ILIKE $%d", argIndex))
+        args = append(args, "%"+irrigationArea+"%")
+        argIndex++
     }
-
-    
     if startDate, ok := filters["start_date"].(string); ok && startDate != "" {
-        query = query.Where("report_datetime >= ?", startDate)
+        conditions = append(conditions, fmt.Sprintf("report_datetime >= $%d", argIndex))
+        args = append(args, startDate)
+        argIndex++
     }
     if endDate, ok := filters["end_date"].(string); ok && endDate != "" {
-        query = query.Where("report_datetime <= ?", endDate)
+        conditions = append(conditions, fmt.Sprintf("report_datetime <= $%d", argIndex))
+        args = append(args, endDate)
+        argIndex++
     }
 
-    
-    query.Count(&total)
+    if len(conditions) > 0 {
+        whereClause = " WHERE " + fmt.Sprintf("%s", conditions[0])
+        for i := 1; i < len(conditions); i++ {
+            whereClause += " AND " + conditions[i]
+        }
+    }
 
-    
-    err := query.
+    // Count total
+    countQuery := "SELECT COUNT(*) " + baseQuery + whereClause
+    err := r.db.WithContext(ctx).Raw(countQuery, args...).Scan(&total).Error
+    if err != nil {
+        return nil, 0, fmt.Errorf("failed to count records: %w", err)
+    }
+
+    // Get data with pagination - using GORM for preload complexity
+    query := r.db.WithContext(ctx).Model(&entity.WaterResourcesReport{})
+    for i, condition := range conditions {
+        if i == 0 {
+            query = query.Where(condition, args[i])
+        } else {
+            query = query.Where(condition, args[i])
+        }
+    }
+
+    err = query.
         Preload("Photos").
         Limit(limit).
         Offset(offset).
@@ -101,18 +143,21 @@ func (r *waterResourcesRepositoryImpl) FindAll(ctx context.Context, limit, offse
     return reports, total, err
 }
 
-func (r *waterResourcesRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entity.WaterResourcesReport, int64, error) {
+func (r *waterResourcesRepositoryImpl) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*entity.WaterResourcesReport, int64, error) {
     var reports []*entity.WaterResourcesReport
     var total int64
 
-    query := r.db.WithContext(ctx).
-        Model(&entity.WaterResourcesReport{}).
-        Where("created_by = ?", userID)
+    // Count total
+    countQuery := `SELECT COUNT(*) FROM water_resources_reports WHERE created_by = $1`
+    err := r.db.WithContext(ctx).Raw(countQuery, userID).Scan(&total).Error
+    if err != nil {
+        return nil, 0, fmt.Errorf("failed to count user reports: %w", err)
+    }
 
-    query.Count(&total)
-
-    err := query.
+    // Get data - using GORM for preload
+    err = r.db.WithContext(ctx).
         Preload("Photos").
+        Where("created_by = ?", userID).
         Limit(limit).
         Offset(offset).
         Order("created_at DESC").
@@ -125,8 +170,19 @@ func (r *waterResourcesRepositoryImpl) FindByPriority(ctx context.Context, limit
     var reports []*entity.WaterResourcesReport
     var total int64
 
-    
-    prioritySQL := `
+    // Count total with priority filter
+    countQuery := `
+        SELECT COUNT(*) 
+        FROM water_resources_reports 
+        WHERE status NOT IN ('COMPLETED', 'REJECTED')
+    `
+    err := r.db.WithContext(ctx).Raw(countQuery).Scan(&total).Error
+    if err != nil {
+        return nil, 0, fmt.Errorf("failed to count priority reports: %w", err)
+    }
+
+    // Priority calculation query
+    priorityQuery := `
         SELECT *, 
             (CASE WHEN urgency_category = 'MENDESAK' THEN 100 ELSE 0 END +
              CASE WHEN damage_level = 'BERAT' THEN 50 
@@ -137,108 +193,119 @@ func (r *waterResourcesRepositoryImpl) FindByPriority(ctx context.Context, limit
         FROM water_resources_reports
         WHERE status NOT IN ('COMPLETED', 'REJECTED')
         ORDER BY priority_score DESC, created_at DESC
-        LIMIT ? OFFSET ?
+        LIMIT $1 OFFSET $2
     `
 
-    err := r.db.WithContext(ctx).
-        Raw(prioritySQL, limit, offset).
-        Scan(&reports).Error
-
-    
-    r.db.Model(&entity.WaterResourcesReport{}).
-        Where("status NOT IN ('COMPLETED', 'REJECTED')").
-        Count(&total)
+    err = r.db.WithContext(ctx).Raw(priorityQuery, limit, offset).Scan(&reports).Error
+    if err != nil {
+        return nil, 0, fmt.Errorf("failed to get priority reports: %w", err)
+    }
 
     return reports, total, err
 }
 
-func (r *waterResourcesRepositoryImpl) UpdateStatus(ctx context.Context, id uuid.UUID, status entity.WaterResourceStatus, notes string) error {
-    updates := map[string]interface{}{
-        "status":     status,
-        "updated_at": time.Now(),
-    }
-    if notes != "" {
-        updates["notes"] = notes
-    }
-    
-    return r.db.WithContext(ctx).
-        Model(&entity.WaterResourcesReport{}).
-        Where("id = ?", id).
-        Updates(updates).Error
+func (r *waterResourcesRepositoryImpl) UpdateStatus(ctx context.Context, id string, status entity.WaterResourceStatus, notes string) error {
+    query := `
+        UPDATE water_resources_reports 
+        SET status = $1, updated_at = $2, notes = CASE WHEN $3 != '' THEN $3 ELSE notes END
+        WHERE id = $4
+    `
+    return r.db.WithContext(ctx).Exec(query, status, time.Now(), notes, id).Error
 }
 
 func (r *waterResourcesRepositoryImpl) GetStatistics(ctx context.Context) (map[string]interface{}, error) {
     stats := make(map[string]interface{})
     
+    // 1. Total reports
+    var totalReports int64
+    err := r.db.WithContext(ctx).Raw(`SELECT COUNT(*) FROM water_resources_reports`).Scan(&totalReports).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to count total reports: %w", err)
+    }
+    stats["total_reports"] = totalReports
     
-    var total int64
-    r.db.Model(&entity.WaterResourcesReport{}).Count(&total)
-    stats["total_reports"] = total
-    
-    
+    // 2. Urgent pending count
     var urgentCount int64
-    r.db.Model(&entity.WaterResourcesReport{}).
-        Where("urgency_category = ?", entity.UrgencyCategoryMendesak).
-        Where("status NOT IN ('COMPLETED', 'REJECTED')").
-        Count(&urgentCount)
+    query := `
+        SELECT COUNT(*) 
+        FROM water_resources_reports 
+        WHERE urgency_category = $1 AND status NOT IN ('COMPLETED', 'REJECTED')
+    `
+    err = r.db.WithContext(ctx).Raw(query, "MENDESAK").Scan(&urgentCount).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to count urgent reports: %w", err)
+    }
     stats["urgent_pending"] = urgentCount
     
-    
+    // 3. Total affected area
     var totalArea float64
-    r.db.Model(&entity.WaterResourcesReport{}).
-        Select("COALESCE(SUM(affected_rice_field_area), 0)").
-        Scan(&totalArea)
+    err = r.db.WithContext(ctx).Raw(`SELECT COALESCE(SUM(affected_rice_field_area), 0) FROM water_resources_reports`).Scan(&totalArea).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to sum affected area: %w", err)
+    }
     stats["total_affected_area_ha"] = totalArea
     
-    
+    // 4. Total affected farmers
     var totalFarmers int64
-    r.db.Model(&entity.WaterResourcesReport{}).
-        Select("COALESCE(SUM(affected_farmers_count), 0)").
-        Scan(&totalFarmers)
+    err = r.db.WithContext(ctx).Raw(`SELECT COALESCE(SUM(affected_farmers_count), 0) FROM water_resources_reports`).Scan(&totalFarmers).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to sum affected farmers: %w", err)
+    }
     stats["total_affected_farmers"] = totalFarmers
     
-    
-    type DamageTypeCount struct {
-        DamageType string `json:"damage_type"`
-        Count      int64  `json:"count"`
+    // 5. Damage types distribution
+    var damageTypes []map[string]interface{}
+    query = `
+        SELECT damage_type, COUNT(*) as count 
+        FROM water_resources_reports 
+        GROUP BY damage_type 
+        ORDER BY count DESC
+    `
+    err = r.db.WithContext(ctx).Raw(query).Scan(&damageTypes).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get damage types: %w", err)
     }
-    var damageTypeCounts []DamageTypeCount
-    r.db.Model(&entity.WaterResourcesReport{}).
-        Select("damage_type, count(*) as count").
-        Group("damage_type").
-        Scan(&damageTypeCounts)
-    stats["damage_types"] = damageTypeCounts
+    stats["damage_types"] = damageTypes
     
-    
-    type IrrigationTypeCount struct {
-        IrrigationType string `json:"irrigation_type"`
-        Count          int64  `json:"count"`
+    // 6. Irrigation types distribution
+    var irrigationTypes []map[string]interface{}
+    query = `
+        SELECT irrigation_type, COUNT(*) as count 
+        FROM water_resources_reports 
+        GROUP BY irrigation_type 
+        ORDER BY count DESC
+    `
+    err = r.db.WithContext(ctx).Raw(query).Scan(&irrigationTypes).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get irrigation types: %w", err)
     }
-    var irrigationTypeCounts []IrrigationTypeCount
-    r.db.Model(&entity.WaterResourcesReport{}).
-        Select("irrigation_type, count(*) as count").
-        Group("irrigation_type").
-        Scan(&irrigationTypeCounts)
-    stats["irrigation_types"] = irrigationTypeCounts
+    stats["irrigation_types"] = irrigationTypes
     
-    
-    type StatusCount struct {
-        Status string `json:"status"`
-        Count  int64  `json:"count"`
+    // 7. Status distribution
+    var statusDist []map[string]interface{}
+    query = `
+        SELECT status, COUNT(*) as count 
+        FROM water_resources_reports 
+        GROUP BY status 
+        ORDER BY count DESC
+    `
+    err = r.db.WithContext(ctx).Raw(query).Scan(&statusDist).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get status distribution: %w", err)
     }
-    var statusCounts []StatusCount
-    r.db.Model(&entity.WaterResourcesReport{}).
-        Select("status, count(*) as count").
-        Group("status").
-        Scan(&statusCounts)
-    stats["status_distribution"] = statusCounts
+    stats["status_distribution"] = statusDist
     
-    
+    // 8. Total estimated budget (pending only)
     var totalBudget float64
-    r.db.Model(&entity.WaterResourcesReport{}).
-        Where("status NOT IN ('COMPLETED', 'REJECTED')").
-        Select("COALESCE(SUM(estimated_budget), 0)").
-        Scan(&totalBudget)
+    query = `
+        SELECT COALESCE(SUM(estimated_budget), 0) 
+        FROM water_resources_reports 
+        WHERE status NOT IN ('COMPLETED', 'REJECTED')
+    `
+    err = r.db.WithContext(ctx).Raw(query).Scan(&totalBudget).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to sum budget: %w", err)
+    }
     stats["estimated_total_budget"] = totalBudget
     
     return stats, nil
@@ -251,90 +318,97 @@ func (r *waterResourcesRepositoryImpl) GetDamageStatisticsByArea(ctx context.Con
         SELECT 
             irrigation_area_name,
             COUNT(*) as report_count,
-            SUM(affected_rice_field_area) as total_affected_area,
-            SUM(affected_farmers_count) as total_affected_farmers,
-            SUM(estimated_budget) as total_estimated_budget,
-            AVG(estimated_length * estimated_width) as avg_damage_area
+            COALESCE(SUM(affected_rice_field_area), 0) as total_affected_area,
+            COALESCE(SUM(affected_farmers_count), 0) as total_affected_farmers,
+            COALESCE(SUM(estimated_budget), 0) as total_estimated_budget,
+            COALESCE(AVG(estimated_length * estimated_width), 0) as avg_damage_area
         FROM water_resources_reports
-        WHERE report_datetime BETWEEN ? AND ?
+        WHERE report_datetime BETWEEN $1 AND $2
         GROUP BY irrigation_area_name
+        HAVING COUNT(*) > 0
         ORDER BY total_affected_area DESC
     `
     
-    err := r.db.WithContext(ctx).
-        Raw(query, startDate, endDate).
-        Scan(&results).Error
+    err := r.db.WithContext(ctx).Raw(query, startDate, endDate).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get damage statistics by area: %w", err)
+    }
     
-    return results, err
+    return results, nil
 }
 
 func (r *waterResourcesRepositoryImpl) GetUrgentReports(ctx context.Context, limit int) ([]*entity.WaterResourcesReport, error) {
     var reports []*entity.WaterResourcesReport
     
+    // Using GORM for preload complexity
     err := r.db.WithContext(ctx).
         Preload("Photos").
-        Where("urgency_category = ?", entity.UrgencyCategoryMendesak).
+        Where("urgency_category = ?", "MENDESAK").
         Where("status NOT IN ('COMPLETED', 'REJECTED')").
         Order("created_at DESC").
         Limit(limit).
         Find(&reports).Error
     
-    return reports, err
+    if err != nil {
+        return nil, fmt.Errorf("failed to get urgent reports: %w", err)
+    }
+    
+    return reports, nil
 }
 
 func (r *waterResourcesRepositoryImpl) CalculateTotalDamageArea(ctx context.Context) (float64, error) {
     var total float64
-    err := r.db.WithContext(ctx).
-        Model(&entity.WaterResourcesReport{}).
-        Select("COALESCE(SUM(estimated_length * estimated_width), 0)").
-        Scan(&total).Error
-    return total, err
+    query := `SELECT COALESCE(SUM(estimated_length * estimated_width), 0) FROM water_resources_reports`
+    err := r.db.WithContext(ctx).Raw(query).Scan(&total).Error
+    if err != nil {
+        return 0, fmt.Errorf("failed to calculate total damage area: %w", err)
+    }
+    return total, nil
 }
 
 func (r *waterResourcesRepositoryImpl) CountAffectedFarmers(ctx context.Context) (int64, error) {
     var count int64
-    err := r.db.WithContext(ctx).
-        Model(&entity.WaterResourcesReport{}).
-        Select("COALESCE(SUM(affected_farmers_count), 0)").
-        Scan(&count).Error
-    return count, err
-}
-type keyCountRow struct {
-    Key   string `gorm:"column:key"`
-    Count int64  `gorm:"column:count"`
-}
-
-func (r *waterResourcesRepositoryImpl) baseScoped(ctx context.Context, irrigationType string, startDate, endDate time.Time) *gorm.DB {
-    q := r.db.WithContext(ctx).Model(&entity.WaterResourcesReport{}).
-        Where("report_datetime BETWEEN ? AND ?", startDate, endDate)
-    if irrigationType != "" && irrigationType != "ALL" {
-        q = q.Where("irrigation_type = ?", irrigationType)
+    query := `SELECT COALESCE(SUM(affected_farmers_count), 0) FROM water_resources_reports`
+    err := r.db.WithContext(ctx).Raw(query).Scan(&count).Error
+    if err != nil {
+        return 0, fmt.Errorf("failed to count affected farmers: %w", err)
     }
-    return q
+    return count, nil
 }
 
+// Dashboard specific methods with Raw SQL
 func (r *waterResourcesRepositoryImpl) GetSummaryKPIs(ctx context.Context, irrigationType string, startDate, endDate time.Time) (float64, float64, int64, error) {
-    // Total area (m2) = sum(length*width)
+    baseWhere := "WHERE report_datetime BETWEEN $1 AND $2"
+    args := []interface{}{startDate, endDate}
+    argIndex := 3
+    
+    if irrigationType != "" && irrigationType != "ALL" {
+        baseWhere += fmt.Sprintf(" AND irrigation_type = $%d", argIndex)
+        args = append(args, irrigationType)
+    }
+    
+    // Total damage area (m2)
     var totalArea float64
-    if err := r.baseScoped(ctx, irrigationType, startDate, endDate).
-        Select("COALESCE(SUM(estimated_length * estimated_width), 0)").
-        Scan(&totalArea).Error; err != nil {
-        return 0, 0, 0, err
+    query := fmt.Sprintf(`SELECT COALESCE(SUM(estimated_length * estimated_width), 0) FROM water_resources_reports %s`, baseWhere)
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&totalArea).Error
+    if err != nil {
+        return 0, 0, 0, fmt.Errorf("failed to get total area: %w", err)
     }
 
     // Total rice field area (ha)
     var totalRice float64
-    if err := r.baseScoped(ctx, irrigationType, startDate, endDate).
-        Select("COALESCE(SUM(affected_rice_field_area), 0)").
-        Scan(&totalRice).Error; err != nil {
-        return 0, 0, 0, err
+    query = fmt.Sprintf(`SELECT COALESCE(SUM(affected_rice_field_area), 0) FROM water_resources_reports %s`, baseWhere)
+    err = r.db.WithContext(ctx).Raw(query, args...).Scan(&totalRice).Error
+    if err != nil {
+        return 0, 0, 0, fmt.Errorf("failed to get total rice area: %w", err)
     }
 
     // Total reports
     var totalReports int64
-    if err := r.baseScoped(ctx, irrigationType, startDate, endDate).
-        Count(&totalReports).Error; err != nil {
-        return 0, 0, 0, err
+    query = fmt.Sprintf(`SELECT COUNT(*) FROM water_resources_reports %s`, baseWhere)
+    err = r.db.WithContext(ctx).Raw(query, args...).Scan(&totalReports).Error
+    if err != nil {
+        return 0, 0, 0, fmt.Errorf("failed to count total reports: %w", err)
     }
 
     return totalArea, totalRice, totalReports, nil
@@ -344,26 +418,33 @@ func (r *waterResourcesRepositoryImpl) GroupCountBy(ctx context.Context, field, 
     Key   string
     Count int64
 }, error) {
-    var rows []keyCountRow
-    q := r.baseScoped(ctx, irrigationType, startDate, endDate).
-        Select(field+" as key, COUNT(*) as count").
-        Group(field).
-        Order("count DESC")
-    if err := q.Scan(&rows).Error; err != nil {
-        return nil, err
+    baseWhere := "WHERE report_datetime BETWEEN $1 AND $2"
+    args := []interface{}{startDate, endDate}
+    argIndex := 3
+    
+    if irrigationType != "" && irrigationType != "ALL" {
+        baseWhere += fmt.Sprintf(" AND irrigation_type = $%d", argIndex)
+        args = append(args, irrigationType)
     }
-    // cast ke slice anonim yang sesuai interface
-    out := make([]struct {
+    
+    query := fmt.Sprintf(`
+        SELECT %s as key, COUNT(*) as count 
+        FROM water_resources_reports %s 
+        GROUP BY %s 
+        ORDER BY count DESC
+    `, field, baseWhere, field)
+    
+    var results []struct {
         Key   string
         Count int64
-    }, len(rows))
-    for i, r0 := range rows {
-        out[i] = struct {
-            Key   string
-            Count int64
-        }{Key: r0.Key, Count: r0.Count}
     }
-    return out, nil
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to group count by %s: %w", field, err)
+    }
+    
+    return results, nil
 }
 
 func (r *waterResourcesRepositoryImpl) GetMapPoints(ctx context.Context, irrigationType string, startDate, endDate time.Time) ([]struct {
@@ -374,45 +455,230 @@ func (r *waterResourcesRepositoryImpl) GetMapPoints(ctx context.Context, irrigat
     DamageLevel     string
     UrgencyCategory string
 }, error) {
-    type row struct {
-        Latitude        float64
-        Longitude       float64
-        IrrigationArea  string `gorm:"column:irrigation_area_name"`
-        DamageType      string
-        DamageLevel     string
-        UrgencyCategory string `gorm:"column:urgency_category"`
+    baseWhere := "WHERE report_datetime BETWEEN $1 AND $2 AND latitude IS NOT NULL AND longitude IS NOT NULL"
+    args := []interface{}{startDate, endDate}
+    argIndex := 3
+    
+    if irrigationType != "" && irrigationType != "ALL" {
+        baseWhere += fmt.Sprintf(" AND irrigation_type = $%d", argIndex)
+        args = append(args, irrigationType)
     }
-    var rows []row
-    if err := r.baseScoped(ctx, irrigationType, startDate, endDate).
-        Select("latitude, longitude, irrigation_area_name, damage_type, damage_level, urgency_category").
-        Where("latitude IS NOT NULL AND longitude IS NOT NULL").
-        Scan(&rows).Error; err != nil {
-        return nil, err
-    }
-    out := make([]struct {
+    
+    query := fmt.Sprintf(`
+        SELECT 
+            latitude, 
+            longitude, 
+            irrigation_area_name as irrigation_area, 
+            damage_type, 
+            damage_level, 
+            urgency_category
+        FROM water_resources_reports %s
+    `, baseWhere)
+    
+    var results []struct {
         Latitude        float64
         Longitude       float64
         IrrigationArea  string
         DamageType      string
         DamageLevel     string
         UrgencyCategory string
-    }, len(rows))
-    for i, v := range rows {
-        out[i] = struct {
-            Latitude        float64
-            Longitude       float64
-            IrrigationArea  string
-            DamageType      string
-            DamageLevel     string
-            UrgencyCategory string
-        }{
-            Latitude:        v.Latitude,
-            Longitude:       v.Longitude,
-            IrrigationArea:  v.IrrigationArea,
-            DamageType:      v.DamageType,
-            DamageLevel:     v.DamageLevel,
-            UrgencyCategory: v.UrgencyCategory,
-        }
     }
-    return out, nil
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get map points: %w", err)
+    }
+    
+    return results, nil
+}
+
+// Overview specific methods with Raw SQL
+func (r *waterResourcesRepositoryImpl) GetWaterResourcesOverviewStats(ctx context.Context, irrigationType string) (map[string]interface{}, error) {
+    stats := make(map[string]interface{})
+    
+    // Build base query
+    baseWhere := ""
+    args := []interface{}{}
+    
+    if irrigationType != "" && irrigationType != "all" && irrigationType != "ALL" {
+        baseWhere = "WHERE irrigation_type = $1"
+        args = append(args, irrigationType)
+    }
+    
+    // 1. Total damage volume (estimated_length * estimated_width) in m²
+    query := fmt.Sprintf(`SELECT COALESCE(SUM(estimated_length * estimated_width), 0) FROM water_resources_reports %s`, baseWhere)
+    var totalDamageVolume float64
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&totalDamageVolume).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to calculate total damage volume: %w", err)
+    }
+    stats["total_damage_volume_m2"] = totalDamageVolume
+    
+    // 2. Total rice field area affected (ha)
+    query = fmt.Sprintf(`SELECT COALESCE(SUM(affected_rice_field_area), 0) FROM water_resources_reports %s`, baseWhere)
+    var totalRiceFieldArea float64
+    err = r.db.WithContext(ctx).Raw(query, args...).Scan(&totalRiceFieldArea).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to calculate total rice field area: %w", err)
+    }
+    stats["total_rice_field_area_ha"] = totalRiceFieldArea
+    
+    // 3. Total damaged reports count
+    query = fmt.Sprintf(`SELECT COUNT(*) FROM water_resources_reports %s`, baseWhere)
+    var totalReports int64
+    err = r.db.WithContext(ctx).Raw(query, args...).Scan(&totalReports).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to count total reports: %w", err)
+    }
+    stats["total_damaged_reports"] = totalReports
+    
+    return stats, nil
+}
+
+func (r *waterResourcesRepositoryImpl) GetWaterLocationStats(ctx context.Context, irrigationType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            irrigation_area_name,
+            COUNT(*) as report_count,
+            COALESCE(AVG(latitude), 0) as avg_latitude,
+            COALESCE(AVG(longitude), 0) as avg_longitude,
+            COALESCE(SUM(affected_rice_field_area), 0) as total_affected_area,
+            COALESCE(SUM(affected_farmers_count), 0) as total_affected_farmers
+        FROM water_resources_reports
+    `
+    
+    args := []interface{}{}
+    if irrigationType != "" && irrigationType != "all" && irrigationType != "ALL" {
+        query += " WHERE irrigation_type = $1"
+        args = append(args, irrigationType)
+    }
+    
+    query += `
+        GROUP BY irrigation_area_name
+        HAVING COUNT(*) > 0
+        ORDER BY report_count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get location statistics: %w", err)
+    }
+    
+    return results, nil
+}
+
+func (r *waterResourcesRepositoryImpl) GetWaterUrgencyStats(ctx context.Context, irrigationType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            CASE 
+                WHEN urgency_category IS NULL THEN 'NOT_SET'
+                WHEN TRIM(urgency_category) = '' THEN 'EMPTY'
+                ELSE urgency_category 
+            END as urgency_category,
+            COUNT(*) as count
+        FROM water_resources_reports
+    `
+    
+    args := []interface{}{}
+    if irrigationType != "" && irrigationType != "all" && irrigationType != "ALL" {
+        query += " WHERE irrigation_type = $1"
+        args = append(args, irrigationType)
+    }
+    
+    query += `
+        GROUP BY 
+            CASE 
+                WHEN urgency_category IS NULL THEN 'NOT_SET'
+                WHEN TRIM(urgency_category) = '' THEN 'EMPTY'
+                ELSE urgency_category 
+            END
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get urgency statistics: %w", err)
+    }
+    
+    return results, nil
+}
+
+func (r *waterResourcesRepositoryImpl) GetWaterDamageTypeStats(ctx context.Context, irrigationType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            CASE 
+                WHEN damage_type IS NULL THEN 'NOT_SET'
+                WHEN TRIM(damage_type) = '' THEN 'EMPTY'
+                ELSE damage_type 
+            END as damage_type,
+            COUNT(*) as count
+        FROM water_resources_reports
+    `
+    
+    args := []interface{}{}
+    if irrigationType != "" && irrigationType != "all" && irrigationType != "ALL" {
+        query += " WHERE irrigation_type = $1"
+        args = append(args, irrigationType)
+    }
+    
+    query += `
+        GROUP BY 
+            CASE 
+                WHEN damage_type IS NULL THEN 'NOT_SET'
+                WHEN TRIM(damage_type) = '' THEN 'EMPTY'
+                ELSE damage_type 
+            END
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get damage type statistics: %w", err)
+    }
+    
+    return results, nil
+}
+
+func (r *waterResourcesRepositoryImpl) GetWaterDamageLevelStats(ctx context.Context, irrigationType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            CASE 
+                WHEN damage_level IS NULL THEN 'NOT_SET'
+                WHEN TRIM(damage_level) = '' THEN 'EMPTY'
+                ELSE damage_level 
+            END as damage_level,
+            COUNT(*) as count
+        FROM water_resources_reports
+    `
+    
+    args := []interface{}{}
+    if irrigationType != "" && irrigationType != "all" && irrigationType != "ALL" {
+        query += " WHERE irrigation_type = $1"
+        args = append(args, irrigationType)
+    }
+    
+    query += `
+        GROUP BY 
+            CASE 
+                WHEN damage_level IS NULL THEN 'NOT_SET'
+                WHEN TRIM(damage_level) = '' THEN 'EMPTY'
+                ELSE damage_level 
+            END
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get damage level statistics: %w", err)
+    }
+    
+    return results, nil
 }

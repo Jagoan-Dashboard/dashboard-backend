@@ -5,12 +5,11 @@ import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/internal/domain/repository"
 	"building-report-backend/internal/infrastructure/storage"
+	"building-report-backend/pkg/utils"
 	"context"
 	"fmt"
 	"mime/multipart"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type ReportUseCase struct {
@@ -31,9 +30,9 @@ func NewReportUseCase(
     }
 }
 
-func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReportRequest, photos []*multipart.FileHeader, userID uuid.UUID) (*entity.Report, error) {
+func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReportRequest, photos []*multipart.FileHeader, userID string) (*entity.Report, error) {
     report := &entity.Report{
-        ID:                   uuid.New(),
+        ID:                   utils.GenerateULID(),
         ReporterName:         req.ReporterName,
         ReporterRole:         entity.ReporterRole(req.ReporterRole),
         Village:              req.Village,
@@ -74,7 +73,7 @@ func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReport
         }
 
         report.Photos = append(report.Photos, entity.ReportPhoto{
-            ID:       uuid.New(),
+            ID:       utils.GenerateULID(),
             PhotoURL:  photoURL,
             PhotoType: photoType,
         })
@@ -90,10 +89,10 @@ func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReport
     return report, nil
 }
 
-func (uc *ReportUseCase) GetReport(ctx context.Context, id uuid.UUID) (*entity.Report, error) {
-    
-    cacheKey := "report:" + id.String()
-    
+func (uc *ReportUseCase) GetReport(ctx context.Context, id string) (*entity.Report, error) {
+
+    cacheKey := "report:" + id
+
     report, err := uc.reportRepo.FindByID(ctx, id)
     if err != nil {
         return nil, err
@@ -122,7 +121,7 @@ func (uc *ReportUseCase) ListReports(ctx context.Context, page, limit int, filte
     }, nil
 }
 
-func (uc *ReportUseCase) UpdateReport(ctx context.Context, id uuid.UUID, req *dto.UpdateReportRequest, userID uuid.UUID) (*entity.Report, error) {
+func (uc *ReportUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateReportRequest, userID string) (*entity.Report, error) {
     report, err := uc.reportRepo.FindByID(ctx, id)
     if err != nil {
         return nil, err
@@ -147,13 +146,13 @@ func (uc *ReportUseCase) UpdateReport(ctx context.Context, id uuid.UUID, req *dt
     }
 
     
-    uc.cache.Delete(ctx, "report:"+id.String())
+    uc.cache.Delete(ctx, "report:"+id)
     uc.cache.Delete(ctx, "reports:list")
 
     return report, nil
 }
 
-func (uc *ReportUseCase) DeleteReport(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+func (uc *ReportUseCase) DeleteReport(ctx context.Context, id string, userID string) error {
     report, err := uc.reportRepo.FindByID(ctx, id)
     if err != nil {
         return err
@@ -174,7 +173,7 @@ func (uc *ReportUseCase) DeleteReport(ctx context.Context, id uuid.UUID, userID 
     }
 
     
-    uc.cache.Delete(ctx, "report:"+id.String())
+    uc.cache.Delete(ctx, "report:"+id)
     uc.cache.Delete(ctx, "reports:list")
 
     return nil

@@ -166,3 +166,55 @@ type BinaMargaDashboardResponse struct {
     TopRoadDamageTypes             []KeyCount          `json:"top_road_damage_types"`
     TopBridgeDamageTypes           []KeyCount          `json:"top_bridge_damage_types"`
 }
+
+type BinaMargaOverviewResponse struct {
+    BasicStats struct {
+        AvgSegmentLengthM         float64 `json:"avg_segment_length_m"`
+        AvgDamageAreaM2           float64 `json:"avg_damage_area_m2"`
+        AvgDailyTrafficVolume     float64 `json:"avg_daily_traffic_volume"`
+        TotalInfrastructureReports int64   `json:"total_infrastructure_reports"`
+    } `json:"basic_stats"`
+    
+    LocationDistribution         []BinaMargaLocationStatsResponse `json:"location_distribution"`
+    PriorityDistribution         []BinaMargaPriorityStatsResponse `json:"priority_distribution"`
+    RoadDamageLevelDistribution  []BinaMargaRoadDamageLevelStatsResponse `json:"road_damage_level_distribution"`
+    BridgeDamageLevelDistribution []BinaMargaBridgeDamageLevelStatsResponse `json:"bridge_damage_level_distribution"`
+    TopRoadDamageTypes           []BinaMargaRoadDamageTypeStatsResponse `json:"top_road_damage_types"`
+    TopBridgeDamageTypes         []BinaMargaBridgeDamageTypeStatsResponse `json:"top_bridge_damage_types"`
+}
+
+type BinaMargaLocationStatsResponse struct {
+    RoadName              string  `json:"road_name"`
+    Latitude              float64 `json:"latitude"`
+    Longitude             float64 `json:"longitude"`
+    DamageType            string  `json:"damage_type"`
+    DamageLevel           string  `json:"damage_level"`
+    UrgencyLevel          string  `json:"urgency_level"`
+    TrafficImpact         string  `json:"traffic_impact"`
+    DamagedArea           float64 `json:"damaged_area"`
+}
+
+type BinaMargaPriorityStatsResponse struct {
+    PriorityLevel string `json:"priority_level"`
+    Count         int64  `json:"count"`
+}
+
+type BinaMargaRoadDamageLevelStatsResponse struct {
+    DamageLevel string `json:"damage_level"`
+    Count       int64  `json:"count"`
+}
+
+type BinaMargaBridgeDamageLevelStatsResponse struct {
+    DamageLevel string `json:"damage_level"`
+    Count       int64  `json:"count"`
+}
+
+type BinaMargaRoadDamageTypeStatsResponse struct {
+    DamageType string `json:"damage_type"`
+    Count      int64  `json:"count"`
+}
+
+type BinaMargaBridgeDamageTypeStatsResponse struct {
+    DamageType string `json:"damage_type"`
+    Count      int64  `json:"count"`
+}

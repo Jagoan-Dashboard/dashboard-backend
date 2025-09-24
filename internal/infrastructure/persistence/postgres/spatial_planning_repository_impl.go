@@ -5,8 +5,7 @@ import (
     "context"
     "building-report-backend/internal/domain/entity"
     "building-report-backend/internal/domain/repository"
-    
-    "github.com/google/uuid"
+
     "gorm.io/gorm"
 )
 
@@ -26,13 +25,13 @@ func (r *spatialPlanningRepositoryImpl) Update(ctx context.Context, report *enti
     return r.db.WithContext(ctx).Save(report).Error
 }
 
-func (r *spatialPlanningRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *spatialPlanningRepositoryImpl) Delete(ctx context.Context, id string) error {
     return r.db.WithContext(ctx).
         Where("id = ?", id).
         Delete(&entity.SpatialPlanningReport{}).Error
 }
 
-func (r *spatialPlanningRepositoryImpl) FindByID(ctx context.Context, id uuid.UUID) (*entity.SpatialPlanningReport, error) {
+func (r *spatialPlanningRepositoryImpl) FindByID(ctx context.Context, id string) (*entity.SpatialPlanningReport, error) {
     var report entity.SpatialPlanningReport
     err := r.db.WithContext(ctx).
         Preload("Photos").
@@ -93,7 +92,7 @@ func (r *spatialPlanningRepositoryImpl) FindAll(ctx context.Context, limit, offs
     return reports, total, err
 }
 
-func (r *spatialPlanningRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entity.SpatialPlanningReport, int64, error) {
+func (r *spatialPlanningRepositoryImpl) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*entity.SpatialPlanningReport, int64, error) {
     var reports []*entity.SpatialPlanningReport
     var total int64
 
@@ -113,7 +112,7 @@ func (r *spatialPlanningRepositoryImpl) FindByUserID(ctx context.Context, userID
     return reports, total, err
 }
 
-func (r *spatialPlanningRepositoryImpl) UpdateStatus(ctx context.Context, id uuid.UUID, status entity.SpatialReportStatus) error {
+func (r *spatialPlanningRepositoryImpl) UpdateStatus(ctx context.Context, id string, status entity.SpatialReportStatus) error {
     return r.db.WithContext(ctx).
         Model(&entity.SpatialPlanningReport{}).
         Where("id = ?", id).
