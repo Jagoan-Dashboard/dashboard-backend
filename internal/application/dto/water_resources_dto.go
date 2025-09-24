@@ -112,3 +112,41 @@ type WaterResourcesDashboardResponse struct {
     TopDamageTypes      []KeyCount          `json:"top_damage_types"`
     TopDamageLevels     []KeyCount          `json:"top_damage_levels"`
 }
+
+
+type WaterResourcesOverviewResponse struct {
+    BasicStats struct {
+        TotalDamageVolumeM2      float64 `json:"total_damage_volume_m2"`
+        TotalRiceFieldAreaHa     float64 `json:"total_rice_field_area_ha"`
+        TotalDamagedReports      int64   `json:"total_damaged_reports"`
+    } `json:"basic_stats"`
+    
+    LocationDistribution     []WaterLocationStatsResponse `json:"location_distribution"`
+    UrgencyDistribution      []WaterUrgencyStatsResponse  `json:"urgency_distribution"`
+    DamageTypeDistribution   []WaterDamageTypeStatsResponse `json:"damage_type_distribution"`
+    DamageLevelDistribution  []WaterDamageLevelStatsResponse `json:"damage_level_distribution"`
+}
+
+type WaterLocationStatsResponse struct {
+    IrrigationAreaName   string  `json:"irrigation_area_name"`
+    ReportCount          int     `json:"report_count"`
+    AvgLatitude          float64 `json:"avg_latitude"`
+    AvgLongitude         float64 `json:"avg_longitude"`
+    TotalAffectedArea    float64 `json:"total_affected_area"`
+    TotalAffectedFarmers int     `json:"total_affected_farmers"`
+}
+
+type WaterUrgencyStatsResponse struct {
+    UrgencyCategory string `json:"urgency_category"`
+    Count           int64  `json:"count"`
+}
+
+type WaterDamageTypeStatsResponse struct {
+    DamageType string `json:"damage_type"`
+    Count      int64  `json:"count"`
+}
+
+type WaterDamageLevelStatsResponse struct {
+    DamageLevel string `json:"damage_level"`
+    Count       int64  `json:"count"`
+}

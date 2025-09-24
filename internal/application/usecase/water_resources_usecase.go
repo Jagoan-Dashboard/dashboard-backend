@@ -1,18 +1,18 @@
-
 package usecase
 
 import (
-    "context"
-    "fmt"
-    "mime/multipart"
-    "time"
-    
-    "building-report-backend/internal/application/dto"
-    "building-report-backend/internal/domain/entity"
-    "building-report-backend/internal/domain/repository"
-    "building-report-backend/internal/infrastructure/storage"
-    
-    "github.com/google/uuid"
+	"context"
+	"fmt"
+	"mime/multipart"
+	"time"
+
+	"building-report-backend/internal/application/dto"
+	"building-report-backend/internal/domain/entity"
+	"building-report-backend/internal/domain/repository"
+	"building-report-backend/internal/infrastructure/storage"
+	"building-report-backend/pkg/utils"
+
+	
 )
 
 type WaterResourcesUseCase struct {
@@ -33,9 +33,9 @@ func NewWaterResourcesUseCase(
     }
 }
 
-func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.CreateWaterResourcesRequest, photos []*multipart.FileHeader, userID uuid.UUID) (*entity.WaterResourcesReport, error) {
+func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.CreateWaterResourcesRequest, photos []*multipart.FileHeader, userID string) (*entity.WaterResourcesReport, error) {
     report := &entity.WaterResourcesReport{
-        ID:                    uuid.New(),
+        ID:                    utils.GenerateULID(),
         ReporterName:          req.ReporterName,
         InstitutionUnit:       entity.InstitutionUnitType(req.InstitutionUnit),
         PhoneNumber:           req.PhoneNumber,
@@ -74,7 +74,7 @@ func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.Crea
 
         caption := fmt.Sprintf("%s view - %s", photoAngles[i], report.IrrigationAreaName)
         report.Photos = append(report.Photos, entity.WaterResourcesPhoto{
-            ID:         uuid.New(),
+            ID:         utils.GenerateULID(),
             PhotoURL:   photoURL,
             PhotoAngle: photoAngles[i],
             Caption:    caption,
@@ -98,8 +98,8 @@ func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.Crea
     return report, nil
 }
 
-func (uc *WaterResourcesUseCase) GetReport(ctx context.Context, id uuid.UUID) (*entity.WaterResourcesReport, error) {
-    cacheKey := "water:" + id.String()
+func (uc *WaterResourcesUseCase) GetReport(ctx context.Context, id string) (*entity.WaterResourcesReport, error) {
+    cacheKey := "water:" + id
     
     report, err := uc.waterRepo.FindByID(ctx, id)
     if err != nil {
@@ -146,7 +146,7 @@ func (uc *WaterResourcesUseCase) ListByPriority(ctx context.Context, page, limit
     }, nil
 }
 
-func (uc *WaterResourcesUseCase) UpdateReport(ctx context.Context, id uuid.UUID, req *dto.UpdateWaterResourcesRequest, userID uuid.UUID) (*entity.WaterResourcesReport, error) {
+func (uc *WaterResourcesUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateWaterResourcesRequest, userID string) (*entity.WaterResourcesReport, error) {
     report, err := uc.waterRepo.FindByID(ctx, id)
     if err != nil {
         return nil, err
@@ -208,27 +208,27 @@ func (uc *WaterResourcesUseCase) UpdateReport(ctx context.Context, id uuid.UUID,
     }
 
     
-    uc.cache.Delete(ctx, "water:"+id.String())
+    uc.cache.Delete(ctx, "water:"+id)
     uc.cache.Delete(ctx, "water:list")
     uc.cache.Delete(ctx, "water:stats")
 
     return report, nil
 }
 
-func (uc *WaterResourcesUseCase) UpdateStatus(ctx context.Context, id uuid.UUID, req *dto.UpdateWaterStatusRequest) error {
+func (uc *WaterResourcesUseCase) UpdateStatus(ctx context.Context, id string, req *dto.UpdateWaterStatusRequest) error {
     err := uc.waterRepo.UpdateStatus(ctx, id, entity.WaterResourceStatus(req.Status), req.Notes)
     if err != nil {
         return err
     }
 
     
-    uc.cache.Delete(ctx, "water:"+id.String())
+    uc.cache.Delete(ctx, "water:"+id)
     uc.cache.Delete(ctx, "water:stats")
 
     return nil
 }
 
-func (uc *WaterResourcesUseCase) DeleteReport(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+func (uc *WaterResourcesUseCase) DeleteReport(ctx context.Context, id string, userID string) error {
     report, err := uc.waterRepo.FindByID(ctx, id)
     if err != nil {
         return err
@@ -249,7 +249,7 @@ func (uc *WaterResourcesUseCase) DeleteReport(ctx context.Context, id uuid.UUID,
     }
 
     
-    uc.cache.Delete(ctx, "water:"+id.String())
+    uc.cache.Delete(ctx, "water:"+id)
     uc.cache.Delete(ctx, "water:list")
     uc.cache.Delete(ctx, "water:stats")
 
@@ -444,4 +444,171 @@ func (uc *WaterResourcesUseCase) GetDashboard(
     }
 
     return res, nil
+}
+
+func (uc *WaterResourcesUseCase) GetWaterResourcesOverview(ctx context.Context, irrigationType string) (*dto.WaterResourcesOverviewResponse, error) {
+    // Cache key based on irrigation type
+    cacheKey := fmt.Sprintf("water_resources:overview:%s", irrigationType)
+    var response dto.WaterResourcesOverviewResponse
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return &response, nil
+    }
+
+    // Initialize empty arrays to avoid null returns
+    response.LocationDistribution = []dto.WaterLocationStatsResponse{}
+    response.UrgencyDistribution = []dto.WaterUrgencyStatsResponse{}
+    response.DamageTypeDistribution = []dto.WaterDamageTypeStatsResponse{}
+    response.DamageLevelDistribution = []dto.WaterDamageLevelStatsResponse{}
+
+    // Get basic statistics
+    basicStatsRaw, err := uc.waterRepo.GetWaterResourcesOverviewStats(ctx, irrigationType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get basic statistics: %w", err)
+    }
+    
+    // Safe type assertions with proper conversion
+    response.BasicStats.TotalDamageVolumeM2 = basicStatsRaw["total_damage_volume_m2"].(float64)
+    response.BasicStats.TotalRiceFieldAreaHa = basicStatsRaw["total_rice_field_area_ha"].(float64)
+    
+    // Handle int64 conversion safely
+    if totalReports, ok := basicStatsRaw["total_damaged_reports"].(int64); ok {
+        response.BasicStats.TotalDamagedReports = totalReports
+    } else if totalReportsFloat, ok := basicStatsRaw["total_damaged_reports"].(float64); ok {
+        response.BasicStats.TotalDamagedReports = int64(totalReportsFloat)
+    }
+
+    // Get location distribution
+    locationStats, err := uc.waterRepo.GetWaterLocationStats(ctx, irrigationType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get location statistics: %w", err)
+    }
+    
+    for _, loc := range locationStats {
+        locationStat := dto.WaterLocationStatsResponse{
+            IrrigationAreaName: loc["irrigation_area_name"].(string),
+            AvgLatitude:        loc["avg_latitude"].(float64),
+            AvgLongitude:       loc["avg_longitude"].(float64),
+            TotalAffectedArea:  loc["total_affected_area"].(float64),
+        }
+        
+        // Safe conversion for integer fields
+        if reportCount, ok := loc["report_count"].(int64); ok {
+            locationStat.ReportCount = int(reportCount)
+        } else if reportCountFloat, ok := loc["report_count"].(float64); ok {
+            locationStat.ReportCount = int(reportCountFloat)
+        }
+        
+        if farmersCount, ok := loc["total_affected_farmers"].(int64); ok {
+            locationStat.TotalAffectedFarmers = int(farmersCount)
+        } else if farmersCountFloat, ok := loc["total_affected_farmers"].(float64); ok {
+            locationStat.TotalAffectedFarmers = int(farmersCountFloat)
+        }
+        
+        response.LocationDistribution = append(response.LocationDistribution, locationStat)
+    }
+
+    // Get urgency distribution
+    urgencyStats, err := uc.waterRepo.GetWaterUrgencyStats(ctx, irrigationType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get urgency statistics: %w", err)
+    }
+    
+    for _, urgency := range urgencyStats {
+        urgencyStat := dto.WaterUrgencyStatsResponse{
+            UrgencyCategory: urgency["urgency_category"].(string),
+        }
+        
+        // Safe conversion for count
+        if count, ok := urgency["count"].(int64); ok {
+            urgencyStat.Count = count
+        } else if countFloat, ok := urgency["count"].(float64); ok {
+            urgencyStat.Count = int64(countFloat)
+        }
+        
+        response.UrgencyDistribution = append(response.UrgencyDistribution, urgencyStat)
+    }
+
+    // Get damage type distribution
+    damageTypeStats, err := uc.waterRepo.GetWaterDamageTypeStats(ctx, irrigationType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get damage type statistics: %w", err)
+    }
+    
+    for _, damageType := range damageTypeStats {
+        damageTypeStat := dto.WaterDamageTypeStatsResponse{
+            DamageType: damageType["damage_type"].(string),
+        }
+        
+        // Safe conversion for count
+        if count, ok := damageType["count"].(int64); ok {
+            damageTypeStat.Count = count
+        } else if countFloat, ok := damageType["count"].(float64); ok {
+            damageTypeStat.Count = int64(countFloat)
+        }
+        
+        response.DamageTypeDistribution = append(response.DamageTypeDistribution, damageTypeStat)
+    }
+
+    // Get damage level distribution
+    damageLevelStats, err := uc.waterRepo.GetWaterDamageLevelStats(ctx, irrigationType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get damage level statistics: %w", err)
+    }
+    
+    for _, damageLevel := range damageLevelStats {
+        damageLevelStat := dto.WaterDamageLevelStatsResponse{
+            DamageLevel: damageLevel["damage_level"].(string),
+        }
+        
+        // Safe conversion for count
+        if count, ok := damageLevel["count"].(int64); ok {
+            damageLevelStat.Count = count
+        } else if countFloat, ok := damageLevel["count"].(float64); ok {
+            damageLevelStat.Count = int64(countFloat)
+        }
+        
+        response.DamageLevelDistribution = append(response.DamageLevelDistribution, damageLevelStat)
+    }
+
+    // Cache the response for 5 minutes
+    uc.cache.Set(ctx, cacheKey, &response, 300*time.Second)
+
+    return &response, nil
+}
+
+// Alternative: Generic helper function untuk safe type conversion
+func safeInt64(value interface{}) int64 {
+    switch v := value.(type) {
+    case int64:
+        return v
+    case float64:
+        return int64(v)
+    case int:
+        return int64(v)
+    case int32:
+        return int64(v)
+    default:
+        return 0
+    }
+}
+
+func safeInt(value interface{}) int {
+    return int(safeInt64(value))
+}
+
+func safeFloat64(value interface{}) float64 {
+    switch v := value.(type) {
+    case float64:
+        return v
+    case float32:
+        return float64(v)
+    case int64:
+        return float64(v)
+    case int:
+        return float64(v)
+    default:
+        return 0.0
+    }
 }

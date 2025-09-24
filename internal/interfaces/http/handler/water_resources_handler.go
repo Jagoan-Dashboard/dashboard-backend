@@ -1,16 +1,15 @@
-
 package handler
 
 import (
-    "strconv"
-    "time"
-    
-    "building-report-backend/internal/application/dto"
-    "building-report-backend/internal/application/usecase"
-    "building-report-backend/internal/interfaces/response"
-    
-    "github.com/gofiber/fiber/v2"
-    "github.com/google/uuid"
+	"fmt"
+	"strconv"
+	"time"
+
+	"building-report-backend/internal/application/dto"
+	"building-report-backend/internal/application/usecase"
+	"building-report-backend/internal/interfaces/response"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type WaterResourcesHandler struct {
@@ -78,7 +77,7 @@ func (h *WaterResourcesHandler) CreateReport(c *fiber.Ctx) error {
     }
 
     
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
     
     form, err := c.MultipartForm()
@@ -100,12 +99,7 @@ func (h *WaterResourcesHandler) CreateReport(c *fiber.Ctx) error {
 }
 
 func (h *WaterResourcesHandler) GetReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
-
+    id := c.Params("id")
     report, err := h.waterUseCase.GetReport(c.Context(), id)
     if err != nil {
         return response.NotFound(c, "Report not found", err)
@@ -151,12 +145,7 @@ func (h *WaterResourcesHandler) ListByPriority(c *fiber.Ctx) error {
 }
 
 func (h *WaterResourcesHandler) UpdateReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
-
+    id := c.Params("id")
     var req dto.UpdateWaterResourcesRequest
     if err := c.BodyParser(&req); err != nil {
         return response.BadRequest(c, "Invalid request body", err)
@@ -166,7 +155,7 @@ func (h *WaterResourcesHandler) UpdateReport(c *fiber.Ctx) error {
         return response.ValidationError(c, err)
     }
 
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
     report, err := h.waterUseCase.UpdateReport(c.Context(), id, &req, userID)
     if err != nil {
@@ -180,11 +169,7 @@ func (h *WaterResourcesHandler) UpdateReport(c *fiber.Ctx) error {
 }
 
 func (h *WaterResourcesHandler) UpdateStatus(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
+    id := c.Params("id")
 
     var req dto.UpdateWaterStatusRequest
     if err := c.BodyParser(&req); err != nil {
@@ -203,13 +188,9 @@ func (h *WaterResourcesHandler) UpdateStatus(c *fiber.Ctx) error {
 }
 
 func (h *WaterResourcesHandler) DeleteReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
+    id := c.Params("id")
 
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
     if err := h.waterUseCase.DeleteReport(c.Context(), id, userID); err != nil {
         if err == usecase.ErrUnauthorized {
@@ -277,4 +258,40 @@ func (h *WaterResourcesHandler) GetDashboard(c *fiber.Ctx) error {
         return response.InternalError(c, "Failed to build water resources dashboard", err)
     }
     return response.Success(c, "Water resources dashboard", data)
+}
+
+func (h *WaterResourcesHandler) GetWaterResourcesOverview(c *fiber.Ctx) error {
+    irrigationType := c.Query("irrigation_type", "all") // all, IRIGASI_PRIMER, IRIGASI_SEKUNDER, etc.
+    
+    // Validate irrigation type if needed
+    validIrrigationTypes := map[string]bool{
+        "all":                true,
+        "ALL":                true,
+        "IRIGASI_PRIMER":     true,
+        "IRIGASI_SEKUNDER":   true,
+        "IRIGASI_TERSIER":    true,
+        "BENDUNG":            true,
+        "EMBUNG_DAM":         true,
+        "PINTU_AIR":          true,
+        "SALURAN_DRAINASE":   true,
+        "LAINNYA":            true,
+    }
+    
+    if !validIrrigationTypes[irrigationType] {
+        return response.BadRequest(c, "Invalid irrigation type", 
+            fmt.Errorf("irrigation_type must be one of the valid types"))
+    }
+    
+    // Convert "all" to empty string for repository layer
+    queryIrrigationType := irrigationType
+    if irrigationType == "all" || irrigationType == "ALL" {
+        queryIrrigationType = ""
+    }
+
+    overview, err := h.waterUseCase.GetWaterResourcesOverview(c.Context(), queryIrrigationType)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve water resources overview", err)
+    }
+
+    return response.Success(c, "Water resources overview retrieved successfully", overview)
 }

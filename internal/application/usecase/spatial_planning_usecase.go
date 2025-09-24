@@ -10,8 +10,8 @@ import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/internal/domain/repository"
 	"building-report-backend/internal/infrastructure/storage"
-
-	"github.com/google/uuid"
+	"building-report-backend/pkg/utils"
+	
 )
 
 type SpatialPlanningUseCase struct {
@@ -32,9 +32,9 @@ func NewSpatialPlanningUseCase(
     }
 }
 
-func (uc *SpatialPlanningUseCase) CreateReport(ctx context.Context, req *dto.CreateSpatialPlanningRequest, photos []*multipart.FileHeader, userID uuid.UUID) (*entity.SpatialPlanningReport, error) {
+func (uc *SpatialPlanningUseCase) CreateReport(ctx context.Context, req *dto.CreateSpatialPlanningRequest, photos []*multipart.FileHeader, userID string) (*entity.SpatialPlanningReport, error) {
     report := &entity.SpatialPlanningReport{
-        ID:                  uuid.New(),
+        ID:                  utils.GenerateULID(),
         ReporterName:        req.ReporterName,
         Institution:         entity.InstitutionType(req.Institution),
         PhoneNumber:         req.PhoneNumber,
@@ -62,7 +62,7 @@ func (uc *SpatialPlanningUseCase) CreateReport(ctx context.Context, req *dto.Cre
 
         caption := fmt.Sprintf("Photo %d", i+1)
         report.Photos = append(report.Photos, entity.SpatialPlanningPhoto{
-            ID:       uuid.New(),
+            ID:       utils.GenerateULID(),
             PhotoURL: photoURL,
             Caption:  caption,
         })
@@ -79,8 +79,8 @@ func (uc *SpatialPlanningUseCase) CreateReport(ctx context.Context, req *dto.Cre
     return report, nil
 }
 
-func (uc *SpatialPlanningUseCase) GetReport(ctx context.Context, id uuid.UUID) (*entity.SpatialPlanningReport, error) {
-    cacheKey := "spatial:" + id.String()
+func (uc *SpatialPlanningUseCase) GetReport(ctx context.Context, id string) (*entity.SpatialPlanningReport, error) {
+    cacheKey := "spatial:" + id
     
     report, err := uc.spatialRepo.FindByID(ctx, id)
     if err != nil {
@@ -110,7 +110,7 @@ func (uc *SpatialPlanningUseCase) ListReports(ctx context.Context, page, limit i
     }, nil
 }
 
-func (uc *SpatialPlanningUseCase) UpdateReport(ctx context.Context, id uuid.UUID, req *dto.UpdateSpatialPlanningRequest, userID uuid.UUID) (*entity.SpatialPlanningReport, error) {
+func (uc *SpatialPlanningUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateSpatialPlanningRequest, userID string) (*entity.SpatialPlanningReport, error) {
     report, err := uc.spatialRepo.FindByID(ctx, id)
     if err != nil {
         return nil, err
@@ -163,13 +163,13 @@ func (uc *SpatialPlanningUseCase) UpdateReport(ctx context.Context, id uuid.UUID
     }
 
     
-    uc.cache.Delete(ctx, "spatial:"+id.String())
+    uc.cache.Delete(ctx, "spatial:"+id)
     uc.cache.Delete(ctx, "spatial:list")
 
     return report, nil
 }
 
-func (uc *SpatialPlanningUseCase) UpdateStatus(ctx context.Context, id uuid.UUID, req *dto.UpdateSpatialStatusRequest) error {
+func (uc *SpatialPlanningUseCase) UpdateStatus(ctx context.Context, id string, req *dto.UpdateSpatialStatusRequest) error {
     report, err := uc.spatialRepo.FindByID(ctx, id)
     if err != nil {
         return err
@@ -186,13 +186,13 @@ func (uc *SpatialPlanningUseCase) UpdateStatus(ctx context.Context, id uuid.UUID
     }
 
     
-    uc.cache.Delete(ctx, "spatial:"+id.String())
+    uc.cache.Delete(ctx, "spatial:"+id)
     uc.cache.Delete(ctx, "spatial:stats")
 
     return nil
 }
 
-func (uc *SpatialPlanningUseCase) DeleteReport(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+func (uc *SpatialPlanningUseCase) DeleteReport(ctx context.Context, id string, userID string) error {
     report, err := uc.spatialRepo.FindByID(ctx, id)
     if err != nil {
         return err
@@ -213,7 +213,7 @@ func (uc *SpatialPlanningUseCase) DeleteReport(ctx context.Context, id uuid.UUID
     }
 
     
-    uc.cache.Delete(ctx, "spatial:"+id.String())
+    uc.cache.Delete(ctx, "spatial:"+id)
     uc.cache.Delete(ctx, "spatial:list")
     uc.cache.Delete(ctx, "spatial:stats")
 

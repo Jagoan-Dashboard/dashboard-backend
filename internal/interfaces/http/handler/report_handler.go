@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
+	
 )
 
 type ReportHandler struct {
@@ -33,7 +33,7 @@ func (h *ReportHandler) CreateReport(c *fiber.Ctx) error {
     }
 
     
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
     
     form, err := c.MultipartForm()
@@ -55,11 +55,8 @@ func (h *ReportHandler) CreateReport(c *fiber.Ctx) error {
 }
 
 func (h *ReportHandler) GetReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
+    id := c.Params("id")
+  
 
     report, err := h.reportUseCase.GetReport(c.Context(), id)
     if err != nil {
@@ -89,18 +86,15 @@ func (h *ReportHandler) ListReports(c *fiber.Ctx) error {
 }
 
 func (h *ReportHandler) UpdateReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
+    id := c.Params("id")
+   
 
     var req dto.UpdateReportRequest
     if err := c.BodyParser(&req); err != nil {
         return response.BadRequest(c, "Invalid request body", err)
     }
 
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
     report, err := h.reportUseCase.UpdateReport(c.Context(), id, &req, userID)
     if err != nil {
@@ -111,13 +105,10 @@ func (h *ReportHandler) UpdateReport(c *fiber.Ctx) error {
 }
 
 func (h *ReportHandler) DeleteReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
+    id := c.Params("id")
+    
 
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
     if err := h.reportUseCase.DeleteReport(c.Context(), id, userID); err != nil {
         return response.InternalError(c, "Failed to delete report", err)
