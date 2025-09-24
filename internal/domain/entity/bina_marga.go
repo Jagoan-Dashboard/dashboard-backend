@@ -2,11 +2,11 @@ package entity
 
 import (
     "time"
-    "github.com/google/uuid"
+    "building-report-backend/pkg/utils"
 )
 
 type BinaMargaReport struct {
-    ID                     uuid.UUID              `json:"id" gorm:"type:uuid;primary_key"`
+    ID                     string                 `json:"id" gorm:"type:varchar(26);primary_key"`
     
     
     ReporterName          string                 `json:"reporter_name" gorm:"not null"`
@@ -50,14 +50,14 @@ type BinaMargaReport struct {
     HandlingRecommendation string                `json:"handling_recommendation" gorm:"type:text"`
     EstimatedBudget       float64                `json:"estimated_budget"`
     EstimatedRepairTime   int                    `json:"estimated_repair_time" gorm:"comment:'in days'"`
-    CreatedBy             uuid.UUID              `json:"created_by" gorm:"type:uuid"`
+    CreatedBy             string                 `json:"created_by" gorm:"type:varchar(26);not null"`
     CreatedAt             time.Time              `json:"created_at"`
     UpdatedAt             time.Time              `json:"updated_at"`
 }
 
 type BinaMargaPhoto struct {
-    ID         uuid.UUID `json:"id" gorm:"type:uuid;primary_key"`
-    ReportID   uuid.UUID `json:"report_id" gorm:"type:uuid;not null"`
+    ID         string    `json:"id" gorm:"type:varchar(26);primary_key"`
+    ReportID   string    `json:"report_id" gorm:"type:varchar(26);not null"`
     PhotoURL   string    `json:"photo_url" gorm:"not null"`
     PhotoAngle string    `json:"photo_angle" gorm:"type:varchar(50)"` 
     Caption    string    `json:"caption" gorm:"type:varchar(255)"`
@@ -75,29 +75,33 @@ func (BinaMargaPhoto) TableName() string {
 
 
 func (r *BinaMargaReport) BeforeCreate() {
-    if r.ID == uuid.Nil {
-        r.ID = uuid.New()
+    if r.ID == "" {
+        r.ID = utils.GenerateULID()
     }
     r.CreatedAt = time.Now()
     r.UpdatedAt = time.Now()
     if r.Status == "" {
         r.Status = BinaMargaStatusPending
     }
-    
-    
+
+
     if r.DamagedArea == 0 && r.DamagedLength > 0 && r.DamagedWidth > 0 {
         r.DamagedArea = r.DamagedLength * r.DamagedWidth
     }
-    
-    
+
+
     if r.TotalDamagedArea == 0 && r.DamagedArea > 0 {
         r.TotalDamagedArea = r.DamagedArea
     }
 }
 
+func (r *BinaMargaReport) BeforeUpdate() {
+    r.UpdatedAt = time.Now()
+}
+
 func (rp *BinaMargaPhoto) BeforeCreate() {
-    if rp.ID == uuid.Nil {
-        rp.ID = uuid.New()
+    if rp.ID == "" {
+        rp.ID = utils.GenerateULID()
     }
     rp.CreatedAt = time.Now()
 }

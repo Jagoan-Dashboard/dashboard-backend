@@ -1,13 +1,12 @@
-
 package entity
 
 import (
-    "time"
-    "github.com/google/uuid"
+	"building-report-backend/pkg/utils"
+	"time"
 )
 
 type AgricultureReport struct {
-    ID                     uuid.UUID            `json:"id" gorm:"type:uuid;primary_key"`
+    ID                     string               `json:"id" gorm:"type:varchar(26);primary_key"`
     ExtensionOfficer       string               `json:"extension_officer" gorm:"not null"`
     VisitDate              time.Time            `json:"visit_date" gorm:"not null"`
     FarmerName             string               `json:"farmer_name" gorm:"not null"`
@@ -74,18 +73,18 @@ type AgricultureReport struct {
     WaterAccess            WaterAccess          `json:"water_access" gorm:"type:varchar(50)"`
     Suggestions            string               `json:"suggestions" gorm:"type:text"`
     
-    CreatedBy              uuid.UUID            `json:"created_by" gorm:"type:uuid"`
-    CreatedAt              time.Time            `json:"created_at"`
-    UpdatedAt              time.Time            `json:"updated_at"`
+    CreatedBy              string              `json:"created_by" gorm:"type:varchar(26);not null"`
+    CreatedAt              time.Time            `json:"created_at" gorm:"not null"`
+    UpdatedAt              time.Time            `json:"updated_at" gorm:"not null"`
 }
 
 type AgriculturePhoto struct {
-    ID         uuid.UUID `json:"id" gorm:"type:uuid;primary_key"`
-    ReportID   uuid.UUID `json:"report_id" gorm:"type:uuid;not null"`
-    PhotoURL   string    `json:"photo_url" gorm:"not null"`
-    PhotoType  string    `json:"photo_type" gorm:"type:varchar(50)"` 
+    ID         string    `json:"id" gorm:"type:varchar(26);primary_key"`
+    ReportID   string    `json:"report_id" gorm:"type:varchar(26);not null"`
+    PhotoURL   string    `json:"photo_url" gorm:"not null;size:500"`
+    PhotoType  string    `json:"photo_type" gorm:"type:varchar(50)"`
     Caption    string    `json:"caption" gorm:"type:varchar(255)"`
-    CreatedAt  time.Time `json:"created_at"`
+    CreatedAt  time.Time `json:"created_at" gorm:"not null"`
 }
 
 
@@ -99,16 +98,21 @@ func (AgriculturePhoto) TableName() string {
 
 
 func (r *AgricultureReport) BeforeCreate() {
-    if r.ID == uuid.Nil {
-        r.ID = uuid.New()
+    if r.ID == "" {
+        r.ID = utils.GenerateULID()
     }
-    r.CreatedAt = time.Now()
+    now := time.Now()
+    r.CreatedAt = now
+    r.UpdatedAt = now
+}
+
+func (r *AgricultureReport) BeforeUpdate() {
     r.UpdatedAt = time.Now()
 }
 
 func (ap *AgriculturePhoto) BeforeCreate() {
-    if ap.ID == uuid.Nil {
-        ap.ID = uuid.New()
+    if ap.ID == "" {
+        ap.ID = utils.GenerateULID()
     }
     ap.CreatedAt = time.Now()
 }

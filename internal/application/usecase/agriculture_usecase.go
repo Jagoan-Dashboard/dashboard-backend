@@ -1,18 +1,16 @@
-
 package usecase
 
 import (
-    "context"
-    "fmt"
-    "mime/multipart"
-    "time"
-    
-    "building-report-backend/internal/application/dto"
-    "building-report-backend/internal/domain/entity"
-    "building-report-backend/internal/domain/repository"
-    "building-report-backend/internal/infrastructure/storage"
-    
-    "github.com/google/uuid"
+	"context"
+	"fmt"
+	"mime/multipart"
+	"time"
+
+	"building-report-backend/internal/application/dto"
+	"building-report-backend/internal/domain/entity"
+	"building-report-backend/internal/domain/repository"
+	"building-report-backend/internal/infrastructure/storage"
+	"building-report-backend/pkg/utils"
 )
 
 type AgricultureUseCase struct {
@@ -33,9 +31,9 @@ func NewAgricultureUseCase(
     }
 }
 
-func (uc *AgricultureUseCase) CreateReport(ctx context.Context, req *dto.CreateAgricultureRequest, photos []*multipart.FileHeader, userID uuid.UUID) (*entity.AgricultureReport, error) {
+func (uc *AgricultureUseCase) CreateReport(ctx context.Context, req *dto.CreateAgricultureRequest, photos []*multipart.FileHeader, userID string) (*entity.AgricultureReport, error) {
     report := &entity.AgricultureReport{
-        ID:               uuid.New(),
+        ID:               utils.GenerateULID(),
         ExtensionOfficer: req.ExtensionOfficer,
         VisitDate:        req.VisitDate,
         FarmerName:       req.FarmerName,
@@ -156,7 +154,7 @@ func (uc *AgricultureUseCase) CreateReport(ctx context.Context, req *dto.CreateA
 
         caption := fmt.Sprintf("%s - %s (%s)", photoType, report.FarmerName, report.Village)
         report.Photos = append(report.Photos, entity.AgriculturePhoto{
-            ID:       uuid.New(),
+            ID:       utils.GenerateULID(),
             PhotoURL:  photoURL,
             PhotoType: photoType,
             Caption:   caption,
@@ -174,8 +172,8 @@ func (uc *AgricultureUseCase) CreateReport(ctx context.Context, req *dto.CreateA
     return report, nil
 }
 
-func (uc *AgricultureUseCase) GetReport(ctx context.Context, id uuid.UUID) (*entity.AgricultureReport, error) {
-    cacheKey := "agriculture:" + id.String()
+func (uc *AgricultureUseCase) GetReport(ctx context.Context, id string) (*entity.AgricultureReport, error) {
+    cacheKey := "agriculture:" + id
     
     report, err := uc.agricultureRepo.FindByID(ctx, id)
     if err != nil {
@@ -205,7 +203,7 @@ func (uc *AgricultureUseCase) ListReports(ctx context.Context, page, limit int, 
     }, nil
 }
 
-func (uc *AgricultureUseCase) UpdateReport(ctx context.Context, id uuid.UUID, req *dto.UpdateAgricultureRequest, userID uuid.UUID) (*entity.AgricultureReport, error) {
+func (uc *AgricultureUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateAgricultureRequest, userID string) (*entity.AgricultureReport, error) {
     report, err := uc.agricultureRepo.FindByID(ctx, id)
     if err != nil {
         return nil, err
@@ -286,14 +284,14 @@ func (uc *AgricultureUseCase) UpdateReport(ctx context.Context, id uuid.UUID, re
     }
 
     
-    uc.cache.Delete(ctx, "agriculture:"+id.String())
+    uc.cache.Delete(ctx, "agriculture:"+id)
     uc.cache.Delete(ctx, "agriculture:list")
     uc.cache.Delete(ctx, "agriculture:stats")
 
     return report, nil
 }
 
-func (uc *AgricultureUseCase) DeleteReport(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+func (uc *AgricultureUseCase) DeleteReport(ctx context.Context, id string, userID string) error {
     report, err := uc.agricultureRepo.FindByID(ctx, id)
     if err != nil {
         return err
@@ -314,7 +312,7 @@ func (uc *AgricultureUseCase) DeleteReport(ctx context.Context, id uuid.UUID, us
     }
 
     
-    uc.cache.Delete(ctx, "agriculture:"+id.String())
+    uc.cache.Delete(ctx, "agriculture:"+id)
     uc.cache.Delete(ctx, "agriculture:list")
     uc.cache.Delete(ctx, "agriculture:stats")
 

@@ -9,7 +9,6 @@ import (
     "building-report-backend/internal/interfaces/response"
     
     "github.com/gofiber/fiber/v2"
-    "github.com/google/uuid"
 )
 
 type BinaMargaHandler struct {
@@ -100,7 +99,7 @@ func (h *BinaMargaHandler) CreateReport(c *fiber.Ctx) error {
     }
 
     // Get user ID from context
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
     // Parse multipart form for photos
     form, err := c.MultipartForm()
@@ -134,12 +133,8 @@ func (h *BinaMargaHandler) CreateReport(c *fiber.Ctx) error {
 }
 
 func (h *BinaMargaHandler) GetReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
-
+    id := c.Params("id")
+   
     report, err := h.binaMargaUseCase.GetReport(c.Context(), id)
     if err != nil {
         return response.NotFound(c, "Report not found", err)
@@ -199,10 +194,6 @@ func (h *BinaMargaHandler) ListByPriority(c *fiber.Ctx) error {
 
 func (h *BinaMargaHandler) UpdateReport(c *fiber.Ctx) error {
     idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
 
     var req dto.UpdateBinaMargaRequest
     if err := c.BodyParser(&req); err != nil {
@@ -213,9 +204,9 @@ func (h *BinaMargaHandler) UpdateReport(c *fiber.Ctx) error {
         return response.ValidationError(c, err)
     }
 
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
-    report, err := h.binaMargaUseCase.UpdateReport(c.Context(), id, &req, userID)
+    report, err := h.binaMargaUseCase.UpdateReport(c.Context(), idStr, &req, userID)
     if err != nil {
         if err == usecase.ErrUnauthorized {
             return response.Forbidden(c, "You don't have permission to update this report", err)
@@ -227,11 +218,8 @@ func (h *BinaMargaHandler) UpdateReport(c *fiber.Ctx) error {
 }
 
 func (h *BinaMargaHandler) UpdateStatus(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
+    id := c.Params("id")
+    
 
     var req dto.UpdateBinaMargaStatusRequest
     if err := c.BodyParser(&req); err != nil {
@@ -250,13 +238,10 @@ func (h *BinaMargaHandler) UpdateStatus(c *fiber.Ctx) error {
 }
 
 func (h *BinaMargaHandler) DeleteReport(c *fiber.Ctx) error {
-    idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
+    id := c.Params("id")
+    
 
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
     if err := h.binaMargaUseCase.DeleteReport(c.Context(), id, userID); err != nil {
         if err == usecase.ErrUnauthorized {

@@ -1,17 +1,16 @@
 package usecase
 
 import (
-    "context"
-    "fmt"
-    "mime/multipart"
-    "time"
-    
-    "building-report-backend/internal/application/dto"
-    "building-report-backend/internal/domain/entity"
-    "building-report-backend/internal/domain/repository"
-    "building-report-backend/internal/infrastructure/storage"
-    
-    "github.com/google/uuid"
+	"context"
+	"fmt"
+	"mime/multipart"
+	"time"
+
+	"building-report-backend/internal/application/dto"
+	"building-report-backend/internal/domain/entity"
+	"building-report-backend/internal/domain/repository"
+	"building-report-backend/internal/infrastructure/storage"
+	"building-report-backend/pkg/utils"
 )
 
 type BinaMargaUseCase struct {
@@ -32,7 +31,7 @@ func NewBinaMargaUseCase(
     }
 }
 
-func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBinaMargaRequest, photos []*multipart.FileHeader, userID uuid.UUID) (*entity.BinaMargaReport, error) {
+func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBinaMargaRequest, photos []*multipart.FileHeader, userID string) (*entity.BinaMargaReport, error) {
     
     damagedArea := req.DamagedLength * req.DamagedWidth
     
@@ -43,7 +42,7 @@ func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBin
     }
     
     report := &entity.BinaMargaReport{
-        ID:                  uuid.New(),
+        ID:                  utils.GenerateULID(),
         ReporterName:        req.ReporterName,
         InstitutionUnit:     entity.InstitutionUnitType(req.InstitutionUnit),
         PhoneNumber:         req.PhoneNumber,
@@ -108,7 +107,7 @@ func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBin
         }
         
         report.Photos = append(report.Photos, entity.BinaMargaPhoto{
-            ID:         uuid.New(),
+            ID:         utils.GenerateULID(),
             PhotoURL:   photoURL,
             PhotoAngle: angle,
             Caption:    caption,
@@ -134,9 +133,9 @@ func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBin
     return report, nil
 }
 
-func (uc *BinaMargaUseCase) GetReport(ctx context.Context, id uuid.UUID) (*entity.BinaMargaReport, error) {
-    cacheKey := "bina_marga:" + id.String()
-    
+func (uc *BinaMargaUseCase) GetReport(ctx context.Context, id string) (*entity.BinaMargaReport, error) {
+    cacheKey := "bina_marga:" + id
+
     report, err := uc.binaMargaRepo.FindByID(ctx, id)
     if err != nil {
         return nil, err
@@ -182,7 +181,7 @@ func (uc *BinaMargaUseCase) ListByPriority(ctx context.Context, page, limit int)
     }, nil
 }
 
-func (uc *BinaMargaUseCase) UpdateReport(ctx context.Context, id uuid.UUID, req *dto.UpdateBinaMargaRequest, userID uuid.UUID) (*entity.BinaMargaReport, error) {
+func (uc *BinaMargaUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateBinaMargaRequest, userID string) (*entity.BinaMargaReport, error) {
     report, err := uc.binaMargaRepo.FindByID(ctx, id)
     if err != nil {
         return nil, err
@@ -293,27 +292,27 @@ func (uc *BinaMargaUseCase) UpdateReport(ctx context.Context, id uuid.UUID, req 
     }
 
     
-    uc.cache.Delete(ctx, "bina_marga:"+id.String())
+    uc.cache.Delete(ctx, "bina_marga:"+id)
     uc.cache.Delete(ctx, "bina_marga:list")
     uc.cache.Delete(ctx, "bina_marga:stats")
 
     return report, nil
 }
 
-func (uc *BinaMargaUseCase) UpdateStatus(ctx context.Context, id uuid.UUID, req *dto.UpdateBinaMargaStatusRequest) error {
+func (uc *BinaMargaUseCase) UpdateStatus(ctx context.Context, id string, req *dto.UpdateBinaMargaStatusRequest) error {
     err := uc.binaMargaRepo.UpdateStatus(ctx, id, entity.BinaMargaStatus(req.Status), req.Notes)
     if err != nil {
         return err
     }
 
     
-    uc.cache.Delete(ctx, "bina_marga:"+id.String())
+    uc.cache.Delete(ctx, "bina_marga:"+id)
     uc.cache.Delete(ctx, "bina_marga:stats")
 
     return nil
 }
 
-func (uc *BinaMargaUseCase) DeleteReport(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+func (uc *BinaMargaUseCase) DeleteReport(ctx context.Context, id string, userID string) error {
     report, err := uc.binaMargaRepo.FindByID(ctx, id)
     if err != nil {
         return err
@@ -334,7 +333,7 @@ func (uc *BinaMargaUseCase) DeleteReport(ctx context.Context, id uuid.UUID, user
     }
 
     
-    uc.cache.Delete(ctx, "bina_marga:"+id.String())
+    uc.cache.Delete(ctx, "bina_marga:"+id)
     uc.cache.Delete(ctx, "bina_marga:list")
     uc.cache.Delete(ctx, "bina_marga:stats")
 

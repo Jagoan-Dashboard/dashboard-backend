@@ -5,16 +5,15 @@ import (
     "context"
     "time"
     "building-report-backend/internal/domain/entity"
-    "github.com/google/uuid"
 )
 
 type AgricultureRepository interface {
     Create(ctx context.Context, report *entity.AgricultureReport) error
     Update(ctx context.Context, report *entity.AgricultureReport) error
-    Delete(ctx context.Context, id uuid.UUID) error
-    FindByID(ctx context.Context, id uuid.UUID) (*entity.AgricultureReport, error)
+    Delete(ctx context.Context, id string) error
+    FindByID(ctx context.Context, id string) (*entity.AgricultureReport, error)
     FindAll(ctx context.Context, limit, offset int, filters map[string]interface{}) ([]*entity.AgricultureReport, int64, error)
-    FindByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entity.AgricultureReport, int64, error)
+    FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*entity.AgricultureReport, int64, error)
     FindByExtensionOfficer(ctx context.Context, extensionOfficer string, limit, offset int) ([]*entity.AgricultureReport, int64, error)
     FindByVillage(ctx context.Context, village string, limit, offset int) ([]*entity.AgricultureReport, int64, error)
     FindByDateRange(ctx context.Context, startDate, endDate time.Time, limit, offset int) ([]*entity.AgricultureReport, int64, error)

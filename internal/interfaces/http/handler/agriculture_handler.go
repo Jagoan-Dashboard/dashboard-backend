@@ -13,7 +13,7 @@ import (
 	"building-report-backend/internal/interfaces/response"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
+	
 )
 
 type AgricultureHandler struct {
@@ -145,7 +145,10 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
     }
 
     // Get user ID from context
-    userID := c.Locals("userID").(uuid.UUID)
+    userID, ok := c.Locals("userID").(string)
+    if !ok {
+        return response.BadRequest(c, "Invalid user ID type", nil)
+    }
 
     // Parse multipart form for photos
     form, err := c.MultipartForm()
@@ -180,12 +183,8 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
 
 func (h *AgricultureHandler) GetReport(c *fiber.Ctx) error {
     idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
 
-    report, err := h.agricultureUseCase.GetReport(c.Context(), id)
+    report, err := h.agricultureUseCase.GetReport(c.Context(), idStr)
     if err != nil {
         return response.NotFound(c, "Report not found", err)
     }
@@ -239,10 +238,7 @@ func (h *AgricultureHandler) ListReports(c *fiber.Ctx) error {
 
 func (h *AgricultureHandler) UpdateReport(c *fiber.Ctx) error {
     idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
+
 
     var req dto.UpdateAgricultureRequest
     if err := c.BodyParser(&req); err != nil {
@@ -253,9 +249,9 @@ func (h *AgricultureHandler) UpdateReport(c *fiber.Ctx) error {
         return response.ValidationError(c, err)
     }
 
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
-    report, err := h.agricultureUseCase.UpdateReport(c.Context(), id, &req, userID)
+    report, err := h.agricultureUseCase.UpdateReport(c.Context(), idStr, &req, userID)
     if err != nil {
         if err == usecase.ErrUnauthorized {
             return response.Forbidden(c, "You don't have permission to update this report", err)
@@ -268,14 +264,10 @@ func (h *AgricultureHandler) UpdateReport(c *fiber.Ctx) error {
 
 func (h *AgricultureHandler) DeleteReport(c *fiber.Ctx) error {
     idStr := c.Params("id")
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid report ID", err)
-    }
 
-    userID := c.Locals("userID").(uuid.UUID)
+    userID := c.Locals("userID").(string)
 
-    if err := h.agricultureUseCase.DeleteReport(c.Context(), id, userID); err != nil {
+    if err := h.agricultureUseCase.DeleteReport(c.Context(), idStr, userID); err != nil {
         if err == usecase.ErrUnauthorized {
             return response.Forbidden(c, "You don't have permission to delete this report", err)
         }

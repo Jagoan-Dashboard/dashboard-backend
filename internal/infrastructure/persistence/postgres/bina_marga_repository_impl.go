@@ -7,7 +7,6 @@ import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/internal/domain/repository"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -28,13 +27,13 @@ func (r *binaMargaRepositoryImpl) Update(ctx context.Context, report *entity.Bin
 	return r.db.WithContext(ctx).Save(report).Error
 }
 
-func (r *binaMargaRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *binaMargaRepositoryImpl) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).
 		Where("id = ?", id).
 		Delete(&entity.BinaMargaReport{}).Error
 }
 
-func (r *binaMargaRepositoryImpl) FindByID(ctx context.Context, id uuid.UUID) (*entity.BinaMargaReport, error) {
+func (r *binaMargaRepositoryImpl) FindByID(ctx context.Context, id string) (*entity.BinaMargaReport, error) {
 	var report entity.BinaMargaReport
 	err := r.db.WithContext(ctx).
 		Preload("Photos").
@@ -131,7 +130,7 @@ func (r *binaMargaRepositoryImpl) FindBlockedRoads(ctx context.Context, limit in
 	return reports, err
 }
 
-func (r *binaMargaRepositoryImpl) UpdateStatus(ctx context.Context, id uuid.UUID, status entity.BinaMargaStatus, notes string) error {
+func (r *binaMargaRepositoryImpl) UpdateStatus(ctx context.Context, id string, status entity.BinaMargaStatus, notes string) error {
 	updates := map[string]interface{}{
 		"status":     status,
 		"updated_at": time.Now(),
@@ -377,7 +376,7 @@ func (r *binaMargaRepositoryImpl) GetRepairTimeAnalysis(ctx context.Context) (ma
 	return analysis, nil
 }
 
-func (r *binaMargaRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entity.BinaMargaReport, int64, error) {
+func (r *binaMargaRepositoryImpl) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*entity.BinaMargaReport, int64, error) {
 	var (
 		reports []*entity.BinaMargaReport
 		total   int64

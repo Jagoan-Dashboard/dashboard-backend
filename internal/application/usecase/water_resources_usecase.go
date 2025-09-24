@@ -1,18 +1,18 @@
-
 package usecase
 
 import (
-    "context"
-    "fmt"
-    "mime/multipart"
-    "time"
-    
-    "building-report-backend/internal/application/dto"
-    "building-report-backend/internal/domain/entity"
-    "building-report-backend/internal/domain/repository"
-    "building-report-backend/internal/infrastructure/storage"
-    
-    "github.com/google/uuid"
+	"context"
+	"fmt"
+	"mime/multipart"
+	"time"
+
+	"building-report-backend/internal/application/dto"
+	"building-report-backend/internal/domain/entity"
+	"building-report-backend/internal/domain/repository"
+	"building-report-backend/internal/infrastructure/storage"
+	"building-report-backend/pkg/utils"
+
+	
 )
 
 type WaterResourcesUseCase struct {
@@ -33,9 +33,9 @@ func NewWaterResourcesUseCase(
     }
 }
 
-func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.CreateWaterResourcesRequest, photos []*multipart.FileHeader, userID uuid.UUID) (*entity.WaterResourcesReport, error) {
+func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.CreateWaterResourcesRequest, photos []*multipart.FileHeader, userID string) (*entity.WaterResourcesReport, error) {
     report := &entity.WaterResourcesReport{
-        ID:                    uuid.New(),
+        ID:                    utils.GenerateULID(),
         ReporterName:          req.ReporterName,
         InstitutionUnit:       entity.InstitutionUnitType(req.InstitutionUnit),
         PhoneNumber:           req.PhoneNumber,
@@ -74,7 +74,7 @@ func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.Crea
 
         caption := fmt.Sprintf("%s view - %s", photoAngles[i], report.IrrigationAreaName)
         report.Photos = append(report.Photos, entity.WaterResourcesPhoto{
-            ID:         uuid.New(),
+            ID:         utils.GenerateULID(),
             PhotoURL:   photoURL,
             PhotoAngle: photoAngles[i],
             Caption:    caption,
@@ -98,8 +98,8 @@ func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.Crea
     return report, nil
 }
 
-func (uc *WaterResourcesUseCase) GetReport(ctx context.Context, id uuid.UUID) (*entity.WaterResourcesReport, error) {
-    cacheKey := "water:" + id.String()
+func (uc *WaterResourcesUseCase) GetReport(ctx context.Context, id string) (*entity.WaterResourcesReport, error) {
+    cacheKey := "water:" + id
     
     report, err := uc.waterRepo.FindByID(ctx, id)
     if err != nil {
@@ -146,7 +146,7 @@ func (uc *WaterResourcesUseCase) ListByPriority(ctx context.Context, page, limit
     }, nil
 }
 
-func (uc *WaterResourcesUseCase) UpdateReport(ctx context.Context, id uuid.UUID, req *dto.UpdateWaterResourcesRequest, userID uuid.UUID) (*entity.WaterResourcesReport, error) {
+func (uc *WaterResourcesUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateWaterResourcesRequest, userID string) (*entity.WaterResourcesReport, error) {
     report, err := uc.waterRepo.FindByID(ctx, id)
     if err != nil {
         return nil, err
@@ -208,27 +208,27 @@ func (uc *WaterResourcesUseCase) UpdateReport(ctx context.Context, id uuid.UUID,
     }
 
     
-    uc.cache.Delete(ctx, "water:"+id.String())
+    uc.cache.Delete(ctx, "water:"+id)
     uc.cache.Delete(ctx, "water:list")
     uc.cache.Delete(ctx, "water:stats")
 
     return report, nil
 }
 
-func (uc *WaterResourcesUseCase) UpdateStatus(ctx context.Context, id uuid.UUID, req *dto.UpdateWaterStatusRequest) error {
+func (uc *WaterResourcesUseCase) UpdateStatus(ctx context.Context, id string, req *dto.UpdateWaterStatusRequest) error {
     err := uc.waterRepo.UpdateStatus(ctx, id, entity.WaterResourceStatus(req.Status), req.Notes)
     if err != nil {
         return err
     }
 
     
-    uc.cache.Delete(ctx, "water:"+id.String())
+    uc.cache.Delete(ctx, "water:"+id)
     uc.cache.Delete(ctx, "water:stats")
 
     return nil
 }
 
-func (uc *WaterResourcesUseCase) DeleteReport(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+func (uc *WaterResourcesUseCase) DeleteReport(ctx context.Context, id string, userID string) error {
     report, err := uc.waterRepo.FindByID(ctx, id)
     if err != nil {
         return err
@@ -249,7 +249,7 @@ func (uc *WaterResourcesUseCase) DeleteReport(ctx context.Context, id uuid.UUID,
     }
 
     
-    uc.cache.Delete(ctx, "water:"+id.String())
+    uc.cache.Delete(ctx, "water:"+id)
     uc.cache.Delete(ctx, "water:list")
     uc.cache.Delete(ctx, "water:stats")
 

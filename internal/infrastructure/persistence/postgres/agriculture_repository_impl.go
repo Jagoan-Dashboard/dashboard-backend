@@ -6,8 +6,7 @@ import (
     "time"
     "building-report-backend/internal/domain/entity"
     "building-report-backend/internal/domain/repository"
-    
-    "github.com/google/uuid"
+
     "gorm.io/gorm"
 )
 
@@ -28,13 +27,13 @@ func (r *agricultureRepositoryImpl) Update(ctx context.Context, report *entity.A
     return r.db.WithContext(ctx).Save(report).Error
 }
 
-func (r *agricultureRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *agricultureRepositoryImpl) Delete(ctx context.Context, id string) error {
     return r.db.WithContext(ctx).
         Where("id = ?", id).
         Delete(&entity.AgricultureReport{}).Error
 }
 
-func (r *agricultureRepositoryImpl) FindByID(ctx context.Context, id uuid.UUID) (*entity.AgricultureReport, error) {
+func (r *agricultureRepositoryImpl) FindByID(ctx context.Context, id string) (*entity.AgricultureReport, error) {
     var report entity.AgricultureReport
     err := r.db.WithContext(ctx).
         Preload("Photos").
@@ -104,7 +103,7 @@ func (r *agricultureRepositoryImpl) FindAll(ctx context.Context, limit, offset i
     return reports, total, err
 }
 
-func (r *agricultureRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entity.AgricultureReport, int64, error) {
+func (r *agricultureRepositoryImpl) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*entity.AgricultureReport, int64, error) {
     var reports []*entity.AgricultureReport
     var total int64
 

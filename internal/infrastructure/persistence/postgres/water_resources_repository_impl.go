@@ -6,7 +6,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -27,13 +26,13 @@ func (r *waterResourcesRepositoryImpl) Update(ctx context.Context, report *entit
     return r.db.WithContext(ctx).Save(report).Error
 }
 
-func (r *waterResourcesRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *waterResourcesRepositoryImpl) Delete(ctx context.Context, id string) error {
     return r.db.WithContext(ctx).
         Where("id = ?", id).
         Delete(&entity.WaterResourcesReport{}).Error
 }
 
-func (r *waterResourcesRepositoryImpl) FindByID(ctx context.Context, id uuid.UUID) (*entity.WaterResourcesReport, error) {
+func (r *waterResourcesRepositoryImpl) FindByID(ctx context.Context, id string) (*entity.WaterResourcesReport, error) {
     var report entity.WaterResourcesReport
     err := r.db.WithContext(ctx).
         Preload("Photos").
@@ -101,7 +100,7 @@ func (r *waterResourcesRepositoryImpl) FindAll(ctx context.Context, limit, offse
     return reports, total, err
 }
 
-func (r *waterResourcesRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entity.WaterResourcesReport, int64, error) {
+func (r *waterResourcesRepositoryImpl) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*entity.WaterResourcesReport, int64, error) {
     var reports []*entity.WaterResourcesReport
     var total int64
 
@@ -152,7 +151,7 @@ func (r *waterResourcesRepositoryImpl) FindByPriority(ctx context.Context, limit
     return reports, total, err
 }
 
-func (r *waterResourcesRepositoryImpl) UpdateStatus(ctx context.Context, id uuid.UUID, status entity.WaterResourceStatus, notes string) error {
+func (r *waterResourcesRepositoryImpl) UpdateStatus(ctx context.Context, id string, status entity.WaterResourceStatus, notes string) error {
     updates := map[string]interface{}{
         "status":     status,
         "updated_at": time.Now(),
