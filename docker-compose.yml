@@ -1,24 +1,34 @@
-# docker-compose.yml
 version: '3.8'
 
 services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: building_reports
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   minio:
     image: minio/minio
@@ -26,22 +36,58 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      # ikuti .env
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/minio/health/ready >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   app:
     build: .
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
-      - redis
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    env_file: .env
     environment:
-      - APP_ENV=development
+      # override host/endpoint agar pakai hostname container
+      APP_ENV: ${APP_ENV}
+      APP_PORT: ${APP_PORT}
+      APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS}
+
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSL_MODE: ${DB_SSL_MODE}
+
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB}
+
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      # untuk akses publik dari luar container tetap pakai localhost (sesuai .env)
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
+
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
+
     volumes:
       - .:/app
 
