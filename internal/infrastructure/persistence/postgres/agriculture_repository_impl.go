@@ -1526,12 +1526,8 @@ func (r *agricultureRepositoryImpl) GetPlantationHarvestSchedule(ctx context.Con
     return results, err
 }
 
-// Agricultural Equipment methods (Note: These are estimations as the current schema doesn't have equipment data)
 func (r *agricultureRepositoryImpl) GetAgriculturalEquipmentStats(ctx context.Context, startDate, endDate time.Time) (map[string]interface{}, error) {
     result := make(map[string]interface{})
-    
-    // Since we don't have direct equipment data, we'll estimate based on technology adoption
-    // This is a placeholder implementation - in real scenario, you'd have an equipment table
     
     // Get current year reports with technology
     var currentYearReports int64
@@ -1557,16 +1553,16 @@ func (r *agricultureRepositoryImpl) GetAgriculturalEquipmentStats(ctx context.Co
     }
     
     // Estimated equipment counts based on technology adoption
-    result["grain_processor_count"] = int64(float64(currentYearReports) * 0.3) // 30% have grain processors
+    result["grain_processor_count"] = int64(float64(currentYearReports) * 0.3)
     result["grain_processor_growth"] = growth
     
-    result["thresher_count"] = int64(float64(currentYearReports) * 0.25) // 25% have threshers
+    result["thresher_count"] = int64(float64(currentYearReports) * 0.25)
     result["thresher_growth"] = growth
     
-    result["machinery_count"] = int64(float64(currentYearReports) * 0.4) // 40% have farm machinery
+    result["machinery_count"] = int64(float64(currentYearReports) * 0.4)
     result["machinery_growth"] = growth
     
-    result["water_pump_count"] = int64(float64(currentYearReports) * 0.6) // 60% have water pumps
+    result["water_pump_count"] = int64(float64(currentYearReports) * 0.6)
     result["water_pump_growth"] = growth
     
     return result, nil
@@ -1575,21 +1571,47 @@ func (r *agricultureRepositoryImpl) GetAgriculturalEquipmentStats(ctx context.Co
 func (r *agricultureRepositoryImpl) GetEquipmentDistributionByDistrict(ctx context.Context, startDate, endDate time.Time) ([]map[string]interface{}, error) {
     var results []map[string]interface{}
     
+    // Use a different approach - scan into a struct first, then convert to map
+    type equipmentRow struct {
+        District       string `db:"district"`
+        GrainProcessor int64  `db:"grain_processor"`
+        Thresher       int64  `db:"thresher"`
+        FarmMachinery  int64  `db:"farm_machinery"`
+        WaterPump      int64  `db:"water_pump"`
+    }
+    
+    var rows []equipmentRow
+    
     query := `
         SELECT 
             district,
-            COUNT(*) * 0.3 as grain_processor,
-            COUNT(*) * 0.25 as thresher,
-            COUNT(*) * 0.4 as farm_machinery,
-            COUNT(*) * 0.6 as water_pump
+            CAST(FLOOR(COUNT(*) * 0.3) AS BIGINT) as grain_processor,
+            CAST(FLOOR(COUNT(*) * 0.25) AS BIGINT) as thresher,
+            CAST(FLOOR(COUNT(*) * 0.4) AS BIGINT) as farm_machinery,
+            CAST(FLOOR(COUNT(*) * 0.6) AS BIGINT) as water_pump
         FROM agriculture_reports
-        WHERE visit_date BETWEEN ? AND ?
+        WHERE visit_date BETWEEN $1 AND $2
         AND (food_technology IS NOT NULL OR horti_technology IS NOT NULL OR plantation_technology IS NOT NULL)
         GROUP BY district
         ORDER BY district
     `
     
-    err := r.db.WithContext(ctx).Raw(query, startDate, endDate).Scan(&results).Error
+    err := r.db.WithContext(ctx).Raw(query, startDate, endDate).Scan(&rows).Error
+    if err != nil {
+        return nil, err
+    }
+    
+    // Convert struct rows to map[string]interface{}
+    for _, row := range rows {
+        results = append(results, map[string]interface{}{
+            "district":        row.District,
+            "grain_processor": row.GrainProcessor,
+            "thresher":        row.Thresher,
+            "farm_machinery":  row.FarmMachinery,
+            "water_pump":      row.WaterPump,
+        })
+    }
+    
     return results, err
 }
 

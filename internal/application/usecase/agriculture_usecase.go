@@ -991,43 +991,43 @@ func (uc *AgricultureUseCase) GetAgriculturalEquipmentStats(ctx context.Context,
         return nil, err
     }
 
-    // Build response
+    // Build response with safe type conversion
     response.GrainProcessor = dto.EquipmentCount{
-        Count:         stats["grain_processor_count"].(int64),
-        GrowthPercent: stats["grain_processor_growth"].(float64),
+        Count:         convertToInt64(stats["grain_processor_count"]),
+        GrowthPercent: convertToFloat64(stats["grain_processor_growth"]),
     }
     
     response.MultipurposeThresher = dto.EquipmentCount{
-        Count:         stats["thresher_count"].(int64),
-        GrowthPercent: stats["thresher_growth"].(float64),
+        Count:         convertToInt64(stats["thresher_count"]),
+        GrowthPercent: convertToFloat64(stats["thresher_growth"]),
     }
     
     response.FarmMachinery = dto.EquipmentCount{
-        Count:         stats["machinery_count"].(int64),
-        GrowthPercent: stats["machinery_growth"].(float64),
+        Count:         convertToInt64(stats["machinery_count"]),
+        GrowthPercent: convertToFloat64(stats["machinery_growth"]),
     }
     
     response.WaterPump = dto.EquipmentCount{
-        Count:         stats["water_pump_count"].(int64),
-        GrowthPercent: stats["water_pump_growth"].(float64),
+        Count:         convertToInt64(stats["water_pump_count"]),
+        GrowthPercent: convertToFloat64(stats["water_pump_growth"]),
     }
 
-    // Convert distribution data
+    // Convert distribution data with safe type conversion
     for _, item := range distribution {
         response.DistributionByDistrict = append(response.DistributionByDistrict, dto.EquipmentDistrict{
-            District:       item["district"].(string),
-            GrainProcessor: item["grain_processor"].(int64),
-            Thresher:       item["thresher"].(int64),
-            FarmMachinery:  item["farm_machinery"].(int64),
-            WaterPump:      item["water_pump"].(int64),
+            District:       convertToString(item["district"]),
+            GrainProcessor: convertToInt64(item["grain_processor"]),
+            Thresher:       convertToInt64(item["thresher"]),
+            FarmMachinery:  convertToInt64(item["farm_machinery"]),
+            WaterPump:      convertToInt64(item["water_pump"]),
         })
     }
 
     // Convert trend data
     for _, item := range waterPumpTrend {
         response.WaterPumpTrend = append(response.WaterPumpTrend, dto.EquipmentTrend{
-            Year:  int(item["year"].(int64)),
-            Count: item["count"].(int64),
+            Year:  int(convertToInt64(item["year"])),
+            Count: convertToInt64(item["count"]),
         })
     }
 
@@ -1341,4 +1341,54 @@ func (uc *AgricultureUseCase) GetPlantingCalendar(ctx context.Context, commodity
     }
     
     return calendar, nil
+}
+
+func convertToString(value interface{}) string {
+    switch v := value.(type) {
+    case string:
+        return v
+    case []byte:
+        return string(v)
+    default:
+        return fmt.Sprintf("%v", v)
+    }
+}
+
+// Make sure these helper functions exist in the repository file
+func convertToInt64(value interface{}) int64 {
+    switch v := value.(type) {
+    case int:
+        return int64(v)
+    case int32:
+        return int64(v)
+    case int64:
+        return v
+    case float64:
+        return int64(v)
+    case float32:
+        return int64(v)
+    case nil:
+        return 0
+    default:
+        return 0
+    }
+}
+
+func convertToFloat64(value interface{}) float64 {
+    switch v := value.(type) {
+    case float64:
+        return v
+    case float32:
+        return float64(v)
+    case int:
+        return float64(v)
+    case int32:
+        return float64(v)
+    case int64:
+        return float64(v)
+    case nil:
+        return 0.0
+    default:
+        return 0.0
+    }
 }
