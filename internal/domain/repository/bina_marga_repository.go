@@ -25,8 +25,15 @@ type BinaMargaRepository interface {
     CalculateTotalDamageLength(ctx context.Context) (float64, error)
     CountReportsByUrgency(ctx context.Context, urgency entity.RoadUrgencyLevel) (int64, error)
     GetRepairTimeAnalysis(ctx context.Context) (map[string]interface{}, error)
-
-     GetKPIs(ctx context.Context, roadType string, startDate, endDate time.Time) (avgSegLen, avgDamageArea, avgDailyTraffic float64, totalReports int64, err error)
+    GetBinaMargaOverviewStats(ctx context.Context, roadType string) (map[string]interface{}, error)
+    GetBinaMargaLocationStats(ctx context.Context, roadType string) ([]map[string]interface{}, error)
+    GetBinaMargaPriorityStats(ctx context.Context, roadType string) ([]map[string]interface{}, error)
+    GetBinaMargaRoadDamageLevelStats(ctx context.Context, roadType string) ([]map[string]interface{}, error)
+    GetBinaMargaBridgeDamageLevelStats(ctx context.Context, roadType string) ([]map[string]interface{}, error)
+    GetBinaMargaTopRoadDamageTypes(ctx context.Context, roadType string) ([]map[string]interface{}, error)
+     GetBinaMargaTopBridgeDamageTypes(ctx context.Context, roadType string) ([]map[string]interface{}, error)
+    
+    GetKPIs(ctx context.Context, roadType string, startDate, endDate time.Time) (avgSegLen, avgDamageArea, avgDailyTraffic float64, totalReports int64, err error)
 
     // generic group-by untuk kolom tertentu, dengan opsi filter jembatan
     GroupCountBy(ctx context.Context, column, roadType string, startDate, endDate time.Time, onlyBridge, onlyRoad bool) ([]struct {

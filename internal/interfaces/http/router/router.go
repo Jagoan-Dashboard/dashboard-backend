@@ -67,6 +67,7 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
 
     waterRoutes := protected.Group("/water-resources")
     waterRoutes.Get("/", cont.WaterResourcesHandler.ListReports)
+    waterRoutes.Get("/overview", cont.WaterResourcesHandler.GetWaterResourcesOverview)
     waterRoutes.Get("/priority", cont.WaterResourcesHandler.ListByPriority)
     waterRoutes.Get("/statistics", cont.WaterResourcesHandler.GetStatistics)
     waterRoutes.Get("/urgent", cont.WaterResourcesHandler.GetUrgentReports)
@@ -79,6 +80,7 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
 
     binaMargaRoutes := protected.Group("/bina-marga")
     binaMargaRoutes.Get("/", cont.BinaMargaHandler.ListReports)
+    binaMargaRoutes.Get("/overview", cont.BinaMargaHandler.GetBinaMargaOverview)
     binaMargaRoutes.Get("/priority", cont.BinaMargaHandler.ListByPriority)
     binaMargaRoutes.Get("/statistics", cont.BinaMargaHandler.GetStatistics)
     binaMargaRoutes.Get("/emergency", cont.BinaMargaHandler.GetEmergencyReports)

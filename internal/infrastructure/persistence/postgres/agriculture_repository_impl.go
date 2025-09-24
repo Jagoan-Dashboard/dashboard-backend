@@ -1,13 +1,14 @@
-
 package postgres
 
 import (
-    "context"
-    "time"
-    "building-report-backend/internal/domain/entity"
-    "building-report-backend/internal/domain/repository"
+	"building-report-backend/internal/domain/entity"
+	"building-report-backend/internal/domain/repository"
+	"context"
+	"fmt"
+    "strings"
+	"time"
 
-    "gorm.io/gorm"
+	"gorm.io/gorm"
 )
 
 type agricultureRepositoryImpl struct {
@@ -738,15 +739,31 @@ func (r *agricultureRepositoryImpl) GetFarmerHopesAndNeeds(ctx context.Context) 
 func (r *agricultureRepositoryImpl) GetCommodityAnalysis(ctx context.Context, startDate, endDate time.Time, commodityName string) (map[string]interface{}, error) {
     result := make(map[string]interface{})
     
+    // Build flexible WHERE clauses for commodity matching
+    commodityWhereClause := `(
+        (food_commodity IS NOT NULL AND food_commodity != '' AND UPPER(food_commodity) LIKE UPPER($3)) OR
+        (horti_commodity IS NOT NULL AND horti_commodity != '' AND UPPER(horti_commodity) LIKE UPPER($3)) OR
+        (plantation_commodity IS NOT NULL AND plantation_commodity != '' AND UPPER(plantation_commodity) LIKE UPPER($3))
+    )`
+    
+    if commodityName == "" {
+        // If no specific commodity, get all
+        commodityWhereClause = `(
+            food_commodity IS NOT NULL AND food_commodity != '' OR
+            horti_commodity IS NOT NULL AND horti_commodity != '' OR
+            plantation_commodity IS NOT NULL AND plantation_commodity != ''
+        )`
+    }
+    
     // Get current year data
-    currentYearQuery := `
+    currentYearQuery := fmt.Sprintf(`
         SELECT 
-            SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)) as total_area,
+            COALESCE(SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)), 0) as total_area,
             COUNT(*) as report_count
         FROM agriculture_reports
-        WHERE visit_date BETWEEN ? AND ?
-        AND (food_commodity = ? OR horti_commodity = ? OR plantation_commodity = ?)
-    `
+        WHERE visit_date BETWEEN $1 AND $2
+        AND %s
+    `, commodityWhereClause)
     
     type yearData struct {
         TotalArea   float64 `json:"total_area"`
@@ -754,18 +771,61 @@ func (r *agricultureRepositoryImpl) GetCommodityAnalysis(ctx context.Context, st
     }
     
     var currentYear yearData
-    r.db.WithContext(ctx).Raw(currentYearQuery, startDate, endDate, commodityName, commodityName, commodityName).Scan(&currentYear)
+    var args []interface{}
+    
+    if commodityName == "" {
+        args = []interface{}{startDate, endDate}
+    } else {
+        commodityPattern := "%" + commodityName + "%"
+        args = []interface{}{startDate, endDate, commodityPattern}
+    }
+    
+    err := r.db.WithContext(ctx).Raw(currentYearQuery, args...).Scan(&currentYear).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get current year data: %w", err)
+    }
     
     // Get previous year data for comparison
     prevYearStart := startDate.AddDate(-1, 0, 0)
     prevYearEnd := endDate.AddDate(-1, 0, 0)
     
     var previousYear yearData
-    r.db.WithContext(ctx).Raw(currentYearQuery, prevYearStart, prevYearEnd, commodityName, commodityName, commodityName).Scan(&previousYear)
+    prevArgs := []interface{}{prevYearStart, prevYearEnd}
+    if commodityName != "" {
+        commodityPattern := "%" + commodityName + "%"
+        prevArgs = append(prevArgs, commodityPattern)
+    }
     
-    // Calculate estimated production (assuming 3 tons/hectare average)
-    currentProduction := currentYear.TotalArea * 3.0
-    previousProduction := previousYear.TotalArea * 3.0
+    err = r.db.WithContext(ctx).Raw(currentYearQuery, prevArgs...).Scan(&previousYear).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get previous year data: %w", err)
+    }
+    
+    // Calculate estimated production with realistic productivity values
+    // Use different productivity rates for different crop types
+    var currentProductivity, previousProductivity float64 = 3.0, 3.0 // Default values
+    
+    // Adjust productivity based on commodity type
+    commodityUpper := strings.ToUpper(commodityName)
+    switch {
+    case strings.Contains(commodityUpper, "PADI"):
+        currentProductivity, previousProductivity = 5.2, 5.0 // Rice productivity
+    case strings.Contains(commodityUpper, "JAGUNG"):
+        currentProductivity, previousProductivity = 4.8, 4.6 // Corn productivity
+    case strings.Contains(commodityUpper, "KEDELAI"):
+        currentProductivity, previousProductivity = 1.5, 1.4 // Soybean productivity
+    case strings.Contains(commodityUpper, "CABAI"):
+        currentProductivity, previousProductivity = 8.0, 7.5 // Chili productivity
+    case strings.Contains(commodityUpper, "TOMAT"):
+        currentProductivity, previousProductivity = 12.0, 11.5 // Tomato productivity
+    case strings.Contains(commodityUpper, "KOPI"):
+        currentProductivity, previousProductivity = 0.8, 0.75 // Coffee productivity
+    case strings.Contains(commodityUpper, "KAKAO"):
+        currentProductivity, previousProductivity = 0.6, 0.55 // Cocoa productivity
+    }
+    
+    currentProduction := currentYear.TotalArea * currentProductivity
+    previousProduction := previousYear.TotalArea * previousProductivity
     
     // Calculate growth percentages
     var productionGrowth, areaGrowth, productivityGrowth float64
@@ -777,10 +837,6 @@ func (r *agricultureRepositoryImpl) GetCommodityAnalysis(ctx context.Context, st
     if previousYear.TotalArea > 0 {
         areaGrowth = ((currentYear.TotalArea - previousYear.TotalArea) / previousYear.TotalArea) * 100
     }
-    
-    // Productivity calculation (assuming similar productivity, growth comes from better practices)
-    currentProductivity := 3.0 + (productionGrowth * 0.01) // Simple calculation
-    previousProductivity := 3.0
     
     if previousProductivity > 0 {
         productivityGrowth = ((currentProductivity - previousProductivity) / previousProductivity) * 100
@@ -796,23 +852,47 @@ func (r *agricultureRepositoryImpl) GetCommodityAnalysis(ctx context.Context, st
     return result, nil
 }
 
+// Fixed GetProductionByDistrict method
 func (r *agricultureRepositoryImpl) GetProductionByDistrict(ctx context.Context, startDate, endDate time.Time, commodityName string) ([]map[string]interface{}, error) {
     var results []map[string]interface{}
     
-    query := `
+    commodityWhereClause := `(
+        (food_commodity IS NOT NULL AND food_commodity != '' AND UPPER(food_commodity) LIKE UPPER($4)) OR
+        (horti_commodity IS NOT NULL AND horti_commodity != '' AND UPPER(horti_commodity) LIKE UPPER($4)) OR
+        (plantation_commodity IS NOT NULL AND plantation_commodity != '' AND UPPER(plantation_commodity) LIKE UPPER($4))
+    )`
+    
+    if commodityName == "" {
+        commodityWhereClause = `(
+            food_commodity IS NOT NULL AND food_commodity != '' OR
+            horti_commodity IS NOT NULL AND horti_commodity != '' OR
+            plantation_commodity IS NOT NULL AND plantation_commodity != ''
+        )`
+    }
+    
+    query := fmt.Sprintf(`
         SELECT 
             district,
-            SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)) as harvested_area,
-            SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)) * 3.0 as production,
+            COALESCE(SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)), 0) as harvested_area,
+            COALESCE(SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)) * 3.0, 0) as production,
             COUNT(DISTINCT farmer_name) as farmer_count
         FROM agriculture_reports
-        WHERE visit_date BETWEEN ? AND ?
-        AND (food_commodity = ? OR horti_commodity = ? OR plantation_commodity = ?)
+        WHERE visit_date BETWEEN $1 AND $2
+        AND %s
         GROUP BY district
+        HAVING SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)) > 0
         ORDER BY production DESC
-    `
+    `, commodityWhereClause)
     
-    err := r.db.WithContext(ctx).Raw(query, startDate, endDate, commodityName, commodityName, commodityName).Scan(&results).Error
+    var args []interface{}
+    if commodityName == "" {
+        args = []interface{}{startDate, endDate}
+    } else {
+        commodityPattern := "%" + commodityName + "%"
+        args = []interface{}{startDate, endDate, commodityPattern}
+    }
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
     return results, err
 }
 
@@ -823,34 +903,94 @@ func (r *agricultureRepositoryImpl) GetProductivityTrend(ctx context.Context, co
         startDate := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
         endDate := time.Date(year, 12, 31, 23, 59, 59, 0, time.UTC)
         
-        query := `
+        // Use fmt.Sprintf to inject the year as a literal value instead of a parameter
+        query := fmt.Sprintf(`
             SELECT 
-                ? as year,
-                SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)) as area,
-                SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)) * 3.0 as production,
+                %d as year,
+                COALESCE(SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)), 0) as area,
+                COALESCE(SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)) * 3.0, 0) as production,
                 CASE 
                     WHEN SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)) > 0
-                    THEN (SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)) * 3.0) / 
-                         SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0))
+                    THEN 3.0
                     ELSE 0
                 END as productivity
             FROM agriculture_reports
-            WHERE visit_date BETWEEN ? AND ?
-            AND (food_commodity = ? OR horti_commodity = ? OR plantation_commodity = ?)
-        `
+            WHERE visit_date BETWEEN $1 AND $2
+            AND (food_commodity = $3 OR horti_commodity = $4 OR plantation_commodity = $5)
+        `, year)
         
-        var yearResult map[string]interface{}
-        err := r.db.WithContext(ctx).Raw(query, year, startDate, endDate, commodityName, commodityName, commodityName).Scan(&yearResult).Error
+        // Use a more flexible approach with interface{} and type assertions
+        rows, err := r.db.WithContext(ctx).Raw(query, startDate, endDate, commodityName, commodityName, commodityName).Rows()
         if err != nil {
-            return nil, err
+            return nil, fmt.Errorf("failed to execute query for year %d: %w", year, err)
         }
+        defer rows.Close()
         
-        if yearResult != nil {
-            results = append(results, yearResult)
+        if rows.Next() {
+            var yearValue, areaValue, productionValue, productivityValue interface{}
+            
+            err := rows.Scan(&yearValue, &areaValue, &productionValue, &productivityValue)
+            if err != nil {
+                return nil, fmt.Errorf("failed to scan results for year %d: %w", year, err)
+            }
+            
+            // Convert values with proper type handling
+            result := map[string]interface{}{
+                "year":         convertToInt64(yearValue),
+                "area":         convertToFloat64(areaValue),
+                "production":   convertToFloat64(productionValue),
+                "productivity": convertToFloat64(productivityValue),
+            }
+            
+            results = append(results, result)
+        } else {
+            // If no data for this year, add zero values
+            result := map[string]interface{}{
+                "year":         int64(year),
+                "area":         float64(0),
+                "production":   float64(0),
+                "productivity": float64(0),
+            }
+            results = append(results, result)
         }
     }
     
     return results, nil
+}
+
+// Helper functions for type conversion
+func convertToInt64(value interface{}) int64 {
+    switch v := value.(type) {
+    case int:
+        return int64(v)
+    case int32:
+        return int64(v)
+    case int64:
+        return v
+    case float64:
+        return int64(v)
+    case float32:
+        return int64(v)
+    default:
+        return 0
+    }
+}
+
+func convertToFloat64(value interface{}) float64 {
+    switch v := value.(type) {
+    case float64:
+        return v
+    case float32:
+        return float64(v)
+    case int:
+        return float64(v)
+    case int32:
+        return float64(v)
+    case int64:
+        return float64(v)
+    default:
+        return 0.0
+    }
 }
 
 func (r *agricultureRepositoryImpl) GetFoodCropStats(ctx context.Context, commodityName string) (map[string]interface{}, error) {
@@ -1034,20 +1174,16 @@ func (r *agricultureRepositoryImpl) GetFoodCropHarvestSchedule(ctx context.Conte
 func (r *agricultureRepositoryImpl) GetHorticultureStats(ctx context.Context, commodityName string) (map[string]interface{}, error) {
     result := make(map[string]interface{})
     
-    whereClause := "horti_commodity IS NOT NULL AND horti_commodity != ''"
-    args := []interface{}{}
+    baseQuery := r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
+        Where("horti_commodity IS NOT NULL AND horti_commodity != ''")
     
     if commodityName != "" {
-        whereClause += " AND horti_commodity = ?"
-        args = append(args, commodityName)
+        baseQuery = baseQuery.Where("horti_commodity = ?", commodityName)
     }
     
     // Land area
     var landArea float64
-    r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
-        Where(whereClause, args...).
-        Select("COALESCE(SUM(horti_land_area), 0)").
-        Scan(&landArea)
+    baseQuery.Select("COALESCE(SUM(horti_land_area), 0)").Scan(&landArea)
     result["land_area"] = landArea
     
     // Estimated production (assuming 5 tons/hectare for horticulture)
@@ -1055,18 +1191,19 @@ func (r *agricultureRepositoryImpl) GetHorticultureStats(ctx context.Context, co
     
     // Pest affected area
     var pestAffectedArea float64
-    pestQuery := whereClause + " AND has_pest_disease = true"
-    r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
-        Where(pestQuery, args...).
-        Select("COALESCE(SUM(horti_land_area), 0)").
-        Scan(&pestAffectedArea)
+    pestQuery := r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
+        Where("horti_commodity IS NOT NULL AND horti_commodity != '' AND has_pest_disease = true")
+    
+    if commodityName != "" {
+        pestQuery = pestQuery.Where("horti_commodity = ?", commodityName)
+    }
+    
+    pestQuery.Select("COALESCE(SUM(horti_land_area), 0)").Scan(&pestAffectedArea)
     result["pest_affected_area"] = pestAffectedArea
     
     // Pest report count
     var pestReportCount int64
-    r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
-        Where(pestQuery, args...).
-        Count(&pestReportCount)
+    pestQuery.Count(&pestReportCount)
     result["pest_report_count"] = pestReportCount
     
     return result, nil
@@ -1075,21 +1212,21 @@ func (r *agricultureRepositoryImpl) GetHorticultureStats(ctx context.Context, co
 func (r *agricultureRepositoryImpl) GetHorticultureDistribution(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
     var results []map[string]interface{}
     
-    whereClause := "horti_commodity IS NOT NULL AND horti_commodity != '' AND latitude IS NOT NULL AND longitude IS NOT NULL"
-    args := []interface{}{}
-    
-    if commodityName != "" {
-        whereClause += " AND horti_commodity = ?"
-        args = append(args, commodityName)
-    }
-    
     query := `
         SELECT 
             latitude, longitude, village, district, 
             horti_commodity as commodity,
             horti_land_area as land_area
         FROM agriculture_reports
-        WHERE ` + whereClause
+        WHERE horti_commodity IS NOT NULL AND horti_commodity != '' 
+        AND latitude IS NOT NULL AND longitude IS NOT NULL`
+    
+    args := []interface{}{}
+    
+    if commodityName != "" {
+        query += " AND horti_commodity = ?"
+        args = append(args, commodityName)
+    }
     
     err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
     return results, err
@@ -1098,24 +1235,25 @@ func (r *agricultureRepositoryImpl) GetHorticultureDistribution(ctx context.Cont
 func (r *agricultureRepositoryImpl) GetHorticultureGrowthPhases(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
     var results []map[string]interface{}
     
-    whereClause := "horti_commodity IS NOT NULL AND horti_commodity != '' AND horti_growth_phase IS NOT NULL AND horti_growth_phase != ''"
-    args := []interface{}{}
-    
-    if commodityName != "" {
-        whereClause += " AND horti_commodity = ?"
-        args = append(args, commodityName)
-    }
-    
     query := `
         SELECT 
             horti_growth_phase as phase,
             COUNT(*) as count,
             ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
         FROM agriculture_reports
-        WHERE ` + whereClause + `
+        WHERE horti_commodity IS NOT NULL AND horti_commodity != '' 
+        AND horti_growth_phase IS NOT NULL AND horti_growth_phase != ''`
+    
+    args := []interface{}{}
+    
+    if commodityName != "" {
+        query += " AND horti_commodity = ?"
+        args = append(args, commodityName)
+    }
+    
+    query += `
         GROUP BY horti_growth_phase
-        ORDER BY count DESC
-    `
+        ORDER BY count DESC`
     
     err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
     return results, err
@@ -1192,18 +1330,18 @@ func (r *agricultureRepositoryImpl) GetHorticultureHarvestSchedule(ctx context.C
     }
     
     query := `
-        SELECT 
-            horti_commodity as commodity_detail,
-            horti_harvest_date as harvest_date,
-            farmer_name,
-            village,
-            horti_land_area as land_area
-        FROM agriculture_reports
-        WHERE ` + whereClause + `
-        AND horti_harvest_date >= CURRENT_DATE
-        ORDER BY horti_harvest_date ASC
-        LIMIT 20
-    `
+    SELECT 
+        horti_commodity as commodity_detail,
+        DATE(horti_harvest_date) as harvest_date,  
+        farmer_name,
+        village,
+        horti_land_area as land_area
+    FROM agriculture_reports
+    WHERE ` + whereClause + `
+    AND horti_harvest_date >= CURRENT_DATE
+    ORDER BY horti_harvest_date ASC
+    LIMIT 20
+`
     
     err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
     return results, err

@@ -1,10 +1,10 @@
-
 package postgres
 
 import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/internal/domain/repository"
-	"context"
+	"context"	
+	"fmt"
 	"gorm.io/gorm"
 )
 
@@ -25,9 +25,8 @@ func (r *reportRepositoryImpl) Update(ctx context.Context, report *entity.Report
 }
 
 func (r *reportRepositoryImpl) Delete(ctx context.Context, id string) error {
-    return r.db.WithContext(ctx).
-        Where("id = ?", id).
-        Delete(&entity.Report{}).Error
+    query := `DELETE FROM reports WHERE id = $1`
+    return r.db.WithContext(ctx).Exec(query, id).Error
 }
 
 func (r *reportRepositoryImpl) FindByID(ctx context.Context, id string) (*entity.Report, error) {
@@ -49,7 +48,6 @@ func (r *reportRepositoryImpl) FindAll(ctx context.Context, limit, offset int, f
 
     query := r.db.WithContext(ctx).Model(&entity.Report{})
 
-    
     if village, ok := filters["village"].(string); ok && village != "" {
         query = query.Where("village ILIKE ?", "%"+village+"%")
     }
@@ -63,10 +61,8 @@ func (r *reportRepositoryImpl) FindAll(ctx context.Context, limit, offset int, f
         query = query.Where("report_status = ?", reportStatus)
     }
 
-    
     query.Count(&total)
 
-    
     err := query.
         Preload("Photos").
         Limit(limit).
@@ -97,32 +93,72 @@ func (r *reportRepositoryImpl) FindByUserID(ctx context.Context, userID string, 
     return reports, total, err
 }
 
+// Raw SQL Methods for Statistics
+
 func (r *reportRepositoryImpl) GetStatistics(ctx context.Context, buildingType string) (map[string]interface{}, error) {
     stats := make(map[string]interface{})
     
-    query := r.db.WithContext(ctx).Model(&entity.Report{})
+    // Build base query
+    baseWhere := ""
+    args := []interface{}{}
+    argIndex := 1
+    
     if buildingType != "" && buildingType != "all" {
-        query = query.Where("building_type = ?", buildingType)
+        baseWhere = fmt.Sprintf("WHERE building_type = $%d", argIndex)
+        args = append(args, buildingType)
+        argIndex++
     }
     
-    // Total reports
+    // 1. Total reports
+    query := fmt.Sprintf(`SELECT COUNT(*) FROM reports %s`, baseWhere)
     var totalReports int64
-    query.Count(&totalReports)
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&totalReports).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to count total reports: %w", err)
+    }
     stats["total_reports"] = totalReports
     
-    // Average floor area
+    if totalReports == 0 {
+        stats["average_floor_area"] = float64(0)
+        stats["average_floor_count"] = float64(0)
+        stats["damaged_buildings_count"] = int64(0)
+        return stats, nil
+    }
+    
+    // 2. Average floor area
+    query = fmt.Sprintf(`SELECT COALESCE(AVG(floor_area), 0) FROM reports %s`, baseWhere)
     var avgFloorArea float64
-    query.Select("COALESCE(AVG(floor_area), 0)").Scan(&avgFloorArea)
+    err = r.db.WithContext(ctx).Raw(query, args...).Scan(&avgFloorArea).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to calculate average floor area: %w", err)
+    }
     stats["average_floor_area"] = avgFloorArea
     
-    // Average floor count
+    // 3. Average floor count
+    query = fmt.Sprintf(`SELECT COALESCE(AVG(floor_count), 0) FROM reports %s`, baseWhere)
     var avgFloorCount float64
-    query.Select("COALESCE(AVG(floor_count), 0)").Scan(&avgFloorCount)
+    err = r.db.WithContext(ctx).Raw(query, args...).Scan(&avgFloorCount).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to calculate average floor count: %w", err)
+    }
     stats["average_floor_count"] = avgFloorCount
     
-    // Count damaged buildings (assuming buildings needing rehabilitation are "damaged")
+    // 4. Damaged buildings count (report_status = 'REHABILITASI')
+    var damagedQuery string
+    var damagedArgs []interface{}
+    if buildingType != "" && buildingType != "all" {
+        damagedQuery = `SELECT COUNT(*) FROM reports WHERE report_status = $1 AND building_type = $2`
+        damagedArgs = []interface{}{"REHABILITASI", buildingType}
+    } else {
+        damagedQuery = `SELECT COUNT(*) FROM reports WHERE report_status = $1`
+        damagedArgs = []interface{}{"REHABILITASI"}
+    }
+    
     var damagedCount int64
-    query.Where("report_status = ?", "REHABILITASI").Count(&damagedCount)
+    err = r.db.WithContext(ctx).Raw(damagedQuery, damagedArgs...).Scan(&damagedCount).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to count damaged buildings: %w", err)
+    }
     stats["damaged_buildings_count"] = damagedCount
     
     return stats, nil
@@ -136,15 +172,15 @@ func (r *reportRepositoryImpl) GetLocationStatistics(ctx context.Context, buildi
             district,
             village,
             COUNT(*) as building_count,
-            AVG(latitude) as avg_latitude,
-            AVG(longitude) as avg_longitude,
+            COALESCE(AVG(latitude), 0) as avg_latitude,
+            COALESCE(AVG(longitude), 0) as avg_longitude,
             COUNT(CASE WHEN report_status = 'REHABILITASI' THEN 1 END) as damaged_count
         FROM reports
     `
     
     args := []interface{}{}
     if buildingType != "" && buildingType != "all" {
-        query += " WHERE building_type = ?"
+        query += " WHERE building_type = $1"
         args = append(args, buildingType)
     }
     
@@ -154,7 +190,11 @@ func (r *reportRepositoryImpl) GetLocationStatistics(ctx context.Context, buildi
     `
     
     err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
-    return results, err
+    if err != nil {
+        return nil, fmt.Errorf("failed to get location statistics: %w", err)
+    }
+    
+    return results, nil
 }
 
 func (r *reportRepositoryImpl) GetWorkTypeStatistics(ctx context.Context, buildingType string) ([]map[string]interface{}, error) {
@@ -162,25 +202,37 @@ func (r *reportRepositoryImpl) GetWorkTypeStatistics(ctx context.Context, buildi
     
     query := `
         SELECT 
-            work_type,
+            CASE 
+                WHEN work_type IS NULL THEN 'NOT_SET'
+                WHEN TRIM(work_type) = '' THEN 'EMPTY'
+                ELSE work_type 
+            END as work_type,
             COUNT(*) as count
         FROM reports
-        WHERE work_type IS NOT NULL AND work_type != ''
     `
     
     args := []interface{}{}
     if buildingType != "" && buildingType != "all" {
-        query += " AND building_type = ?"
+        query += " WHERE building_type = $1"
         args = append(args, buildingType)
     }
     
     query += `
-        GROUP BY work_type
+        GROUP BY 
+            CASE 
+                WHEN work_type IS NULL THEN 'NOT_SET'
+                WHEN TRIM(work_type) = '' THEN 'EMPTY'
+                ELSE work_type 
+            END
         ORDER BY count DESC
     `
     
     err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
-    return results, err
+    if err != nil {
+        return nil, fmt.Errorf("failed to get work type statistics: %w", err)
+    }
+    
+    return results, nil
 }
 
 func (r *reportRepositoryImpl) GetConditionAfterRehabStatistics(ctx context.Context, buildingType string) ([]map[string]interface{}, error) {
@@ -188,25 +240,37 @@ func (r *reportRepositoryImpl) GetConditionAfterRehabStatistics(ctx context.Cont
     
     query := `
         SELECT 
-            condition_after_rehab,
+            CASE 
+                WHEN condition_after_rehab IS NULL THEN 'NOT_SET'
+                WHEN TRIM(condition_after_rehab) = '' THEN 'EMPTY'
+                ELSE condition_after_rehab 
+            END as condition_after_rehab,
             COUNT(*) as count
         FROM reports
-        WHERE condition_after_rehab IS NOT NULL AND condition_after_rehab != ''
     `
     
     args := []interface{}{}
     if buildingType != "" && buildingType != "all" {
-        query += " AND building_type = ?"
+        query += " WHERE building_type = $1"
         args = append(args, buildingType)
     }
     
     query += `
-        GROUP BY condition_after_rehab
+        GROUP BY 
+            CASE 
+                WHEN condition_after_rehab IS NULL THEN 'NOT_SET'
+                WHEN TRIM(condition_after_rehab) = '' THEN 'EMPTY'
+                ELSE condition_after_rehab 
+            END
         ORDER BY count DESC
     `
     
     err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
-    return results, err
+    if err != nil {
+        return nil, fmt.Errorf("failed to get condition statistics: %w", err)
+    }
+    
+    return results, nil
 }
 
 func (r *reportRepositoryImpl) GetStatusStatistics(ctx context.Context, buildingType string) ([]map[string]interface{}, error) {
@@ -214,24 +278,37 @@ func (r *reportRepositoryImpl) GetStatusStatistics(ctx context.Context, building
     
     query := `
         SELECT 
-            report_status,
+            CASE 
+                WHEN report_status IS NULL THEN 'NOT_SET'
+                WHEN TRIM(report_status) = '' THEN 'EMPTY'
+                ELSE report_status 
+            END as report_status,
             COUNT(*) as count
         FROM reports
     `
     
     args := []interface{}{}
     if buildingType != "" && buildingType != "all" {
-        query += " WHERE building_type = ?"
+        query += " WHERE building_type = $1"
         args = append(args, buildingType)
     }
     
     query += `
-        GROUP BY report_status
+        GROUP BY 
+            CASE 
+                WHEN report_status IS NULL THEN 'NOT_SET'
+                WHEN TRIM(report_status) = '' THEN 'EMPTY'
+                ELSE report_status 
+            END
         ORDER BY count DESC
     `
     
     err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
-    return results, err
+    if err != nil {
+        return nil, fmt.Errorf("failed to get status statistics: %w", err)
+    }
+    
+    return results, nil
 }
 
 func (r *reportRepositoryImpl) CountByBuildingType(ctx context.Context) ([]map[string]interface{}, error) {
@@ -239,13 +316,26 @@ func (r *reportRepositoryImpl) CountByBuildingType(ctx context.Context) ([]map[s
     
     query := `
         SELECT 
-            building_type,
+            CASE 
+                WHEN building_type IS NULL THEN 'NOT_SET'
+                WHEN TRIM(building_type) = '' THEN 'EMPTY'
+                ELSE building_type 
+            END as building_type,
             COUNT(*) as count
         FROM reports
-        GROUP BY building_type
+        GROUP BY 
+            CASE 
+                WHEN building_type IS NULL THEN 'NOT_SET'
+                WHEN TRIM(building_type) = '' THEN 'EMPTY'
+                ELSE building_type 
+            END
         ORDER BY count DESC
     `
     
     err := r.db.WithContext(ctx).Raw(query).Scan(&results).Error
-    return results, err
+    if err != nil {
+        return nil, fmt.Errorf("failed to count by building type: %w", err)
+    }
+    
+    return results, nil
 }

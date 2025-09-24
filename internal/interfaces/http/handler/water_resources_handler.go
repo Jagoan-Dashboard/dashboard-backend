@@ -1,15 +1,15 @@
-
 package handler
 
 import (
-    "strconv"
-    "time"
-    
-    "building-report-backend/internal/application/dto"
-    "building-report-backend/internal/application/usecase"
-    "building-report-backend/internal/interfaces/response"
-    
-    "github.com/gofiber/fiber/v2"
+	"fmt"
+	"strconv"
+	"time"
+
+	"building-report-backend/internal/application/dto"
+	"building-report-backend/internal/application/usecase"
+	"building-report-backend/internal/interfaces/response"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type WaterResourcesHandler struct {
@@ -258,4 +258,40 @@ func (h *WaterResourcesHandler) GetDashboard(c *fiber.Ctx) error {
         return response.InternalError(c, "Failed to build water resources dashboard", err)
     }
     return response.Success(c, "Water resources dashboard", data)
+}
+
+func (h *WaterResourcesHandler) GetWaterResourcesOverview(c *fiber.Ctx) error {
+    irrigationType := c.Query("irrigation_type", "all") // all, IRIGASI_PRIMER, IRIGASI_SEKUNDER, etc.
+    
+    // Validate irrigation type if needed
+    validIrrigationTypes := map[string]bool{
+        "all":                true,
+        "ALL":                true,
+        "IRIGASI_PRIMER":     true,
+        "IRIGASI_SEKUNDER":   true,
+        "IRIGASI_TERSIER":    true,
+        "BENDUNG":            true,
+        "EMBUNG_DAM":         true,
+        "PINTU_AIR":          true,
+        "SALURAN_DRAINASE":   true,
+        "LAINNYA":            true,
+    }
+    
+    if !validIrrigationTypes[irrigationType] {
+        return response.BadRequest(c, "Invalid irrigation type", 
+            fmt.Errorf("irrigation_type must be one of the valid types"))
+    }
+    
+    // Convert "all" to empty string for repository layer
+    queryIrrigationType := irrigationType
+    if irrigationType == "all" || irrigationType == "ALL" {
+        queryIrrigationType = ""
+    }
+
+    overview, err := h.waterUseCase.GetWaterResourcesOverview(c.Context(), queryIrrigationType)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve water resources overview", err)
+    }
+
+    return response.Success(c, "Water resources overview retrieved successfully", overview)
 }

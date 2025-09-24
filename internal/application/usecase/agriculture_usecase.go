@@ -685,15 +685,27 @@ func (uc *AgricultureUseCase) GetFoodCropStats(ctx context.Context, commodityNam
 
     // Convert harvest schedule
     for _, item := range harvestSchedule {
-        harvestDate, _ := time.Parse("2006-01-02", item["harvest_date"].(string))
-        response.HarvestSchedule = append(response.HarvestSchedule, dto.HarvestScheduleItem{
-            CommodityDetail: item["commodity_detail"].(string),
-            HarvestDate:     harvestDate,
-            FarmerName:      item["farmer_name"].(string),
-            Village:         item["village"].(string),
-            LandArea:        item["land_area"].(float64),
-        })
+    var harvestDate time.Time
+    
+    switch v := item["harvest_date"].(type) {
+    case time.Time:
+        harvestDate = v
+    case string:
+        if parsedDate, err := time.Parse("2006-01-02", v); err == nil {
+            harvestDate = parsedDate
+        }
+    case nil:
+        continue
     }
+    
+    response.HarvestSchedule = append(response.HarvestSchedule, dto.HarvestScheduleItem{
+        CommodityDetail: item["commodity_detail"].(string),
+        HarvestDate:     harvestDate,
+        FarmerName:      item["farmer_name"].(string),
+        Village:         item["village"].(string),
+        LandArea:        item["land_area"].(float64),
+    })
+}
 
     // Cache the response for 15 minutes
     uc.cache.Set(ctx, cacheKey, &response, 900*time.Second)
@@ -794,15 +806,29 @@ func (uc *AgricultureUseCase) GetHorticultureStats(ctx context.Context, commodit
 
     // Convert harvest schedule
     for _, item := range harvestSchedule {
-        harvestDate, _ := time.Parse("2006-01-02", item["harvest_date"].(string))
-        response.HarvestSchedule = append(response.HarvestSchedule, dto.HarvestScheduleItem{
-            CommodityDetail: item["commodity_detail"].(string),
-            HarvestDate:     harvestDate,
-            FarmerName:      item["farmer_name"].(string),
-            Village:         item["village"].(string),
-            LandArea:        item["land_area"].(float64),
-        })
+    var harvestDate time.Time
+    
+    // Handle different possible types from database
+    switch v := item["harvest_date"].(type) {
+    case time.Time:
+        harvestDate = v
+    case string:
+        if parsedDate, err := time.Parse("2006-01-02", v); err == nil {
+            harvestDate = parsedDate
+        }
+    case nil:
+        // Skip if harvest_date is null
+        continue
     }
+    
+    response.HarvestSchedule = append(response.HarvestSchedule, dto.HarvestScheduleItem{
+        CommodityDetail: item["commodity_detail"].(string),
+        HarvestDate:     harvestDate,
+        FarmerName:      item["farmer_name"].(string),
+        Village:         item["village"].(string),
+        LandArea:        item["land_area"].(float64),
+    })
+}
 
     // Cache the response for 15 minutes
     uc.cache.Set(ctx, cacheKey, &response, 900*time.Second)
@@ -901,9 +927,26 @@ func (uc *AgricultureUseCase) GetPlantationStats(ctx context.Context, commodityN
         })
     }
 
-    // Convert harvest schedule
+    // Convert harvest schedule - FIX THE TYPE CONVERSION HERE
     for _, item := range harvestSchedule {
-        harvestDate, _ := time.Parse("2006-01-02", item["harvest_date"].(string))
+        var harvestDate time.Time
+        
+        // Handle different possible types from database
+        switch v := item["harvest_date"].(type) {
+        case time.Time:
+            harvestDate = v
+        case string:
+            if parsedDate, err := time.Parse("2006-01-02", v); err == nil {
+                harvestDate = parsedDate
+            }
+        case nil:
+            // Skip if harvest_date is null
+            continue
+        default:
+            // Skip unknown types
+            continue
+        }
+        
         response.HarvestSchedule = append(response.HarvestSchedule, dto.HarvestScheduleItem{
             CommodityDetail: item["commodity_detail"].(string),
             HarvestDate:     harvestDate,

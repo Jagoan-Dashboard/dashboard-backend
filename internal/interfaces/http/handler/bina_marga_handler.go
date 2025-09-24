@@ -3,7 +3,7 @@ package handler
 import (
     "strconv"
     "time"
-    
+    "fmt"
     "building-report-backend/internal/application/dto"
     "building-report-backend/internal/application/usecase"
     "building-report-backend/internal/interfaces/response"
@@ -407,4 +407,67 @@ func (h *BinaMargaHandler) GetDashboard(c *fiber.Ctx) error {
         return response.InternalError(c, "Failed to build bina marga dashboard", err)
     }
     return response.Success(c, "Bina Marga dashboard", data)
+}
+
+func (h *BinaMargaHandler) GetBinaMargaOverview(c *fiber.Ctx) error {
+    roadType := c.Query("road_type", "all") // all, JALAN_NASIONAL, JALAN_PROVINSI, etc.
+    
+    // Validate road type
+    validRoadTypes := map[string]bool{
+        "all":             true,
+        "ALL":             true,
+        "JALAN_NASIONAL":  true,
+        "JALAN_PROVINSI":  true,
+        "JALAN_KABUPATEN": true,
+        "JALAN_DESA":      true,
+    }
+    
+    if !validRoadTypes[roadType] {
+        return response.BadRequest(c, "Invalid road type", 
+            fmt.Errorf("road_type must be one of: all, JALAN_NASIONAL, JALAN_PROVINSI, JALAN_KABUPATEN, JALAN_DESA"))
+    }
+    
+    // Convert "all" to empty string for repository layer
+    queryRoadType := roadType
+    if roadType == "all" || roadType == "ALL" {
+        queryRoadType = ""
+    }
+
+    overview, err := h.binaMargaUseCase.GetBinaMargaOverview(c.Context(), queryRoadType)
+    if err != nil {
+        return response.InternalError(c, "Failed to retrieve bina marga overview", err)
+    }
+
+    return response.Success(c, "Bina marga overview retrieved successfully", overview)
+}
+
+// Helper functions untuk safe type conversion (reuse dari water resources)
+func safeInt64(value interface{}) int64 {
+    switch v := value.(type) {
+    case int64:
+        return v
+    case float64:
+        return int64(v)
+    case int:
+        return int64(v)
+    case int32:
+        return int64(v)
+    default:
+        return 0
+    }
+}
+
+func safeFloat64(value interface{}) float64 {
+    switch v := value.(type) {
+    case float64:
+        return v
+    case float32:
+        return float64(v)
+    case int64:
+        return float64(v)
+    case int:
+        return float64(v)
+    default:
+        return 0.0
+    }
 }

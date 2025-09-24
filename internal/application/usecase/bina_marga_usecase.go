@@ -739,3 +739,122 @@ func deref(s *string) string {
     }
     return *s
 }
+
+func (uc *BinaMargaUseCase) GetBinaMargaOverview(ctx context.Context, roadType string) (*dto.BinaMargaOverviewResponse, error) {
+    // Cache key based on road type
+    cacheKey := fmt.Sprintf("bina_marga:overview:%s", roadType)
+    var response dto.BinaMargaOverviewResponse
+    
+    err := uc.cache.Get(ctx, cacheKey, &response)
+    if err == nil {
+        return &response, nil
+    }
+
+    // Initialize empty arrays to avoid null returns
+    response.LocationDistribution = []dto.BinaMargaLocationStatsResponse{}
+    response.PriorityDistribution = []dto.BinaMargaPriorityStatsResponse{}
+    response.RoadDamageLevelDistribution = []dto.BinaMargaRoadDamageLevelStatsResponse{}
+    response.BridgeDamageLevelDistribution = []dto.BinaMargaBridgeDamageLevelStatsResponse{}
+    response.TopRoadDamageTypes = []dto.BinaMargaRoadDamageTypeStatsResponse{}
+    response.TopBridgeDamageTypes = []dto.BinaMargaBridgeDamageTypeStatsResponse{}
+
+    // Get basic statistics
+    basicStatsRaw, err := uc.binaMargaRepo.GetBinaMargaOverviewStats(ctx, roadType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get basic statistics: %w", err)
+    }
+    
+    response.BasicStats.AvgSegmentLengthM = safeFloat64(basicStatsRaw["avg_segment_length_m"])
+    response.BasicStats.AvgDamageAreaM2 = safeFloat64(basicStatsRaw["avg_damage_area_m2"])
+    response.BasicStats.AvgDailyTrafficVolume = safeFloat64(basicStatsRaw["avg_daily_traffic_volume"])
+    response.BasicStats.TotalInfrastructureReports = safeInt64(basicStatsRaw["total_infrastructure_reports"])
+
+    // Get location distribution for mapping
+    locationStats, err := uc.binaMargaRepo.GetBinaMargaLocationStats(ctx, roadType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get location statistics: %w", err)
+    }
+    
+    for _, loc := range locationStats {
+        response.LocationDistribution = append(response.LocationDistribution, dto.BinaMargaLocationStatsResponse{
+            RoadName:      loc["road_name"].(string),
+            Latitude:      safeFloat64(loc["latitude"]),
+            Longitude:     safeFloat64(loc["longitude"]),
+            DamageType:    loc["damage_type"].(string),
+            DamageLevel:   loc["damage_level"].(string),
+            UrgencyLevel:  loc["urgency_level"].(string),
+            TrafficImpact: loc["traffic_impact"].(string),
+            DamagedArea:   safeFloat64(loc["damaged_area"]),
+        })
+    }
+
+    // Get priority distribution
+    priorityStats, err := uc.binaMargaRepo.GetBinaMargaPriorityStats(ctx, roadType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get priority statistics: %w", err)
+    }
+    
+    for _, priority := range priorityStats {
+        response.PriorityDistribution = append(response.PriorityDistribution, dto.BinaMargaPriorityStatsResponse{
+            PriorityLevel: priority["priority_level"].(string),
+            Count:         safeInt64(priority["count"]),
+        })
+    }
+
+    // Get road damage level distribution
+    roadDamageLevelStats, err := uc.binaMargaRepo.GetBinaMargaRoadDamageLevelStats(ctx, roadType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get road damage level statistics: %w", err)
+    }
+    
+    for _, level := range roadDamageLevelStats {
+        response.RoadDamageLevelDistribution = append(response.RoadDamageLevelDistribution, dto.BinaMargaRoadDamageLevelStatsResponse{
+            DamageLevel: level["damage_level"].(string),
+            Count:       safeInt64(level["count"]),
+        })
+    }
+
+    // Get bridge damage level distribution
+    bridgeDamageLevelStats, err := uc.binaMargaRepo.GetBinaMargaBridgeDamageLevelStats(ctx, roadType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get bridge damage level statistics: %w", err)
+    }
+    
+    for _, level := range bridgeDamageLevelStats {
+        response.BridgeDamageLevelDistribution = append(response.BridgeDamageLevelDistribution, dto.BinaMargaBridgeDamageLevelStatsResponse{
+            DamageLevel: level["damage_level"].(string),
+            Count:       safeInt64(level["count"]),
+        })
+    }
+
+    // Get top road damage types
+    topRoadDamageTypes, err := uc.binaMargaRepo.GetBinaMargaTopRoadDamageTypes(ctx, roadType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get top road damage types: %w", err)
+    }
+    
+    for _, damageType := range topRoadDamageTypes {
+        response.TopRoadDamageTypes = append(response.TopRoadDamageTypes, dto.BinaMargaRoadDamageTypeStatsResponse{
+            DamageType: damageType["damage_type"].(string),
+            Count:      safeInt64(damageType["count"]),
+        })
+    }
+
+    // Get top bridge damage types
+    topBridgeDamageTypes, err := uc.binaMargaRepo.GetBinaMargaTopBridgeDamageTypes(ctx, roadType)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get top bridge damage types: %w", err)
+    }
+    
+    for _, damageType := range topBridgeDamageTypes {
+        response.TopBridgeDamageTypes = append(response.TopBridgeDamageTypes, dto.BinaMargaBridgeDamageTypeStatsResponse{
+            DamageType: damageType["damage_type"].(string),
+            Count:      safeInt64(damageType["count"]),
+        })
+    }
+
+    // Cache the response for 5 minutes
+    uc.cache.Set(ctx, cacheKey, &response, 300*time.Second)
+
+    return &response, nil
+}

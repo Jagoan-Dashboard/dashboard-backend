@@ -22,6 +22,11 @@ type WaterResourcesRepository interface {
     GetUrgentReports(ctx context.Context, limit int) ([]*entity.WaterResourcesReport, error)
     CalculateTotalDamageArea(ctx context.Context) (float64, error)
     CountAffectedFarmers(ctx context.Context) (int64, error)
+    GetWaterResourcesOverviewStats(ctx context.Context, irrigationType string) (map[string]interface{}, error)
+    GetWaterLocationStats(ctx context.Context, irrigationType string) ([]map[string]interface{}, error)
+    GetWaterUrgencyStats(ctx context.Context, irrigationType string) ([]map[string]interface{}, error) 
+    GetWaterDamageTypeStats(ctx context.Context, irrigationType string) ([]map[string]interface{}, error)
+    GetWaterDamageLevelStats(ctx context.Context, irrigationType string) ([]map[string]interface{}, error) 
 
     GetSummaryKPIs(ctx context.Context, irrigationType string, startDate, endDate time.Time) (totalAreaM2 float64, totalRiceHa float64, totalReports int64, err error)
     GroupCountBy(ctx context.Context, field, irrigationType string, startDate, endDate time.Time) ([]struct {
