@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   backend:
     driver: bridge
@@ -23,9 +21,9 @@ services:
       - pg_app_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      interval: 10s
+      timeout: 5s
+      retries: 5
     deploy:
       resources:
         limits:
@@ -40,9 +38,9 @@ services:
       - redis_app_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      interval: 10s
+      timeout: 5s
+      retries: 5
     deploy:
       resources:
         limits:
@@ -50,7 +48,7 @@ services:
           memory: 256M
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z-cpuv1
+    image: quay.io/minio/minio:RELEASE.2024-07-16T23-46-41Z
     networks: [backend]
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
@@ -59,7 +57,11 @@ services:
     volumes:
       - minio_app_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/minio/health/ready >/dev/null 2>&1 || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
