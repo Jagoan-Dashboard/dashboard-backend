@@ -68,7 +68,7 @@ services:
 
   app:
     build: .
-    networks: [backend, proxy]
+    networks: [backend]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -101,6 +101,8 @@ services:
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
     volumes:
       - .:/app
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
     deploy:
       resources:
         limits:
