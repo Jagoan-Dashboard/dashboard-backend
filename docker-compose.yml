@@ -48,7 +48,7 @@ services:
           memory: 256M
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2024-07-16T23-46-41Z
+    image: quay.io/minio/minio:latest
     networks: [backend]
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
@@ -57,11 +57,11 @@ services:
     volumes:
       - minio_app_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "mc", "ready", "local"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 20s
     deploy:
       resources:
         limits:
