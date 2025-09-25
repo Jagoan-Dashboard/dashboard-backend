@@ -1,5 +1,16 @@
 version: '3.8'
 
+networks:
+  backend:
+    driver: bridge
+  proxy:
+    external: true   
+
+volumes:
+  pg_app_data:
+  redis_app_data:
+  minio_app_data:
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -7,74 +18,76 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
-    ports:
-      - "5432:5432"
+    networks: [backend]
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pg_app_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 3s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
 
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
-    ports:
-      - "6379:6379"
+    networks: [backend]
     volumes:
-      - redis_data:/data
+      - redis_app_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
   minio:
-    image: minio/minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z-cpuv1
+    networks: [backend]
     environment:
-      # ikuti .env
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     command: server /data --console-address ":9001"
     volumes:
-      - minio_data:/data
+      - minio_app_data:/data
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9000/minio/health/ready >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
 
   app:
     build: .
-    ports:
-      - "8080:8080"
+    networks: [backend, proxy]
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
     env_file: .env
     environment:
-      # override host/endpoint agar pakai hostname container
       APP_ENV: ${APP_ENV}
       APP_PORT: ${APP_PORT}
       APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS}
 
       DB_HOST: postgres
-      DB_PORT: ${DB_PORT}
+      DB_PORT: 5432
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_SSL_MODE: ${DB_SSL_MODE}
 
       REDIS_HOST: redis
-      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       REDIS_DB: ${REDIS_DB}
 
@@ -82,16 +95,14 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_USE_SSL: ${MINIO_USE_SSL}
-      # untuk akses publik dari luar container tetap pakai localhost (sesuai .env)
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
 
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
-
     volumes:
       - .:/app
-
-volumes:
-  postgres_data:
-  redis_data:
-  minio_data:
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
