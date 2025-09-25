@@ -1,8 +1,6 @@
 networks:
   backend:
-    driver: bridge
-  proxy:
-    external: true   
+    driver: bridge 
 
 volumes:
   pg_app_data:
