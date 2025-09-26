@@ -1,4 +1,3 @@
-
 package router
 
 import (
@@ -25,6 +24,12 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     authRoutes.Post("/register", cont.AuthHandler.Register)
     authRoutes.Post("/login", cont.AuthHandler.Login)
 
+    api.Post("/reports", cont.ReportHandler.CreateReport)
+    api.Post("/spatial-planning", cont.SpatialPlanningHandler.CreateReport)
+    api.Post("/water-resources", cont.WaterResourcesHandler.CreateReport)
+    api.Post("/bina-marga", cont.BinaMargaHandler.CreateReport)
+    api.Post("/agriculture", cont.AgricultureHandler.CreateReport)
+
     
     protected := api.Use(middleware.AuthMiddleware(cont.AuthService))
     
@@ -35,7 +40,6 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     reportRoutes := protected.Group("/reports")
     reportRoutes.Get("/", cont.ReportHandler.ListReports)
     reportRoutes.Get("/:id", cont.ReportHandler.GetReport)
-    reportRoutes.Post("/", cont.ReportHandler.CreateReport)
     reportRoutes.Put("/:id", cont.ReportHandler.UpdateReport)
     reportRoutes.Delete("/:id", cont.ReportHandler.DeleteReport)
 
@@ -52,7 +56,6 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     spatialRoutes.Get("/", cont.SpatialPlanningHandler.ListReports)
     spatialRoutes.Get("/statistics", cont.SpatialPlanningHandler.GetStatistics)
     spatialRoutes.Get("/:id", cont.SpatialPlanningHandler.GetReport)
-    spatialRoutes.Post("/", cont.SpatialPlanningHandler.CreateReport)
     spatialRoutes.Put("/:id", cont.SpatialPlanningHandler.UpdateReport)
     spatialRoutes.Delete("/:id", cont.SpatialPlanningHandler.DeleteReport)
 
@@ -73,7 +76,6 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     waterRoutes.Get("/urgent", cont.WaterResourcesHandler.GetUrgentReports)
     waterRoutes.Get("/damage-by-area", cont.WaterResourcesHandler.GetDamageByArea)
     waterRoutes.Get("/:id", cont.WaterResourcesHandler.GetReport)
-    waterRoutes.Post("/", cont.WaterResourcesHandler.CreateReport)
     waterRoutes.Put("/:id", cont.WaterResourcesHandler.UpdateReport)
     waterRoutes.Delete("/:id", cont.WaterResourcesHandler.DeleteReport)
     waterRoutes.Get("/dashboard", cont.WaterResourcesHandler.GetDashboard)
@@ -88,7 +90,6 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     binaMargaRoutes.Get("/damage-by-road-type", cont.BinaMargaHandler.GetDamageByRoadType)
     binaMargaRoutes.Get("/damage-by-location", cont.BinaMargaHandler.GetDamageByLocation)
     binaMargaRoutes.Get("/:id", cont.BinaMargaHandler.GetReport)
-    binaMargaRoutes.Post("/", cont.BinaMargaHandler.CreateReport)
     binaMargaRoutes.Put("/:id", cont.BinaMargaHandler.UpdateReport)
     binaMargaRoutes.Delete("/:id", cont.BinaMargaHandler.DeleteReport)
     binaMargaRoutes.Get("/dashboard", cont.BinaMargaHandler.GetDashboard)
@@ -105,7 +106,6 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
 
     agricultureRoutes.Get("/", cont.AgricultureHandler.ListReports)
     agricultureRoutes.Get("/:id", cont.AgricultureHandler.GetReport)
-    agricultureRoutes.Post("/", cont.AgricultureHandler.CreateReport)
     agricultureRoutes.Put("/:id", cont.AgricultureHandler.UpdateReport)
     agricultureRoutes.Delete("/:id", cont.AgricultureHandler.DeleteReport)
     
