@@ -1,40 +1,7 @@
-# Building Report Backend
+How to run:
+- git clone https://github.com/Jagoan-Dashboard/dashboard-backend
+- cp .env.example .env (adjust with your local configuration
+- make run (to run the app on the host level)
+- docker compose up -d (to run the app on the docker container)
 
-A comprehensive backend service for building/infrastructure reporting system built with Go, following Clean Architecture, Domain-Driven Design (DDD), and Dependency Injection patterns.
-
-## 🚀 Tech Stack
-
-- **Go** - Programming language
-- **Fiber** - Web framework
-- **PostgreSQL** - Primary database
-- **GORM** - ORM with raw SQL support
-- **Redis** - Caching layer
-- **MinIO** - Object storage for photos
-- **JWT** - Authentication
-- **Goose** - Database migrations
-
-## 📋 Features
-
-- User authentication with JWT
-- CRUD operations for building reports
-- Photo upload to MinIO
-- Redis caching for performance
-- Clean Architecture implementation
-- Domain-Driven Design
-- Dependency Injection
-- Database migrations
-
-## 🛠️ Setup
-
-### Prerequisites
-
-- Go 1.21+
-- Docker & Docker Compose
-- Make (optional)
-
-### Installation
-
-1. Clone the repository
-2. Copy environment variables:
-   ```bash
-   cp .env.example .env
+Postman: https://www.postman.com/tyo-team/workspace/jagoan-api/collection/32354585-6f91affe-e379-4024-a0d3-6d63bcaa716a?action=share&source=copy-link&creator=32354585
