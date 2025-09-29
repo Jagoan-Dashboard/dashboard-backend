@@ -48,19 +48,23 @@ func main() {
     app.Use(logger.New())
     app.Use(recover.New())
     app.Use(cors.New(cors.Config{
-        AllowOrigins: cfg.App.AllowedOrigins,
-        AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-        AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
-    }))
+    AllowOrigins:     "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002",
+    AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
+    AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires, X-Requested-With",
+    ExposeHeaders:    "Content-Length, Content-Type",
+    AllowCredentials: true,
+    MaxAge:           86400,
+}))
 
     
     router.SetupRoutes(app, cont)
 
     
-    log.Printf("Server starting on port %s", cfg.App.Port)
-    if err := app.Listen(":" + cfg.App.Port); err != nil {
-        log.Fatal("Failed to start server:", err)
-    }
+    log.Printf("Server starting on http://127.0.0.1:%s", cfg.App.Port)
+if err := app.Listen("127.0.0.1:" + cfg.App.Port); err != nil {
+    log.Fatal("Failed to start server:", err)
+}
+
 }
 
 func customErrorHandler(c *fiber.Ctx, err error) error {

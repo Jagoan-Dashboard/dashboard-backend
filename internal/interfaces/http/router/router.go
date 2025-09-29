@@ -31,13 +31,12 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     api.Post("/agriculture", cont.AgricultureHandler.CreateReport)
 
     
-    protected := api.Use(middleware.AuthMiddleware(cont.AuthService))
+    //protected := api.Use(middleware.AuthMiddleware(cont.AuthService))
     
     
-    protected.Get("/profile", cont.AuthHandler.GetProfile)
+    api.Get("/profile", cont.AuthHandler.GetProfile)
 
-    
-    reportRoutes := protected.Group("/reports")
+    reportRoutes := api.Group("/reports")
     reportRoutes.Get("/", cont.ReportHandler.ListReports)
     reportRoutes.Get("/:id", cont.ReportHandler.GetReport)
     reportRoutes.Put("/:id", cont.ReportHandler.UpdateReport)
@@ -52,7 +51,7 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     reportRoutes.Get("/tata-bangunan/building-type-distribution", cont.ReportHandler.GetBuildingTypeDistribution)
 
     
-    spatialRoutes := protected.Group("/spatial-planning")
+    spatialRoutes := api.Group("/spatial-planning")
     spatialRoutes.Get("/", cont.SpatialPlanningHandler.ListReports)
     spatialRoutes.Get("/statistics", cont.SpatialPlanningHandler.GetStatistics)
     spatialRoutes.Get("/:id", cont.SpatialPlanningHandler.GetReport)
@@ -68,7 +67,7 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     spatialRoutes.Get("/tata-ruang/area-category-distribution", cont.SpatialPlanningHandler.GetAreaCategoryDistribution)
     spatialRoutes.Get("/tata-ruang/environmental-impact-statistics", cont.SpatialPlanningHandler.GetEnvironmentalImpactStatistics)
 
-    waterRoutes := protected.Group("/water-resources")
+    waterRoutes := api.Group("/water-resources")
     waterRoutes.Get("/", cont.WaterResourcesHandler.ListReports)
     waterRoutes.Get("/overview", cont.WaterResourcesHandler.GetWaterResourcesOverview)
     waterRoutes.Get("/priority", cont.WaterResourcesHandler.ListByPriority)
@@ -80,7 +79,7 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     waterRoutes.Delete("/:id", cont.WaterResourcesHandler.DeleteReport)
     waterRoutes.Get("/dashboard", cont.WaterResourcesHandler.GetDashboard)
 
-    binaMargaRoutes := protected.Group("/bina-marga")
+    binaMargaRoutes := api.Group("/bina-marga")
     binaMargaRoutes.Get("/", cont.BinaMargaHandler.ListReports)
     binaMargaRoutes.Get("/overview", cont.BinaMargaHandler.GetBinaMargaOverview)
     binaMargaRoutes.Get("/priority", cont.BinaMargaHandler.ListByPriority)
@@ -94,7 +93,7 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     binaMargaRoutes.Delete("/:id", cont.BinaMargaHandler.DeleteReport)
     binaMargaRoutes.Get("/dashboard", cont.BinaMargaHandler.GetDashboard)
 
-    agricultureRoutes := protected.Group("/agriculture")
+    agricultureRoutes := api.Group("/agriculture")
     
     agricultureRoutes.Get("/executive/dashboard", cont.AgricultureHandler.GetExecutiveDashboard)
     agricultureRoutes.Get("/commodity/analysis", cont.AgricultureHandler.GetCommodityAnalysis)
@@ -124,15 +123,15 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
 
     agricultureRoutes.Get("/dashboard/summary", cont.AgricultureHandler.GetDashboardSummary)
 
-    adminWaterRoutes := protected.Group("/admin/water-resources", middleware.RequireRole("ADMIN"))
+    adminWaterRoutes := api.Group("/admin/water-resources", middleware.RequireRole("ADMIN"))
     adminWaterRoutes.Put("/:id/status", cont.WaterResourcesHandler.UpdateStatus)
 
-    adminRoutes := protected.Group("/admin", middleware.RequireRole("ADMIN"))
+    adminRoutes := api.Group("/admin", middleware.RequireRole("ADMIN"))
            adminRoutes.Get("/users", func(c *fiber.Ctx) error {
             return c.JSON(fiber.Map{"message": "Admin users list"})
         })
 
-        adminSpatialRoutes := protected.Group("/admin/spatial-planning", middleware.RequireRole("ADMIN"))
+        adminSpatialRoutes := api.Group("/admin/spatial-planning", middleware.RequireRole("ADMIN"))
         adminSpatialRoutes.Put("/:id/status", cont.SpatialPlanningHandler.UpdateStatus)
 
         
@@ -140,7 +139,7 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
         adminBinaMargaRoutes.Put("/:id/status", cont.BinaMargaHandler.UpdateStatus)
 
         
-        dashboardRoutes := protected.Group("/dashboard")
+        dashboardRoutes := api.Group("/dashboard")
         dashboardRoutes.Get("/overview", func(c *fiber.Ctx) error {
             return c.JSON(fiber.Map{
                 "message": "Dashboard overview endpoint - implement consolidated statistics",
