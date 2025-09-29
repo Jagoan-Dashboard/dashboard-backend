@@ -33,12 +33,13 @@ type AgricultureRepository interface {
     GetTopFarmerHopes(ctx context.Context, limit int) ([]map[string]interface{}, error)
     
     // Executive Dashboard Methods
-    GetExecutiveSummary(ctx context.Context) (map[string]interface{}, error)
-    GetCommodityDistributionByDistrict(ctx context.Context) ([]map[string]interface{}, error)
-    GetCommodityCountBySector(ctx context.Context) (map[string]interface{}, error)
-    GetLandStatusDistribution(ctx context.Context) ([]map[string]interface{}, error)
-    GetMainConstraintsDistribution(ctx context.Context) ([]map[string]interface{}, error)
-    GetFarmerHopesAndNeeds(ctx context.Context) (map[string]interface{}, error)
+     GetExecutiveSummary(ctx context.Context, commodityType string) (map[string]interface{}, error)
+    GetCommodityDistributionByDistrict(ctx context.Context, commodityType string) ([]map[string]interface{}, error)
+    GetCommodityCountBySector(ctx context.Context, commodityType string) (map[string]interface{}, error)
+    GetLandStatusDistribution(ctx context.Context, commodityType string) ([]map[string]interface{}, error)
+    GetMainConstraintsDistribution(ctx context.Context, commodityType string) ([]map[string]interface{}, error)
+    GetFarmerHopesAndNeeds(ctx context.Context, commodityType string) (map[string]interface{}, error)
+    
     
     // Commodity Analysis Methods
     GetCommodityAnalysis(ctx context.Context, startDate, endDate time.Time, commodityName string) (map[string]interface{}, error)

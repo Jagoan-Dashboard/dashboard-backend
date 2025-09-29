@@ -553,189 +553,6 @@ func (r *agricultureRepositoryImpl) GetTopFarmerHopes(ctx context.Context, limit
     return results, err
 }
 
-
-func (r *agricultureRepositoryImpl) GetExecutiveSummary(ctx context.Context) (map[string]interface{}, error) {
-    summary := make(map[string]interface{})
-    
-    
-    var totalLandArea float64
-    r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
-        Select("COALESCE(SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)), 0)").
-        Scan(&totalLandArea)
-    summary["total_land_area"] = totalLandArea
-    
-    
-    var pestReports int64
-    r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
-        Where("has_pest_disease = true").
-        Count(&pestReports)
-    summary["pest_disease_reports"] = pestReports
-    
-    
-    var totalReports int64
-    r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
-        Count(&totalReports)
-    summary["total_extension_reports"] = totalReports
-    
-    return summary, nil
-}
-
-func (r *agricultureRepositoryImpl) GetCommodityDistributionByDistrict(ctx context.Context) ([]map[string]interface{}, error) {
-    var results []map[string]interface{}
-    
-    query := `
-        SELECT 
-            latitude, longitude, village, district,
-            CASE 
-                WHEN food_commodity IS NOT NULL AND food_commodity != '' THEN food_commodity
-                WHEN horti_commodity IS NOT NULL AND horti_commodity != '' THEN horti_commodity  
-                WHEN plantation_commodity IS NOT NULL AND plantation_commodity != '' THEN plantation_commodity
-                ELSE 'UNKNOWN'
-            END as commodity,
-            CASE 
-                WHEN food_commodity IS NOT NULL AND food_commodity != '' THEN 'FOOD'
-                WHEN horti_commodity IS NOT NULL AND horti_commodity != '' THEN 'HORTICULTURE'
-                WHEN plantation_commodity IS NOT NULL AND plantation_commodity != '' THEN 'PLANTATION'
-                ELSE 'UNKNOWN'
-            END as commodity_type,
-            COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0) as land_area
-        FROM agriculture_reports
-        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-        AND (food_commodity IS NOT NULL OR horti_commodity IS NOT NULL OR plantation_commodity IS NOT NULL)
-    `
-    
-    err := r.db.WithContext(ctx).Raw(query).Scan(&results).Error
-    return results, err
-}
-
-func (r *agricultureRepositoryImpl) GetCommodityCountBySector(ctx context.Context) (map[string]interface{}, error) {
-    result := make(map[string]interface{})
-    
-    
-    var foodCrops []map[string]interface{}
-    r.db.WithContext(ctx).Raw(`
-        SELECT food_commodity as name, COUNT(*) as count
-        FROM agriculture_reports
-        WHERE food_commodity IS NOT NULL AND food_commodity != ''
-        GROUP BY food_commodity
-        ORDER BY count DESC
-    `).Scan(&foodCrops)
-    result["food_crops"] = foodCrops
-    
-    
-    var horticulture []map[string]interface{}
-    r.db.WithContext(ctx).Raw(`
-        SELECT horti_commodity as name, COUNT(*) as count
-        FROM agriculture_reports
-        WHERE horti_commodity IS NOT NULL AND horti_commodity != ''
-        GROUP BY horti_commodity
-        ORDER BY count DESC
-    `).Scan(&horticulture)
-    result["horticulture"] = horticulture
-    
-    
-    var plantation []map[string]interface{}
-    r.db.WithContext(ctx).Raw(`
-        SELECT plantation_commodity as name, COUNT(*) as count
-        FROM agriculture_reports
-        WHERE plantation_commodity IS NOT NULL AND plantation_commodity != ''
-        GROUP BY plantation_commodity
-        ORDER BY count DESC
-    `).Scan(&plantation)
-    result["plantation"] = plantation
-    
-    return result, nil
-}
-
-func (r *agricultureRepositoryImpl) GetLandStatusDistribution(ctx context.Context) ([]map[string]interface{}, error) {
-    var results []map[string]interface{}
-    
-    query := `
-        SELECT 
-            land_status as status,
-            COUNT(*) as count,
-            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
-        FROM (
-            SELECT food_land_status as land_status FROM agriculture_reports WHERE food_land_status IS NOT NULL AND food_land_status != ''
-            UNION ALL
-            SELECT horti_land_status as land_status FROM agriculture_reports WHERE horti_land_status IS NOT NULL AND horti_land_status != ''
-            UNION ALL
-            SELECT plantation_land_status as land_status FROM agriculture_reports WHERE plantation_land_status IS NOT NULL AND plantation_land_status != ''
-        ) as combined_status
-        GROUP BY land_status
-        ORDER BY count DESC
-    `
-    
-    err := r.db.WithContext(ctx).Raw(query).Scan(&results).Error
-    return results, err
-}
-
-func (r *agricultureRepositoryImpl) GetMainConstraintsDistribution(ctx context.Context) ([]map[string]interface{}, error) {
-    var results []map[string]interface{}
-    
-    query := `
-        SELECT 
-            main_constraint as constraint,
-            COUNT(*) as count,
-            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
-        FROM agriculture_reports
-        WHERE main_constraint IS NOT NULL AND main_constraint != ''
-        GROUP BY main_constraint
-        ORDER BY count DESC
-    `
-    
-    err := r.db.WithContext(ctx).Raw(query).Scan(&results).Error
-    return results, err
-}
-
-func (r *agricultureRepositoryImpl) GetFarmerHopesAndNeeds(ctx context.Context) (map[string]interface{}, error) {
-    result := make(map[string]interface{})
-    
-    
-    var hopes []map[string]interface{}
-    r.db.WithContext(ctx).Raw(`
-        SELECT 
-            farmer_hope as hope,
-            COUNT(*) as count,
-            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
-        FROM agriculture_reports
-        WHERE farmer_hope IS NOT NULL AND farmer_hope != ''
-        GROUP BY farmer_hope
-        ORDER BY count DESC
-    `).Scan(&hopes)
-    result["hopes"] = hopes
-    
-    
-    var trainingNeeds []map[string]interface{}
-    r.db.WithContext(ctx).Raw(`GetProductionByDistrict
-        SELECT 
-            training_needed as training,
-            COUNT(*) as count,
-            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
-        FROM agriculture_reports
-        WHERE training_needed IS NOT NULL AND training_needed != ''
-        GROUP BY training_needed
-        ORDER BY count DESC
-    `).Scan(&trainingNeeds)
-    result["training_needs"] = trainingNeeds
-    
-    
-    var urgentNeeds []map[string]interface{}
-    r.db.WithContext(ctx).Raw(`
-        SELECT 
-            urgent_needs as need,
-            COUNT(*) as count,
-            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
-        FROM agriculture_reports
-        WHERE urgent_needs IS NOT NULL AND urgent_needs != ''
-        GROUP BY urgent_needs
-        ORDER BY count DESC
-    `).Scan(&urgentNeeds)
-    result["urgent_needs"] = urgentNeeds
-    
-    return result, nil
-}
-
 func (r *agricultureRepositoryImpl) GetCommodityAnalysis(ctx context.Context, startDate, endDate time.Time, commodityName string) (map[string]interface{}, error) {
     result := make(map[string]interface{})
     
@@ -1743,4 +1560,332 @@ func (r *agricultureRepositoryImpl) GetLandDistributionByDistrict(ctx context.Co
     
     err := r.db.WithContext(ctx).Raw(query, startDate, endDate).Scan(&results).Error
     return results, err
+}
+
+func (r *agricultureRepositoryImpl) GetExecutiveSummary(ctx context.Context, commodityType string) (map[string]interface{}, error) {
+    summary := make(map[string]interface{})
+    
+    query := r.db.WithContext(ctx).Model(&entity.AgricultureReport{})
+    query = r.applyCommodityTypeFilter(query, commodityType)
+    
+    // Total land area
+    var totalLandArea float64
+    query.Select("COALESCE(SUM(COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0)), 0)").
+        Scan(&totalLandArea)
+    summary["total_land_area"] = totalLandArea
+    
+    // Pest reports
+    var pestReports int64
+    pestQuery := r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
+        Where("has_pest_disease = true")
+    pestQuery = r.applyCommodityTypeFilter(pestQuery, commodityType)
+    pestQuery.Count(&pestReports)
+    summary["pest_disease_reports"] = pestReports
+    
+    // Total reports
+    var totalReports int64
+    totalQuery := r.db.WithContext(ctx).Model(&entity.AgricultureReport{})
+    totalQuery = r.applyCommodityTypeFilter(totalQuery, commodityType)
+    totalQuery.Count(&totalReports)
+    summary["total_extension_reports"] = totalReports
+    
+    return summary, nil
+}
+
+// Helper function untuk filter berdasarkan commodity type
+func (r *agricultureRepositoryImpl) applyCommodityTypeFilter(query *gorm.DB, commodityType string) *gorm.DB {
+    switch commodityType {
+    case "PANGAN":
+        return query.Where("food_commodity IS NOT NULL AND food_commodity != ''")
+    case "HORTIKULTURA":
+        return query.Where("horti_commodity IS NOT NULL AND horti_commodity != ''")
+    case "PERKEBUNAN":
+        return query.Where("plantation_commodity IS NOT NULL AND plantation_commodity != ''")
+    default:
+        // Jika kosong atau tidak valid, return semua
+        return query
+    }
+}
+
+func (r *agricultureRepositoryImpl) GetCommodityDistributionByDistrict(ctx context.Context, commodityType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    var query string
+    
+    switch strings.ToUpper(commodityType) {
+    case "PANGAN":
+        query = `
+            SELECT 
+                latitude, longitude, village, district,
+                food_commodity as commodity,
+                'FOOD' as commodity_type,
+                food_land_area as land_area
+            FROM agriculture_reports
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            AND food_commodity IS NOT NULL AND food_commodity != ''
+        `
+    case "HORTIKULTURA":
+        query = `
+            SELECT 
+                latitude, longitude, village, district,
+                horti_commodity as commodity,
+                'HORTICULTURE' as commodity_type,
+                horti_land_area as land_area
+            FROM agriculture_reports
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            AND horti_commodity IS NOT NULL AND horti_commodity != ''
+        `
+    case "PERKEBUNAN":
+        query = `
+            SELECT 
+                latitude, longitude, village, district,
+                plantation_commodity as commodity,
+                'PLANTATION' as commodity_type,
+                plantation_land_area as land_area
+            FROM agriculture_reports
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            AND plantation_commodity IS NOT NULL AND plantation_commodity != ''
+        `
+    default:
+        // Query asli untuk semua komoditas
+        query = `
+            SELECT 
+                latitude, longitude, village, district,
+                CASE 
+                    WHEN food_commodity IS NOT NULL AND food_commodity != '' THEN food_commodity
+                    WHEN horti_commodity IS NOT NULL AND horti_commodity != '' THEN horti_commodity  
+                    WHEN plantation_commodity IS NOT NULL AND plantation_commodity != '' THEN plantation_commodity
+                    ELSE 'UNKNOWN'
+                END as commodity,
+                CASE 
+                    WHEN food_commodity IS NOT NULL AND food_commodity != '' THEN 'FOOD'
+                    WHEN horti_commodity IS NOT NULL AND horti_commodity != '' THEN 'HORTICULTURE'
+                    WHEN plantation_commodity IS NOT NULL AND plantation_commodity != '' THEN 'PLANTATION'
+                    ELSE 'UNKNOWN'
+                END as commodity_type,
+                COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0) as land_area
+            FROM agriculture_reports
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            AND (food_commodity IS NOT NULL OR horti_commodity IS NOT NULL OR plantation_commodity IS NOT NULL)
+        `
+    }
+    
+    err := r.db.WithContext(ctx).Raw(query).Scan(&results).Error
+    return results, err
+}
+
+func (r *agricultureRepositoryImpl) GetCommodityCountBySector(ctx context.Context, commodityType string) (map[string]interface{}, error) {
+    result := make(map[string]interface{})
+    
+    // Food crops - hanya query jika tidak filter atau filter PANGAN
+    if commodityType == "" || commodityType == "PANGAN" {
+        var foodCrops []map[string]interface{}
+        r.db.WithContext(ctx).Raw(`
+            SELECT food_commodity as name, COUNT(*) as count
+            FROM agriculture_reports
+            WHERE food_commodity IS NOT NULL AND food_commodity != ''
+            GROUP BY food_commodity
+            ORDER BY count DESC
+        `).Scan(&foodCrops)
+        result["food_crops"] = foodCrops
+    } else {
+        result["food_crops"] = []map[string]interface{}{}
+    }
+    
+    // Horticulture - hanya query jika tidak filter atau filter HORTIKULTURA
+    if commodityType == "" || commodityType == "HORTIKULTURA" {
+        var horticulture []map[string]interface{}
+        r.db.WithContext(ctx).Raw(`
+            SELECT horti_commodity as name, COUNT(*) as count
+            FROM agriculture_reports
+            WHERE horti_commodity IS NOT NULL AND horti_commodity != ''
+            GROUP BY horti_commodity
+            ORDER BY count DESC
+        `).Scan(&horticulture)
+        result["horticulture"] = horticulture
+    } else {
+        result["horticulture"] = []map[string]interface{}{}
+    }
+    
+    // Plantation - hanya query jika tidak filter atau filter PERKEBUNAN
+    if commodityType == "" || commodityType == "PERKEBUNAN" {
+        var plantation []map[string]interface{}
+        r.db.WithContext(ctx).Raw(`
+            SELECT plantation_commodity as name, COUNT(*) as count
+            FROM agriculture_reports
+            WHERE plantation_commodity IS NOT NULL AND plantation_commodity != ''
+            GROUP BY plantation_commodity
+            ORDER BY count DESC
+        `).Scan(&plantation)
+        result["plantation"] = plantation
+    } else {
+        result["plantation"] = []map[string]interface{}{}
+    }
+    
+    return result, nil
+}
+
+func (r *agricultureRepositoryImpl) GetLandStatusDistribution(ctx context.Context, commodityType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    var query string
+    
+    switch strings.ToUpper(commodityType) {
+    case "PANGAN":
+        query = `
+            SELECT 
+                food_land_status as status,
+                COUNT(*) as count,
+                ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+            FROM agriculture_reports
+            WHERE food_land_status IS NOT NULL AND food_land_status != ''
+            GROUP BY food_land_status
+            ORDER BY count DESC
+        `
+    case "HORTIKULTURA":
+        query = `
+            SELECT 
+                horti_land_status as status,
+                COUNT(*) as count,
+                ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+            FROM agriculture_reports
+            WHERE horti_land_status IS NOT NULL AND horti_land_status != ''
+            GROUP BY horti_land_status
+            ORDER BY count DESC
+        `
+    case "PERKEBUNAN":
+        query = `
+            SELECT 
+                plantation_land_status as status,
+                COUNT(*) as count,
+                ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+            FROM agriculture_reports
+            WHERE plantation_land_status IS NOT NULL AND plantation_land_status != ''
+            GROUP BY plantation_land_status
+            ORDER BY count DESC
+        `
+    default:
+        // Query asli untuk semua komoditas
+        query = `
+            SELECT 
+                land_status as status,
+                COUNT(*) as count,
+                ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+            FROM (
+                SELECT food_land_status as land_status FROM agriculture_reports WHERE food_land_status IS NOT NULL AND food_land_status != ''
+                UNION ALL
+                SELECT horti_land_status as land_status FROM agriculture_reports WHERE horti_land_status IS NOT NULL AND horti_land_status != ''
+                UNION ALL
+                SELECT plantation_land_status as land_status FROM agriculture_reports WHERE plantation_land_status IS NOT NULL AND plantation_land_status != ''
+            ) as combined_status
+            GROUP BY land_status
+            ORDER BY count DESC
+        `
+    }
+    
+    err := r.db.WithContext(ctx).Raw(query).Scan(&results).Error
+    return results, err
+}
+
+// GetMainConstraintsDistribution dengan filter commodity type
+func (r *agricultureRepositoryImpl) GetMainConstraintsDistribution(ctx context.Context, commodityType string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            main_constraint as constraint,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+        FROM agriculture_reports
+        WHERE main_constraint IS NOT NULL AND main_constraint != ''
+    `
+    
+    // Tambahkan filter berdasarkan commodity type
+    switch strings.ToUpper(commodityType) {
+    case "PANGAN":
+        query += " AND food_commodity IS NOT NULL AND food_commodity != ''"
+    case "HORTIKULTURA":
+        query += " AND horti_commodity IS NOT NULL AND horti_commodity != ''"
+    case "PERKEBUNAN":
+        query += " AND plantation_commodity IS NOT NULL AND plantation_commodity != ''"
+    }
+    
+    query += `
+        GROUP BY main_constraint
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query).Scan(&results).Error
+    return results, err
+}
+
+// GetFarmerHopesAndNeeds dengan filter commodity type
+func (r *agricultureRepositoryImpl) GetFarmerHopesAndNeeds(ctx context.Context, commodityType string) (map[string]interface{}, error) {
+    result := make(map[string]interface{})
+    
+    // Build WHERE clause untuk filter
+    var whereClause string
+    switch strings.ToUpper(commodityType) {
+    case "PANGAN":
+        whereClause = "AND food_commodity IS NOT NULL AND food_commodity != ''"
+    case "HORTIKULTURA":
+        whereClause = "AND horti_commodity IS NOT NULL AND horti_commodity != ''"
+    case "PERKEBUNAN":
+        whereClause = "AND plantation_commodity IS NOT NULL AND plantation_commodity != ''"
+    default:
+        whereClause = ""
+    }
+    
+    // Farmer hopes
+    var hopes []map[string]interface{}
+    hopesQuery := fmt.Sprintf(`
+        SELECT 
+            farmer_hope as hope,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+        FROM agriculture_reports
+        WHERE farmer_hope IS NOT NULL AND farmer_hope != ''
+        %s
+        GROUP BY farmer_hope
+        ORDER BY count DESC
+    `, whereClause)
+    
+    r.db.WithContext(ctx).Raw(hopesQuery).Scan(&hopes)
+    result["hopes"] = hopes
+    
+    // Training needs
+    var trainingNeeds []map[string]interface{}
+    trainingQuery := fmt.Sprintf(`
+        SELECT 
+            training_needed as training,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+        FROM agriculture_reports
+        WHERE training_needed IS NOT NULL AND training_needed != ''
+        %s
+        GROUP BY training_needed
+        ORDER BY count DESC
+    `, whereClause)
+    
+    r.db.WithContext(ctx).Raw(trainingQuery).Scan(&trainingNeeds)
+    result["training_needs"] = trainingNeeds
+    
+    // Urgent needs
+    var urgentNeeds []map[string]interface{}
+    urgentQuery := fmt.Sprintf(`
+        SELECT 
+            urgent_needs as need,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+        FROM agriculture_reports
+        WHERE urgent_needs IS NOT NULL AND urgent_needs != ''
+        %s
+        GROUP BY urgent_needs
+        ORDER BY count DESC
+    `, whereClause)
+    
+    r.db.WithContext(ctx).Raw(urgentQuery).Scan(&urgentNeeds)
+    result["urgent_needs"] = urgentNeeds
+    
+    return result, nil
 }
