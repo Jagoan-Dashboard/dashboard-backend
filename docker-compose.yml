@@ -1,15 +1,20 @@
+version: '3.8'
+
 networks:
   backend:
-    driver: bridge 
+    driver: bridge
 
 volumes:
   pg_app_data:
   redis_app_data:
   minio_app_data:
+  nginx_logs:
 
 services:
   postgres:
     image: postgres:15-alpine
+    container_name: building-report-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -27,15 +32,19 @@ services:
         limits:
           cpus: "1.0"
           memory: 1G
+    security_opt:
+      - no-new-privileges:true
 
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    container_name: building-report-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning", "--requirepass", "${REDIS_PASSWORD}"]
     networks: [backend]
     volumes:
       - redis_app_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,9 +53,13 @@ services:
         limits:
           cpus: "0.5"
           memory: 256M
+    security_opt:
+      - no-new-privileges:true
 
   minio:
     image: quay.io/minio/minio:latest
+    container_name: building-report-minio
+    restart: unless-stopped
     networks: [backend]
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
@@ -65,9 +78,13 @@ services:
         limits:
           cpus: "1.0"
           memory: 1G
+    security_opt:
+      - no-new-privileges:true
 
   app:
     build: .
+    container_name: building-report-app
+    restart: unless-stopped
     networks: [backend]
     depends_on:
       postgres: { condition: service_healthy }
@@ -99,12 +116,34 @@ services:
 
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
-    volumes:
-      - .:/app
-    ports:
-      - "${APP_PORT}:${APP_PORT}"
     deploy:
       resources:
         limits:
           cpus: "1.0"
           memory: 512M
+    security_opt:
+      - no-new-privileges:true
+
+  nginx:
+    image: nginx:alpine
+    container_name: building-report-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/sites-available:/etc/nginx/sites-available:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - app
+      - minio
+    networks: [backend]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+    security_opt:
+      - no-new-privileges:true
