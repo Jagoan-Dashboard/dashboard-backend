@@ -34,6 +34,9 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # Copy the binary
 COPY --from=builder /app/main /app/main
 
+# Copy user info
+COPY --from=builder /etc/passwd /etc/passwd
+
 # Use non-root user
 USER nonroot:nonroot
 
