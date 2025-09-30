@@ -1,0 +1,148 @@
+version: '3.8'
+
+networks:
+  backend:
+    driver: bridge
+  dokploy-network:
+    # Jaringan ini harus ada dan Dokploy akan mengelolanya
+    external: true
+
+volumes:
+  # Definisi volumes di root dihapus karena sudah menggunakan bind mount ../files/
+  # di langkah sebelumnya, tapi kita tetap perlu mengacu pada bind mount
+
+services:
+  postgres:
+    # ... (Konfigurasi postgres tetap sama dari jawaban sebelumnya) ...
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    networks: [ backend, dokploy-network ]
+    volumes:
+      - ../files/pg_app_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  redis:
+    # ... (Konfigurasi redis tetap sama dari jawaban sebelumnya) ...
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: [ "redis-server", "--save", "60", "1", "--loglevel", "warning", "--requirepass", "${REDIS_PASSWORD}" ]
+    networks: [ backend, dokploy-network ]
+    volumes:
+      - ../files/redis_app_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  minio:
+    # ... (Konfigurasi minio tetap sama dari jawaban sebelumnya) ...
+    image: quay.io/minio/minio:latest
+    restart: unless-stopped
+    networks: [ backend, dokploy-network ]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    command: server /data --console-address ":9001"
+    volumes:
+      - ../files/minio_app_data:/data
+    healthcheck:
+      test: [ "CMD", "mc", "ready", "local" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+
+  app:
+    # ... (Konfigurasi app tetap sama dari jawaban sebelumnya) ...
+    build: .
+    restart: unless-stopped
+    networks: [ backend, dokploy-network ]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    env_file: .env
+    # ... (Environment variables di sini) ...
+    environment:
+      APP_ENV: ${APP_ENV}
+      APP_PORT: ${APP_PORT}
+      APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSL_MODE: ${DB_SSL_MODE}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB}
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
+    security_opt:
+      - no-new-privileges:true
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    # Hapus 'ports' eksternal (80:80, 443:443)
+    # Gunakan 'expose' untuk menunjukkan port internal yang akan di-route oleh Traefik
+    expose:
+      - "80"
+      - "443" # Jika Nginx melayani SSL sendiri
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/sites-available:/etc/nginx/sites-available:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ../files/nginx_logs:/var/log/nginx
+    depends_on:
+      - app
+      - minio
+    networks: [ backend, dokploy-network ] # WAJIB terhubung ke dokploy-network
+
+    # === START KONFIGURASI DOMAIN DOKPLOY (TRAEFIK LABELS) ===
+    labels:
+      # Aktifkan Traefik untuk service ini
+      - "traefik.enable=true"
+
+      # Tentukan router utama (Web)
+      - "traefik.http.routers.building-report-web.rule=Host(`backend-dashboard.jagoansatudata.com`) || Host(`www.backend-dashboard.jagoansatudata.com`)"
+      - "traefik.http.routers.building-report-web.entrypoints=websecure" # Menggunakan HTTPS
+      - "traefik.http.routers.building-report-web.tls.certresolver=letsencrypt" # Menggunakan Let's Encrypt Dokploy
+
+      # Tentukan service dan port internal Nginx (80)
+      - "traefik.http.services.building-report-web.loadbalancer.server.port=80"
+
+      # Opsional: Redirect HTTP ke HTTPS
+      - "traefik.http.routers.http-catchall.rule=Host(`backend-dashboard.jagoansatudata.com`) || Host(`www.backend-dashboard.jagoansatudata.com`)"
+      - "traefik.http.routers.http-catchall.entrypoints=web"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      # Jika Anda juga ingin mengakses Minio via subdomain/path:
+      # - "traefik.http.routers.minio-web.rule=Host(`s3.namadomain.com`)" 
+      # - "traefik.http.services.minio-web.loadbalancer.server.port=9000"
+
+      # === END KONFIGURASI DOMAIN DOKPLOY ===
+
+    security_opt:
+      - no-new-privileges:true
