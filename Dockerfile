@@ -23,19 +23,20 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -a -installsuffix cgo \
     -o main cmd/api/main.go
 
-# Final stage - use distroless for security
-FROM gcr.io/distroless/static:nonroot
+# Final stage - use alpine for better compatibility
+FROM alpine:latest
 
-# Copy timezone data
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
-# Copy ca certificates
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# Install ca-certificates for HTTPS requests and wget for healthcheck
+RUN apk --no-cache add ca-certificates wget tzdata
+
+# Create non-root user
+RUN adduser -D -g '' appuser
 
 # Copy the binary
 COPY --from=builder /app/main /app/main
 
 # Use non-root user
-USER nonroot:nonroot
+USER appuser
 
 EXPOSE 8080
 

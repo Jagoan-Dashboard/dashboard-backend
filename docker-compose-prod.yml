@@ -101,6 +101,12 @@ services:
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     security_opt:
       - no-new-privileges:true
 
@@ -116,8 +122,8 @@ services:
       - ./nginx-prod/sites-available:/etc/nginx/sites-available:ro
       - nginx_logs:/var/log/nginx
     depends_on:
-      - app
-      - minio
+      app: { condition: service_healthy }
+      minio: { condition: service_healthy }
     networks: [ backend, dokploy-network ] # WAJIB terhubung ke dokploy-network
 
     # === START KONFIGURASI DOMAIN DOKPLOY (TRAEFIK LABELS) ===
