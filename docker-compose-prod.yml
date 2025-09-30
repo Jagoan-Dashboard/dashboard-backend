@@ -7,9 +7,13 @@ networks:
     # Jaringan ini harus ada dan Dokploy akan mengelolanya
     external: true
 
+
 volumes:
-  # Definisi volumes di root dihapus karena sudah menggunakan bind mount ../files/
-  # di langkah sebelumnya, tapi kita tetap perlu mengacu pada bind mount
+  pg_app_data:
+  redis_app_data:
+  minio_app_data:
+  nginx_logs:
+
 
 services:
   postgres:
@@ -22,7 +26,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
     networks: [ backend, dokploy-network ]
     volumes:
-      - ../files/pg_app_data:/var/lib/postgresql/data
+      - pg_app_data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
       interval: 10s
@@ -38,7 +42,7 @@ services:
     command: [ "redis-server", "--save", "60", "1", "--loglevel", "warning", "--requirepass", "${REDIS_PASSWORD}" ]
     networks: [ backend, dokploy-network ]
     volumes:
-      - ../files/redis_app_data:/data
+      - redis_app_data:/data
     healthcheck:
       test: [ "CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping" ]
       interval: 10s
@@ -57,7 +61,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     command: server /data --console-address ":9001"
     volumes:
-      - ../files/minio_app_data:/data
+      - minio_app_data:/data
     healthcheck:
       test: [ "CMD", "mc", "ready", "local" ]
       interval: 30s
@@ -114,7 +118,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/sites-available:/etc/nginx/sites-available:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
-      - ../files/nginx_logs:/var/log/nginx
+      - nginx_logs:/var/log/nginx
     depends_on:
       - app
       - minio
