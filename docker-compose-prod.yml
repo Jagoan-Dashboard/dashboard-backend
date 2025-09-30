@@ -9,10 +9,10 @@ networks:
 
 
 volumes:
-  pg_app_data:
-  redis_app_data:
-  minio_app_data:
-  nginx_logs:
+  pg_app_data: {}
+  redis_app_data: {}
+  minio_app_data: {}
+  nginx_logs: {}
 
 
 services:
