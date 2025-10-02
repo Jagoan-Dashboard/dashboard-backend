@@ -15,34 +15,21 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags='-w -s -extldflags "-static"' \
     -a -installsuffix cgo \
     -o main cmd/api/main.go
+    
+# Final stage - use alpine for better compatibility
+FROM alpine:latest
 
-# Final stage
-FROM gcr.io/distroless/static:nonroot
+# Install ca-certificates for HTTPS requests and wget for healthcheck
+RUN apk --no-cache add ca-certificates wget tzdata
 
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-<<<<<<< Updated upstream
-
-COPY --from=builder /app/main /app/main
-
-# Copy user info
-COPY --from=builder /etc/passwd /etc/passwd
+# Create non-root user
+RUN adduser -D -g '' appuser
 
 COPY --from=builder /app/main /app/main
 
-# Copy user info
-COPY --from=builder /etc/passwd /etc/passwd
+# Use non-root user
+USER appuser
 
-# Copy user info
-COPY --from=builder /etc/passwd /etc/passwd
-
-=======
-
-COPY --from=builder /app/main /app/main
-
->>>>>>> Stashed changes
-USER nonroot:nonroot
-
-EXPOSE 8080
+EXPOSE 8081
 
 ENTRYPOINT ["/app/main"]
