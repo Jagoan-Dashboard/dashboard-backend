@@ -70,6 +70,17 @@ const (
     InstitutionKecamatan InstitutionType = "KECAMATAN"
 )
 
+type FarmerGroupType string
+
+const (
+    FarmerGroupTypePoktan       FarmerGroupType = "POKTAN"
+    FarmerGroupTypeGapoktan     FarmerGroupType = "GAPOKTAN"
+)
+
+const (
+    WorkTypePerbaikanAtap       WorkType = "PERBAIKAN_ATAP"
+    WorkTypePerbaikanDinding    WorkType = "PERBAIKAN_DINDING"
+)
 
 type AreaCategory string
 
@@ -331,13 +342,6 @@ const (
     TrafficImpactReduced         TrafficImpact = "TERGANGGU"         
     TrafficImpactSeverelyReduced TrafficImpact = "SANGAT_TERGANGGU"  
     TrafficImpactBlocked         TrafficImpact = "TERPUTUS"          
-)
-
-type FarmerGroupType string
-
-const (
-    FarmerGroupPoktan   FarmerGroupType = "POKTAN"   // Kelompok Tani
-    FarmerGroupGapoktan FarmerGroupType = "GAPOKTAN" // Gabungan Kelompok Tani
 )
 
 // Enhanced Food Commodities

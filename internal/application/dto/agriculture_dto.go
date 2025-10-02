@@ -7,15 +7,15 @@ import (
 
 type CreateAgricultureRequest struct {
     // Data Penyuluh
-    ExtensionOfficer       string    `json:"extension_officer" validate:"required"`
-    VisitDate              time.Time `json:"visit_date" validate:"required"`
-    FarmerName             string    `json:"farmer_name" validate:"required"`
+    ExtensionOfficer       string    `json:"extension_officer" validate:"omitempty"`
+    VisitDate              time.Time `json:"visit_date" validate:"omitempty"`
+    FarmerName             string    `json:"farmer_name" validate:"omitempty"`
     FarmerGroup            string    `json:"farmer_group,omitempty"`
     FarmerGroupType        string    `json:"farmer_group_type,omitempty"` // POKTAN, GAPOKTAN
-    Village                string    `json:"village" validate:"required"`
-    District               string    `json:"district" validate:"required"`
-    Latitude               float64   `json:"latitude" validate:"required,min=-90,max=90"`
-    Longitude              float64   `json:"longitude" validate:"required,min=-180,max=180"`
+    Village                string    `json:"village" validate:"omitempty"`
+    District               string    `json:"district" validate:"omitempty"`
+    Latitude               float64   `json:"latitude" validate:"omitempty,min=-90,max=90"`
+    Longitude              float64   `json:"longitude" validate:"omitempty,min=-180,max=180"`
     
     // Pangan (Food Crops)
     FoodCommodity          string    `json:"food_commodity,omitempty"`
@@ -61,15 +61,15 @@ type CreateAgricultureRequest struct {
     ControlAction          string    `json:"control_action,omitempty"`
     
     // Cuaca dan Lingkungan (Weather and Environment)
-    WeatherCondition       string    `json:"weather_condition" validate:"required"`
-    WeatherImpact          string    `json:"weather_impact" validate:"required"`
-    MainConstraint         string    `json:"main_constraint" validate:"required"`
+    WeatherCondition       string    `json:"weather_condition" validate:"omitempty"`
+    WeatherImpact          string    `json:"weather_impact" validate:"omitempty"`
+    MainConstraint         string    `json:"main_constraint" validate:"omitempty"`
     
     // Harapan dan Kebutuhan Petani (Farmer Needs and Aspirations)
-    FarmerHope             string    `json:"farmer_hope" validate:"required"`
-    TrainingNeeded         string    `json:"training_needed" validate:"required"`
-    UrgentNeeds            string    `json:"urgent_needs" validate:"required"`
-    WaterAccess            string    `json:"water_access" validate:"required"`
+    FarmerHope             string    `json:"farmer_hope" validate:"omitempty"`
+    TrainingNeeded         string    `json:"training_needed" validate:"omitempty"`
+    UrgentNeeds            string    `json:"urgent_needs" validate:"omitempty"`
+    WaterAccess            string    `json:"water_access" validate:"omitempty"`
     Suggestions            string    `json:"suggestions,omitempty"`
 }
 
