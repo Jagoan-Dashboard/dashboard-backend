@@ -99,7 +99,7 @@ func (h *BinaMargaHandler) CreateReport(c *fiber.Ctx) error {
     }
 
     // Get user ID from context
-    userID := c.Locals("userID").(string)
+    // userID := c.Locals("userID").(string)
 
     // Parse multipart form for photos
     form, err := c.MultipartForm()
@@ -124,7 +124,7 @@ func (h *BinaMargaHandler) CreateReport(c *fiber.Ctx) error {
         }
     }
 
-    report, err := h.binaMargaUseCase.CreateReport(c.Context(), &req, photos, userID)
+    report, err := h.binaMargaUseCase.CreateReport(c.Context(), &req, photos)
     if err != nil {
         return response.InternalError(c, "Failed to create bina marga report", err)
     }

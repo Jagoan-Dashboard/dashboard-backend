@@ -33,7 +33,7 @@ func NewWaterResourcesUseCase(
     }
 }
 
-func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.CreateWaterResourcesRequest, photos []*multipart.FileHeader, userID string) (*entity.WaterResourcesReport, error) {
+func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.CreateWaterResourcesRequest, photos []*multipart.FileHeader) (*entity.WaterResourcesReport, error) {
     report := &entity.WaterResourcesReport{
         ID:                    utils.GenerateULID(),
         ReporterName:          req.ReporterName,
@@ -54,7 +54,6 @@ func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.Crea
         UrgencyCategory:       entity.UrgencyCategory(req.UrgencyCategory),
         Notes:                 req.Notes,
         Status:                entity.WaterResourceStatusPending,
-        CreatedBy:             userID,
     }
 
     

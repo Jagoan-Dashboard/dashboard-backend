@@ -30,7 +30,7 @@ func NewReportUseCase(
     }
 }
 
-func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReportRequest, photos []*multipart.FileHeader, userID string) (*entity.Report, error) {
+func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReportRequest, photos []*multipart.FileHeader) (*entity.Report, error) {
     report := &entity.Report{
         ID:                   utils.GenerateULID(),
         ReporterName:         req.ReporterName,
@@ -47,7 +47,6 @@ func (uc *ReportUseCase) CreateReport(ctx context.Context, req *dto.CreateReport
         Longitude:            req.Longitude,
         FloorArea:            req.FloorArea,
         FloorCount:           req.FloorCount,
-        CreatedBy:            userID,
     }
 
     

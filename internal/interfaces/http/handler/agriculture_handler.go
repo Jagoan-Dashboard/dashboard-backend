@@ -145,10 +145,10 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
     }
 
     
-    userID, ok := c.Locals("userID").(string)
-    if !ok {
-        return response.BadRequest(c, "Invalid user ID type", nil)
-    }
+    // userID, ok := c.Locals("userID").(string)
+    // if !ok {
+    //     return response.BadRequest(c, "Invalid user ID type", nil)
+    // }
 
     
     form, err := c.MultipartForm()
@@ -173,7 +173,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         }
     }
 
-    report, err := h.agricultureUseCase.CreateReport(c.Context(), &req, photos, userID)
+    report, err := h.agricultureUseCase.CreateReport(c.Context(), &req, photos)
     if err != nil {
         return response.InternalError(c, "Failed to create agriculture report", err)
     }

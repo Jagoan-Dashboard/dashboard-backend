@@ -61,7 +61,7 @@ func main() {
 
     
     log.Printf("Server starting on http://127.0.0.1:%s", cfg.App.Port)
-if err := app.Listen("127.0.0.1:" + cfg.App.Port); err != nil {
+if err := app.Listen("0.0.0.0:" + cfg.App.Port); err != nil {
     log.Fatal("Failed to start server:", err)
 }
 

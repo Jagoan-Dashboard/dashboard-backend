@@ -32,7 +32,7 @@ func NewSpatialPlanningUseCase(
     }
 }
 
-func (uc *SpatialPlanningUseCase) CreateReport(ctx context.Context, req *dto.CreateSpatialPlanningRequest, photos []*multipart.FileHeader, userID string) (*entity.SpatialPlanningReport, error) {
+func (uc *SpatialPlanningUseCase) CreateReport(ctx context.Context, req *dto.CreateSpatialPlanningRequest, photos []*multipart.FileHeader) (*entity.SpatialPlanningReport, error) {
     report := &entity.SpatialPlanningReport{
         ID:                  utils.GenerateULID(),
         ReporterName:        req.ReporterName,
@@ -50,7 +50,6 @@ func (uc *SpatialPlanningUseCase) CreateReport(ctx context.Context, req *dto.Cre
         Address:             req.Address,
         Notes:               req.Notes,
         Status:              entity.SpatialStatusPending,
-        CreatedBy:           userID,
     }
 
     

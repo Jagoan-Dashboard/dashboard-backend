@@ -31,7 +31,7 @@ func NewBinaMargaUseCase(
     }
 }
 
-func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBinaMargaRequest, photos []*multipart.FileHeader, userID string) (*entity.BinaMargaReport, error) {
+func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBinaMargaRequest, photos []*multipart.FileHeader) (*entity.BinaMargaReport, error) {
     
     damagedArea := req.DamagedLength * req.DamagedWidth
     
@@ -67,7 +67,6 @@ func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBin
         CauseOfDamage:       req.CauseOfDamage,
         Notes:               req.Notes,
         Status:              entity.BinaMargaStatusPending,
-        CreatedBy:           userID,
     }
 
     
