@@ -22,7 +22,6 @@ CREATE TABLE water_resources_reports (
     infrastructure_condition VARCHAR(100),
     report_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     priority_score INTEGER NOT NULL DEFAULT 0,
-    created_by VARCHAR(26) NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -34,7 +33,6 @@ CREATE INDEX idx_water_resources_damage_type ON water_resources_reports(damage_t
 CREATE INDEX idx_water_resources_urgent_level ON water_resources_reports(urgent_level);
 CREATE INDEX idx_water_resources_report_status ON water_resources_reports(report_status);
 CREATE INDEX idx_water_resources_priority_score ON water_resources_reports(priority_score);
-CREATE INDEX idx_water_resources_created_by ON water_resources_reports(created_by);
 
 -- Recreate water_resources_photos table with ULID
 CREATE TABLE water_resources_photos (
@@ -70,7 +68,6 @@ CREATE TABLE bina_marga_reports (
     estimated_cost DECIMAL(15, 2),
     report_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     priority_score INTEGER NOT NULL DEFAULT 0,
-    created_by VARCHAR(26) NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -83,7 +80,6 @@ CREATE INDEX idx_bina_marga_damage_type ON bina_marga_reports(damage_type);
 CREATE INDEX idx_bina_marga_urgent_level ON bina_marga_reports(urgent_level);
 CREATE INDEX idx_bina_marga_report_status ON bina_marga_reports(report_status);
 CREATE INDEX idx_bina_marga_priority_score ON bina_marga_reports(priority_score);
-CREATE INDEX idx_bina_marga_created_by ON bina_marga_reports(created_by);
 
 -- Recreate bina_marga_photos table with ULID
 CREATE TABLE bina_marga_photos (
@@ -165,7 +161,6 @@ CREATE TABLE agriculture_reports (
     water_access VARCHAR(50) NOT NULL,
     suggestions TEXT,
 
-    created_by VARCHAR(26) NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -180,7 +175,6 @@ CREATE INDEX idx_agriculture_food_commodity ON agriculture_reports(food_commodit
 CREATE INDEX idx_agriculture_horti_commodity ON agriculture_reports(horti_commodity);
 CREATE INDEX idx_agriculture_plantation_commodity ON agriculture_reports(plantation_commodity);
 CREATE INDEX idx_agriculture_has_pest_disease ON agriculture_reports(has_pest_disease);
-CREATE INDEX idx_agriculture_created_by ON agriculture_reports(created_by);
 
 -- Recreate agriculture_photos table with ULID
 CREATE TABLE agriculture_photos (

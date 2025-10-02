@@ -21,9 +21,10 @@ type User struct {
 type UserRole string
 
 const (
-    RoleAdmin     UserRole = "ADMIN"
-    RoleOperator  UserRole = "OPERATOR"
-    RoleViewer    UserRole = "VIEWER"
+    RoleAdmin      UserRole = "ADMIN"
+    RoleSupervisor UserRole = "SUPERVISOR"
+    RoleOperator   UserRole = "OPERATOR"
+    RoleViewer     UserRole = "VIEWER"
 )
 
 func (u *User) BeforeCreate() error {

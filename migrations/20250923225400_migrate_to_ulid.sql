@@ -53,7 +53,6 @@ CREATE TABLE reports (
     floor_count INTEGER,
     work_type VARCHAR(50),
     condition_after_rehab VARCHAR(100),
-    created_by VARCHAR(26) NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -63,7 +62,6 @@ CREATE INDEX idx_reports_village ON reports(village);
 CREATE INDEX idx_reports_district ON reports(district);
 CREATE INDEX idx_reports_building_type ON reports(building_type);
 CREATE INDEX idx_reports_report_status ON reports(report_status);
-CREATE INDEX idx_reports_created_by ON reports(created_by);
 CREATE INDEX idx_reports_created_at ON reports(created_at);
 
 -- Recreate report_photos table with ULID
@@ -98,7 +96,6 @@ CREATE TABLE spatial_planning_reports (
     affected_area DECIMAL(12, 2),
     report_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     priority_score INTEGER NOT NULL DEFAULT 0,
-    created_by VARCHAR(26) NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -110,7 +107,6 @@ CREATE INDEX idx_spatial_planning_violation_type ON spatial_planning_reports(vio
 CREATE INDEX idx_spatial_planning_urgency_level ON spatial_planning_reports(urgency_level);
 CREATE INDEX idx_spatial_planning_report_status ON spatial_planning_reports(report_status);
 CREATE INDEX idx_spatial_planning_priority_score ON spatial_planning_reports(priority_score);
-CREATE INDEX idx_spatial_planning_created_by ON spatial_planning_reports(created_by);
 
 -- Recreate spatial_planning_photos table with ULID
 CREATE TABLE spatial_planning_photos (
