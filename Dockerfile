@@ -21,6 +21,7 @@ FROM gcr.io/distroless/static:nonroot
 
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+<<<<<<< Updated upstream
 
 COPY --from=builder /app/main /app/main
 
@@ -35,6 +36,11 @@ COPY --from=builder /etc/passwd /etc/passwd
 # Copy user info
 COPY --from=builder /etc/passwd /etc/passwd
 
+=======
+
+COPY --from=builder /app/main /app/main
+
+>>>>>>> Stashed changes
 USER nonroot:nonroot
 
 EXPOSE 8080
