@@ -27,13 +27,14 @@ COPY --from=builder /app/main /app/main
 # Copy user info
 COPY --from=builder /etc/passwd /etc/passwd
 
-# Copy the binary
 COPY --from=builder /app/main /app/main
 
 # Copy user info
 COPY --from=builder /etc/passwd /etc/passwd
 
-# Use non-root user
+# Copy user info
+COPY --from=builder /etc/passwd /etc/passwd
+
 USER nonroot:nonroot
 
 EXPOSE 8080
