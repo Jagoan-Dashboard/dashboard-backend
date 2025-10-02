@@ -1,35 +1,33 @@
-# Build stage
-FROM golang:1.24-alpine AS builder
+# Production Environment Configuration
+# Copy this file to .env and update the values
 
-RUN apk update && apk add --no-cache git ca-certificates tzdata && update-ca-certificates
+# Application
+APP_ENV=production
+APP_PORT=8081
+APP_ALLOWED_ORIGINS=https://backend-dashboard.jagoansatudata.com
 
-WORKDIR /app
+# Database - CHANGE THESE PASSWORDS!
+DB_HOST=postgres
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=CHANGE_THIS_PASSWORD
+DB_NAME=building_reports
+DB_SSL_MODE=disable
 
-COPY go.mod go.sum ./
-RUN go mod download
-RUN go mod verify
+# Redis - CHANGE THIS PASSWORD!
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=CHANGE_THIS_REDIS_PASSWORD
+REDIS_DB=0
 
-COPY . .
+# MinIO - CHANGE THESE CREDENTIALS!
+MINIO_ENDPOINT=minio:9000
+MINIO_ACCESS_KEY=CHANGE_THIS_ACCESS_KEY
+MINIO_SECRET_KEY=CHANGE_THIS_SECRET_KEY_MIN_8_CHARS
+MINIO_USE_SSL=false
+MINIO_BUCKET_NAME=reports
+MINIO_PUBLIC_URL=https://s3-backend-dashboard.jagoansatudata.com
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags='-w -s -extldflags "-static"' \
-    -a -installsuffix cgo \
-    -o main cmd/api/main.go
-    
-# Final stage - use alpine for better compatibility
-FROM alpine:latest
-
-# Install ca-certificates for HTTPS requests and wget for healthcheck
-RUN apk --no-cache add ca-certificates wget tzdata
-
-# Create non-root user
-RUN adduser -D -g '' appuser
-
-COPY --from=builder /app/main /app/main
-
-# Use non-root user
-USER appuser
-
-EXPOSE 8081
-
-ENTRYPOINT ["/app/main"]
+# JWT - GENERATE A SECURE SECRET (minimum 32 characters)!
+JWT_SECRET=CHANGE_THIS_TO_A_VERY_SECURE_SECRET_KEY_MIN_32_CHARS
+JWT_EXPIRY_HOURS=24
