@@ -17,7 +17,6 @@ CREATE TABLE spatial_planning_reports (
     address TEXT,
     status VARCHAR(50) DEFAULT 'PENDING',
     notes TEXT,
-    created_by UUID NOT NULL REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -28,7 +27,6 @@ CREATE INDEX idx_spatial_planning_violation_type ON spatial_planning_reports(vio
 CREATE INDEX idx_spatial_planning_violation_level ON spatial_planning_reports(violation_level);
 CREATE INDEX idx_spatial_planning_urgency_level ON spatial_planning_reports(urgency_level);
 CREATE INDEX idx_spatial_planning_status ON spatial_planning_reports(status);
-CREATE INDEX idx_spatial_planning_created_by ON spatial_planning_reports(created_by);
 CREATE INDEX idx_spatial_planning_report_datetime ON spatial_planning_reports(report_datetime);
 
 CREATE TABLE spatial_planning_photos (

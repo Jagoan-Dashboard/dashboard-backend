@@ -19,7 +19,6 @@ CREATE TABLE reports (
     floor_count INTEGER,
     work_type VARCHAR(50),
     condition_after_rehab VARCHAR(100),
-    created_by UUID NOT NULL REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -27,7 +26,6 @@ CREATE TABLE reports (
 CREATE INDEX idx_reports_village ON reports(village);
 CREATE INDEX idx_reports_district ON reports(district);
 CREATE INDEX idx_reports_building_type ON reports(building_type);
-CREATE INDEX idx_reports_created_by ON reports(created_by);
 
 -- +goose Down
 DROP TABLE IF EXISTS reports;

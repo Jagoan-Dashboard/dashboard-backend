@@ -22,7 +22,6 @@ CREATE TABLE water_resources_reports (
     notes TEXT,
     handling_recommendation TEXT,
     estimated_budget DECIMAL(15, 2) DEFAULT 0,
-    created_by UUID NOT NULL REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -34,7 +33,6 @@ CREATE INDEX idx_water_resources_damage_type ON water_resources_reports(damage_t
 CREATE INDEX idx_water_resources_damage_level ON water_resources_reports(damage_level);
 CREATE INDEX idx_water_resources_urgency ON water_resources_reports(urgency_category);
 CREATE INDEX idx_water_resources_status ON water_resources_reports(status);
-CREATE INDEX idx_water_resources_created_by ON water_resources_reports(created_by);
 CREATE INDEX idx_water_resources_report_datetime ON water_resources_reports(report_datetime);
 CREATE INDEX idx_water_resources_irrigation_area ON water_resources_reports(irrigation_area_name);
 

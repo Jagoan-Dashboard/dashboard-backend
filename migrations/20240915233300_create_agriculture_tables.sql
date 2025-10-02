@@ -67,7 +67,6 @@ CREATE TABLE agriculture_reports (
     water_access VARCHAR(50) NOT NULL,
     suggestions TEXT,
     
-    created_by UUID NOT NULL REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -83,7 +82,6 @@ CREATE INDEX idx_agriculture_horti_commodity ON agriculture_reports(horti_commod
 CREATE INDEX idx_agriculture_plantation_commodity ON agriculture_reports(plantation_commodity);
 CREATE INDEX idx_agriculture_has_pest_disease ON agriculture_reports(has_pest_disease);
 CREATE INDEX idx_agriculture_main_constraint ON agriculture_reports(main_constraint);
-CREATE INDEX idx_agriculture_created_by ON agriculture_reports(created_by);
 
 -- Geospatial index for location-based queries
 CREATE INDEX idx_agriculture_location ON agriculture_reports(latitude, longitude);
