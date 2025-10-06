@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -17,7 +18,6 @@ import (
 )
 
 func main() {
-
 	cfg := config.Load()
 
 	db, err := database.NewPostgresDB(cfg.Database)
@@ -26,7 +26,6 @@ func main() {
 	}
 
 	redisClient := cache.NewRedisClient(cfg.Redis)
-
 	minioClient, err := storage.NewMinioClient(cfg.Minio)
 	if err != nil {
 		log.Fatal("Failed to connect to MinIO:", err)
@@ -41,8 +40,14 @@ func main() {
 
 	app.Use(logger.New())
 	app.Use(recover.New())
+
+	origins := os.Getenv("APP_ALLOWED_ORIGINS")
+	if origins == "" {
+		origins = "http://localhost:3000"
+	}
+
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.App.AllowedOrigins,
+		AllowOrigins:     origins,
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires, X-Requested-With",
 		ExposeHeaders:    "Content-Length, Content-Type",
@@ -56,7 +61,6 @@ func main() {
 	if err := app.Listen("0.0.0.0:" + cfg.App.Port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
-
 }
 
 func customErrorHandler(c *fiber.Ctx, err error) error {

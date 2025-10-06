@@ -32,7 +32,7 @@ func NewAgricultureUseCase(
     }
 }
 
-func (uc *AgricultureUseCase) CreateReport(ctx context.Context, req *dto.CreateAgricultureRequest, photos []*multipart.FileHeader, userID string) (*entity.AgricultureReport, error) {
+func (uc *AgricultureUseCase) CreateReport(ctx context.Context, req *dto.CreateAgricultureRequest, photos []*multipart.FileHeader) (*entity.AgricultureReport, error) {
     report := &entity.AgricultureReport{
         ID:               utils.GenerateULID(),
         ExtensionOfficer: req.ExtensionOfficer,
@@ -52,7 +52,6 @@ func (uc *AgricultureUseCase) CreateReport(ctx context.Context, req *dto.CreateA
         WaterAccess:      entity.WaterAccess(req.WaterAccess),
         Suggestions:      req.Suggestions,
         HasPestDisease:   req.HasPestDisease,
-        CreatedBy:        userID,
     }
 
     

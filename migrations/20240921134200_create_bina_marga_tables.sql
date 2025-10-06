@@ -44,7 +44,6 @@ CREATE TABLE bina_marga_reports (
     handling_recommendation TEXT,
     estimated_budget DECIMAL(15, 2) DEFAULT 0,
     estimated_repair_time INTEGER DEFAULT 0 COMMENT 'Estimasi waktu perbaikan (hari)',
-    created_by UUID NOT NULL REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -62,7 +61,6 @@ CREATE INDEX idx_bina_marga_traffic_impact ON bina_marga_reports(traffic_impact)
 CREATE INDEX idx_bina_marga_traffic_condition ON bina_marga_reports(traffic_condition);
 CREATE INDEX idx_bina_marga_bridge_name ON bina_marga_reports(bridge_name);
 CREATE INDEX idx_bina_marga_status ON bina_marga_reports(status);
-CREATE INDEX idx_bina_marga_created_by ON bina_marga_reports(created_by);
 CREATE INDEX idx_bina_marga_report_datetime ON bina_marga_reports(report_datetime);
 
 -- Geospatial index for location-based queries
