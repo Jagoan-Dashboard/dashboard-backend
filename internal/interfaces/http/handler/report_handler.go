@@ -34,12 +34,19 @@ func (h *ReportHandler) CreateReport(c *fiber.Ctx) error {
 		return response.ValidationError(c, err)
 	}
 
-	
 
-	form, err := c.MultipartForm()
-	if err != nil {
-		return response.BadRequest(c, "Failed to parse multipart form", err)
-	}
+    form, err := c.MultipartForm()
+    if err != nil {
+        return response.BadRequest(c, "Failed to parse multipart form", err)
+    }
+
+    photos := form.File["photos"]
+
+    // Photos are required only for rehabilitation reports, not for new construction
+    isPembangunanBaru := req.ReportStatus == "PEMBANGUNAN_BARU"
+    if !isPembangunanBaru && len(photos) < 2 {
+        return response.BadRequest(c, "Minimum 2 photos required for rehabilitation reports", nil)
+    }
 
 	photos := form.File["photos"]
 	if len(photos) < 2 {

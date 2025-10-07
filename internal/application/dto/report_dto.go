@@ -2,6 +2,7 @@
 package dto
 
 import (
+    "errors"
     "building-report-backend/internal/domain/entity"
 )
 
@@ -25,7 +26,22 @@ type CreateReportRequest struct {
 }
 
 func (r *CreateReportRequest) Validate() error {
-    return validate.Struct(r)
+    if err := validate.Struct(r); err != nil {
+        return err
+    }
+
+    isPembangunanBaru := r.ReportStatus == "PEMBANGUNAN_BARU"
+
+    if !isPembangunanBaru {
+        if r.WorkType == "" {
+            return errors.New("WorkType is required for rehabilitation reports")
+        }
+        if r.ConditionAfterRehab == "" {
+            return errors.New("ConditionAfterRehab is required for rehabilitation reports")
+        }
+    }
+
+    return nil
 }
 
 type UpdateReportRequest struct {
