@@ -13,17 +13,17 @@ type CreateBinaMargaRequest struct {
     ReportDateTime      time.Time `json:"report_datetime" validate:"required"`
     
     
-    RoadName            string    `json:"road_name" validate:"required"`
-    RoadType            string    `json:"road_type" validate:"required,oneof=JALAN_NASIONAL JALAN_PROVINSI JALAN_KABUPATEN JALAN_DESA"`
-    RoadClass           string    `json:"road_class" validate:"required,oneof=ARTERI KOLEKTOR LOKAL LINGKUNGAN"`
+    RoadName            string    `json:"road_name" validate:"omitempty"`
+    RoadType            string    `json:"road_type" validate:"omitempty,oneof=JALAN_NASIONAL JALAN_PROVINSI JALAN_KABUPATEN JALAN_DESA"`
+    RoadClass           string    `json:"road_class" validate:"omitempty,oneof=ARTERI KOLEKTOR LOKAL LINGKUNGAN"`
     SegmentLength       float64   `json:"segment_length" validate:"min=0"` 
     Latitude            float64   `json:"latitude" validate:"required,min=-90,max=90"`
     Longitude           float64   `json:"longitude" validate:"required,min=-180,max=180"`
     
     
-    PavementType        string    `json:"pavement_type" validate:"required,oneof=ASPAL_FLEXIBLE BETON_RIGID PAVING JALAN_TANAH"`
-    DamageType          string    `json:"damage_type" validate:"required"`
-    DamageLevel         string    `json:"damage_level" validate:"required,oneof=RINGAN SEDANG BERAT"`
+    PavementType        string    `json:"pavement_type" validate:"omitempty,oneof=ASPAL_FLEXIBLE BETON_RIGID PAVING JALAN_TANAH"`
+    DamageType          string    `json:"damage_type" validate:"omitempty"`
+    DamageLevel         string    `json:"damage_level" validate:"omitempty,oneof=RINGAN SEDANG BERAT"`
     DamagedLength       float64   `json:"damaged_length" validate:"min=0"` 
     DamagedWidth        float64   `json:"damaged_width" validate:"min=0"`  
     TotalDamagedArea    float64   `json:"total_damaged_area" validate:"min=0"` 
