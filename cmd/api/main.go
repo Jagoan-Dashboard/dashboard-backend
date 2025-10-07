@@ -1,84 +1,80 @@
-
 package main
 
 import (
-    "log"
-    "github.com/gofiber/fiber/v2"
-    "github.com/gofiber/fiber/v2/middleware/cors"
-    "github.com/gofiber/fiber/v2/middleware/logger"
-    "github.com/gofiber/fiber/v2/middleware/recover"
-    
-    "building-report-backend/pkg/config"
-    "building-report-backend/pkg/database"
-    "building-report-backend/pkg/cache"
-    "building-report-backend/pkg/storage"
-    "building-report-backend/pkg/container"
-    "building-report-backend/internal/interfaces/http/router"
+	"log"
+	"os"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+
+	"building-report-backend/internal/interfaces/http/router"
+	"building-report-backend/pkg/cache"
+	"building-report-backend/pkg/config"
+	"building-report-backend/pkg/container"
+	"building-report-backend/pkg/database"
+	"building-report-backend/pkg/storage"
 )
 
 func main() {
-    
-    cfg := config.Load()
+	cfg := config.Load()
 
-    
-    db, err := database.NewPostgresDB(cfg.Database)
-    if err != nil {
-        log.Fatal("Failed to connect to database:", err)
-    }
+	db, err := database.NewPostgresDB(cfg.Database)
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
 
-    
-    redisClient := cache.NewRedisClient(cfg.Redis)
+	redisClient := cache.NewRedisClient(cfg.Redis)
+	minioClient, err := storage.NewMinioClient(cfg.Minio)
+	if err != nil {
+		log.Fatal("Failed to connect to MinIO:", err)
+	}
 
-    
-    minioClient, err := storage.NewMinioClient(cfg.Minio)
-    if err != nil {
-        log.Fatal("Failed to connect to MinIO:", err)
-    }
+	cont := container.NewContainer(cfg, db, redisClient, minioClient)
 
-    
-    cont := container.NewContainer(cfg, db, redisClient, minioClient)
+	app := fiber.New(fiber.Config{
+		ErrorHandler: customErrorHandler,
+		BodyLimit:    10 * 1024 * 1024, // 10 MB
+	})
 
-    
-    app := fiber.New(fiber.Config{
-        ErrorHandler: customErrorHandler,
-        BodyLimit:  10 * 1024 * 1024, // 10 MB
-    })
+	app.Use(logger.New())
+	app.Use(recover.New())
 
-    
-    app.Use(logger.New())
-    app.Use(recover.New())
-    app.Use(cors.New(cors.Config{
-    AllowOrigins:     "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002",
-    AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
-    AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires, X-Requested-With",
-    ExposeHeaders:    "Content-Length, Content-Type",
-    AllowCredentials: true,
-    MaxAge:           86400,
-}))
+	origins := os.Getenv("APP_ALLOWED_ORIGINS")
+	if origins == "" {
+		origins = "http://localhost:3000"
+	}
 
-    
-    router.SetupRoutes(app, cont)
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     origins,
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires, X-Requested-With",
+		ExposeHeaders:    "Content-Length, Content-Type",
+		AllowCredentials: true,
+		MaxAge:           86400,
+	}))
 
-    log.Printf("Server starting on port %s", cfg.App.Port)
-  
-if err := app.Listen("0.0.0.0:" + cfg.App.Port); err != nil {
-    log.Fatal("Failed to start server:", err)
-}
+	router.SetupRoutes(app, cont)
 
+	log.Printf("Server starting on port %s", cfg.App.Port)
+	if err := app.Listen("0.0.0.0:" + cfg.App.Port); err != nil {
+		log.Fatal("Failed to start server:", err)
+	}
 }
 
 func customErrorHandler(c *fiber.Ctx, err error) error {
-    code := fiber.StatusInternalServerError
-    message := "Internal Server Error"
+	code := fiber.StatusInternalServerError
+	message := "Internal Server Error"
 
-    if e, ok := err.(*fiber.Error); ok {
-        code = e.Code
-        message = e.Message
-    }
+	if e, ok := err.(*fiber.Error); ok {
+		code = e.Code
+		message = e.Message
+	}
 
-    return c.Status(code).JSON(fiber.Map{
-        "success": false,
-        "message": message,
-        "error":   err.Error(),
-    })
+	return c.Status(code).JSON(fiber.Map{
+		"success": false,
+		"message": message,
+		"error":   err.Error(),
+	})
 }
