@@ -48,11 +48,6 @@ func (h *ReportHandler) CreateReport(c *fiber.Ctx) error {
         return response.BadRequest(c, "Minimum 2 photos required for rehabilitation reports", nil)
     }
 
-	photos := form.File["photos"]
-	if len(photos) < 2 {
-		return response.BadRequest(c, "Minimum 2 photos required", nil)
-	}
-
 	report, err := h.reportUseCase.CreateReport(c.Context(), &req, photos)
 	if err != nil {
 		return response.InternalError(c, "Failed to create report", err)
