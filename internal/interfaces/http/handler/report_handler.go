@@ -35,15 +35,18 @@ func (h *ReportHandler) CreateReport(c *fiber.Ctx) error {
     
     // userID := c.Locals("userID").(string)
 
-    
+
     form, err := c.MultipartForm()
     if err != nil {
         return response.BadRequest(c, "Failed to parse multipart form", err)
     }
 
     photos := form.File["photos"]
-    if len(photos) < 2 {
-        return response.BadRequest(c, "Minimum 2 photos required", nil)
+
+    // Photos are required only for rehabilitation reports, not for new construction
+    isPembangunanBaru := req.ReportStatus == "PEMBANGUNAN_BARU"
+    if !isPembangunanBaru && len(photos) < 2 {
+        return response.BadRequest(c, "Minimum 2 photos required for rehabilitation reports", nil)
     }
 
     report, err := h.reportUseCase.CreateReport(c.Context(), &req, photos)
