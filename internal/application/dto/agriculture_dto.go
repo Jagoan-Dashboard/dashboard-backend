@@ -306,7 +306,7 @@ type NeedCount struct {
 }
 
 
-// Ubah dari ProductionDistrict menjadi ProductionLocation
+
 type ProductionLocation struct {
     Latitude           float64 `json:"latitude"`
     Longitude          float64 `json:"longitude"`
@@ -441,12 +441,30 @@ type EquipmentTrend struct {
 }
 
 
+type LandIndividualPoint struct {
+    Latitude           float64 `json:"latitude"`
+    Longitude          float64 `json:"longitude"`
+    Village            string  `json:"village"`
+    District           string  `json:"district"`
+    FarmerName         string  `json:"farmer_name"`
+    TotalLandArea      float64 `json:"total_land_area"`
+    FoodLandArea       float64 `json:"food_land_area"`
+    HortiLandArea      float64 `json:"horti_land_area"`
+    PlantationLandArea float64 `json:"plantation_land_area"`
+    WaterAccess        string  `json:"water_access"`
+    HasGoodWaterAccess bool    `json:"has_good_water_access"`
+    PrimaryCommodity   string  `json:"primary_commodity"`
+    VisitDate          string  `json:"visit_date"`
+}
+
+
 type LandIrrigationResponse struct {
     TotalLandArea        LandAreaCount          `json:"total_land_area"`
     IrrigatedLandArea    LandAreaCount          `json:"irrigated_land_area"`
     NonIrrigatedLandArea LandAreaCount          `json:"non_irrigated_land_area"`
     IrrigatedByDistrict  []LandDistrict         `json:"irrigated_by_district"`
     LandDistribution     []LandDistributionItem `json:"land_distribution"`
+    IndividualPoints     []LandIndividualPoint  `json:"individual_points"` 
 }
 
 type LandAreaCount struct {

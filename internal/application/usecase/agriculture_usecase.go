@@ -1055,19 +1055,24 @@ func (uc *AgricultureUseCase) GetLandAndIrrigationStats(ctx context.Context, sta
         return &response, nil
     }
 
-    
+    // Existing queries
     stats, err := uc.agricultureRepo.GetLandAndIrrigationStats(ctx, startDate, endDate)
     if err != nil {
         return nil, err
     }
 
-    
     distribution, err := uc.agricultureRepo.GetLandDistributionByDistrict(ctx, startDate, endDate)
     if err != nil {
         return nil, err
     }
 
-    
+    // ← TAMBAHKAN QUERY BARU INI
+    individualPoints, err := uc.agricultureRepo.GetLandIndividualDistribution(ctx, startDate, endDate)
+    if err != nil {
+        return nil, err
+    }
+
+    // Existing mapping
     response.TotalLandArea = dto.LandAreaCount{
         Area:          stats["total_land_area"].(float64),
         GrowthPercent: stats["total_land_growth"].(float64),
@@ -1083,7 +1088,6 @@ func (uc *AgricultureUseCase) GetLandAndIrrigationStats(ctx context.Context, sta
         GrowthPercent: stats["non_irrigated_land_growth"].(float64),
     }
 
-    
     for _, item := range distribution {
         districtItem := dto.LandDistrict{
             District:      item["district"].(string),
@@ -1103,7 +1107,26 @@ func (uc *AgricultureUseCase) GetLandAndIrrigationStats(ctx context.Context, sta
         })
     }
 
-    
+    // ← TAMBAHKAN MAPPING INDIVIDUAL POINTS
+    for _, point := range individualPoints {
+        individualPoint := dto.LandIndividualPoint{
+            Latitude:           point["latitude"].(float64),
+            Longitude:          point["longitude"].(float64),
+            Village:            point["village"].(string),
+            District:           point["district"].(string),
+            FarmerName:         point["farmer_name"].(string),
+            TotalLandArea:      point["total_land_area"].(float64),
+            FoodLandArea:       point["food_land_area"].(float64),
+            HortiLandArea:      point["horti_land_area"].(float64),
+            PlantationLandArea: point["plantation_land_area"].(float64),
+            WaterAccess:        point["water_access"].(string),
+            HasGoodWaterAccess: point["has_good_water_access"].(bool),
+            PrimaryCommodity:   point["primary_commodity"].(string),
+            VisitDate:          point["visit_date"].(time.Time).Format("2006-01-02"),
+        }
+        response.IndividualPoints = append(response.IndividualPoints, individualPoint)
+    }
+
     uc.cache.Set(ctx, cacheKey, &response, 1200*time.Second)
 
     return &response, nil

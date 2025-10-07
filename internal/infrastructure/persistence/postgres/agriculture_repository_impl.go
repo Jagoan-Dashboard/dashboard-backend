@@ -2006,3 +2006,49 @@ func (r *agricultureRepositoryImpl) GetHorticultureGrowthPhases(ctx context.Cont
     err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
     return results, err
 }
+
+func (r *agricultureRepositoryImpl) GetLandIndividualDistribution(ctx context.Context, startDate, endDate time.Time) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            latitude,
+            longitude,
+            village,
+            district,
+            farmer_name,
+            COALESCE(food_land_area, 0) + COALESCE(horti_land_area, 0) + COALESCE(plantation_land_area, 0) as total_land_area,
+            COALESCE(food_land_area, 0) as food_land_area,
+            COALESCE(horti_land_area, 0) as horti_land_area,
+            COALESCE(plantation_land_area, 0) as plantation_land_area,
+            water_access,
+            CASE 
+                WHEN water_access IN ('MUDAH_TERSEDIA', 'TERSEDIA_BERBAYAR') THEN true
+                ELSE false
+            END as has_good_water_access,
+            CASE 
+                WHEN food_commodity IS NOT NULL AND food_commodity != '' THEN food_commodity
+                WHEN horti_commodity IS NOT NULL AND horti_commodity != '' THEN horti_commodity
+                WHEN plantation_commodity IS NOT NULL AND plantation_commodity != '' THEN plantation_commodity
+                ELSE 'UNKNOWN'
+            END as primary_commodity,
+            visit_date
+        FROM agriculture_reports
+        WHERE visit_date BETWEEN ? AND ?
+        AND latitude IS NOT NULL 
+        AND longitude IS NOT NULL
+        AND (
+            COALESCE(food_land_area, 0) + 
+            COALESCE(horti_land_area, 0) + 
+            COALESCE(plantation_land_area, 0)
+        ) > 0
+        ORDER BY visit_date DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, startDate, endDate).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get individual land distribution: %w", err)
+    }
+    
+    return results, nil
+}
