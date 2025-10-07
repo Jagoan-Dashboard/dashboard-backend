@@ -975,26 +975,26 @@ func (uc *AgricultureUseCase) GetAgriculturalEquipmentStats(ctx context.Context,
         return &response, nil
     }
 
-    
+    // Get main stats
     stats, err := uc.agricultureRepo.GetAgriculturalEquipmentStats(ctx, startDate, endDate)
     if err != nil {
         return nil, err
     }
 
-    
-    distribution, err := uc.agricultureRepo.GetEquipmentDistributionByDistrict(ctx, startDate, endDate)
+    // Get INDIVIDUAL distribution (bukan per district lagi)
+    individualDistribution, err := uc.agricultureRepo.GetEquipmentIndividualDistribution(ctx, startDate, endDate)
     if err != nil {
         return nil, err
     }
 
-    
+    // Get water pump trend
     years := []int{2018, 2019, 2020, 2021, 2022, 2023, 2024}
     waterPumpTrend, err := uc.agricultureRepo.GetEquipmentTrend(ctx, "water_pump", years)
     if err != nil {
         return nil, err
     }
 
-    
+    // Map main stats
     response.GrainProcessor = dto.EquipmentCount{
         Count:         convertToInt64(stats["grain_processor_count"]),
         GrowthPercent: convertToFloat64(stats["grain_processor_growth"]),
@@ -1015,18 +1015,23 @@ func (uc *AgricultureUseCase) GetAgriculturalEquipmentStats(ctx context.Context,
         GrowthPercent: convertToFloat64(stats["water_pump_growth"]),
     }
 
-    
-    for _, item := range distribution {
-        response.DistributionByDistrict = append(response.DistributionByDistrict, dto.EquipmentDistrict{
+    // Map individual distribution (bukan per district)
+    response.IndividualDistribution = []dto.EquipmentIndividualLocation{}
+    for _, item := range individualDistribution {
+        response.IndividualDistribution = append(response.IndividualDistribution, dto.EquipmentIndividualLocation{
+            Latitude:       convertToFloat64(item["latitude"]),
+            Longitude:      convertToFloat64(item["longitude"]),
+            Village:        convertToString(item["village"]),
             District:       convertToString(item["district"]),
-            GrainProcessor: convertToInt64(item["grain_processor"]),
-            Thresher:       convertToInt64(item["thresher"]),
-            FarmMachinery:  convertToInt64(item["farm_machinery"]),
-            WaterPump:      convertToInt64(item["water_pump"]),
+            FarmerName:     convertToString(item["farmer_name"]),
+            TechnologyType: convertToString(item["technology_type"]),
+            Commodity:      convertToString(item["commodity"]),
+            VisitDate:      convertToString(item["visit_date"]),
         })
     }
 
-    
+    // Map water pump trend
+    response.WaterPumpTrend = []dto.EquipmentTrend{}
     for _, item := range waterPumpTrend {
         response.WaterPumpTrend = append(response.WaterPumpTrend, dto.EquipmentTrend{
             Year:  int(convertToInt64(item["year"])),
@@ -1034,7 +1039,7 @@ func (uc *AgricultureUseCase) GetAgriculturalEquipmentStats(ctx context.Context,
         })
     }
 
-    
+    // Cache the response
     uc.cache.Set(ctx, cacheKey, &response, 1200*time.Second)
 
     return &response, nil
@@ -1103,6 +1108,7 @@ func (uc *AgricultureUseCase) GetLandAndIrrigationStats(ctx context.Context, sta
 
     return &response, nil
 }
+
 func (uc *AgricultureUseCase) GetCommodityAnalysis(ctx context.Context, startDate, endDate time.Time, commodityName string) (*dto.CommodityAnalysisResponse, error) {
     cacheKey := fmt.Sprintf("agriculture:commodity_analysis:%s:%s:%s", 
         commodityName, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
@@ -1113,26 +1119,26 @@ func (uc *AgricultureUseCase) GetCommodityAnalysis(ctx context.Context, startDat
         return &response, nil
     }
 
-    
+    // Get main analysis
     analysis, err := uc.agricultureRepo.GetCommodityAnalysis(ctx, startDate, endDate, commodityName)
     if err != nil {
         return nil, err
     }
 
-    
-    districtProduction, err := uc.agricultureRepo.GetProductionByDistrict(ctx, startDate, endDate, commodityName)
+    // Get geographic distribution (bukan per district lagi)
+    distribution, err := uc.agricultureRepo.GetProductionByDistrict(ctx, startDate, endDate, commodityName)
     if err != nil {
         return nil, err
     }
 
-    
+    // Get productivity trend
     years := []int{2018, 2019, 2020, 2021, 2022, 2023, 2024}
     productivityTrend, err := uc.agricultureRepo.GetProductivityTrend(ctx, commodityName, years)
     if err != nil {
         return nil, err
     }
 
-    
+    // Map main analysis
     response.TotalProduction = analysis["total_production"].(float64)
     response.ProductionGrowth = analysis["production_growth"].(float64)
     response.TotalHarvestedArea = analysis["total_harvested_area"].(float64)
@@ -1140,33 +1146,41 @@ func (uc *AgricultureUseCase) GetCommodityAnalysis(ctx context.Context, startDat
     response.Productivity = analysis["productivity"].(float64)
     response.ProductivityGrowth = analysis["productivity_growth"].(float64)
 
-    
-    for _, item := range districtProduction {
-        response.ProductionByDistrict = append(response.ProductionByDistrict, dto.ProductionDistrict{
-            District:      item["district"].(string),
-            Production:    item["production"].(float64),
-            HarvestedArea: item["harvested_area"].(float64),
-            FarmerCount:   int(item["farmer_count"].(int64)),
-        })
+    // Map geographic distribution
+    response.ProductionDistribution = []dto.ProductionLocation{}
+    if len(distribution) > 0 {
+        for _, item := range distribution {
+            response.ProductionDistribution = append(response.ProductionDistribution, dto.ProductionLocation{
+                Latitude:            item["latitude"].(float64),
+                Longitude:           item["longitude"].(float64),
+                Village:             item["village"].(string),
+                District:            item["district"].(string),
+                Commodity:           item["commodity"].(string),
+                LandArea:            item["land_area"].(float64),
+                EstimatedProduction: item["estimated_production"].(float64),
+                FarmerName:          item["farmer_name"].(string),
+            })
+        }
     }
 
-    
-    for _, item := range productivityTrend {
-        response.ProductivityTrend = append(response.ProductivityTrend, dto.ProductivityTrend{
-            Year:         int(item["year"].(int64)),
-            Productivity: item["productivity"].(float64),
-            Production:   item["production"].(float64),
-            Area:         item["area"].(float64),
-        })
+    // Map productivity trend
+    response.ProductivityTrend = []dto.ProductivityTrend{}
+    if len(productivityTrend) > 0 {
+        for _, item := range productivityTrend {
+            response.ProductivityTrend = append(response.ProductivityTrend, dto.ProductivityTrend{
+                Year:         int(item["year"].(int64)),
+                Productivity: item["productivity"].(float64),
+                Production:   item["production"].(float64),
+                Area:         item["area"].(float64),
+            })
+        }
     }
 
-    
+    // Cache the response
     uc.cache.Set(ctx, cacheKey, &response, 1800*time.Second)
 
     return &response, nil
 }
-
-
 
 func (uc *AgricultureUseCase) GetDashboardWithFilters(ctx context.Context, filters map[string]interface{}) (*dto.AgricultureExecutiveResponse, error) {
 

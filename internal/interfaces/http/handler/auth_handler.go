@@ -40,6 +40,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
     return response.Success(c, "User registered successfully", result)
 }
 
+
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
     var req dto.LoginRequest
     if err := c.BodyParser(&req); err != nil {

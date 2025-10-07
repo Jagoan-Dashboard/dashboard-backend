@@ -36,6 +36,6 @@ COPY --from=builder /app/seeder /app/seeder
 
 USER appuser
 
-EXPOSE 8081
+EXPOSE 8080
 
 ENTRYPOINT ["/app/main"]
