@@ -3,13 +3,11 @@ package handler
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"building-report-backend/internal/application/dto"
 	"building-report-backend/internal/application/usecase"
 	"building-report-backend/internal/interfaces/response"
-	"building-report-backend/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -26,8 +24,8 @@ func NewWaterResourcesHandler(waterUseCase *usecase.WaterResourcesUseCase) *Wate
 
 func (h *WaterResourcesHandler) CreateReport(c *fiber.Ctx) error {
     var req dto.CreateWaterResourcesRequest
-
-    // Form values
+    
+    
     req.ReporterName = c.FormValue("reporter_name")
     req.InstitutionUnit = c.FormValue("institution_unit")
     req.PhoneNumber = c.FormValue("phone_number")
@@ -35,13 +33,10 @@ func (h *WaterResourcesHandler) CreateReport(c *fiber.Ctx) error {
     req.IrrigationType = c.FormValue("irrigation_type")
     req.DamageType = c.FormValue("damage_type")
     req.DamageLevel = c.FormValue("damage_level")
-    req.UrgencyCategory = c.FormValue("urgent_category") // NOTE: kalau key aslinya "urgency_category", ubah baris ini
-    if req.UrgencyCategory == "" {
-        req.UrgencyCategory = c.FormValue("urgency_category")
-    }
+    req.UrgencyCategory = c.FormValue("urgency_category")
     req.Notes = c.FormValue("notes")
-
-    // Datetime
+    
+    
     reportDateTimeStr := c.FormValue("report_datetime")
     if reportDateTime, err := time.Parse(time.RFC3339, reportDateTimeStr); err == nil {
         req.ReportDateTime = reportDateTime
@@ -52,8 +47,8 @@ func (h *WaterResourcesHandler) CreateReport(c *fiber.Ctx) error {
             return response.BadRequest(c, "Invalid datetime format", err)
         }
     }
-
-    // Numerik
+    
+    
     if lat, err := strconv.ParseFloat(c.FormValue("latitude"), 64); err == nil {
         req.Latitude = lat
     }
@@ -76,20 +71,20 @@ func (h *WaterResourcesHandler) CreateReport(c *fiber.Ctx) error {
         req.AffectedFarmersCount = farmers
     }
 
-    // === NORMALIZE DTO ===
-    req.Normalize()
-
+    
     if err := req.Validate(); err != nil {
         return response.ValidationError(c, err)
     }
 
+    
     // userID := c.Locals("userID").(string)
 
-    // Photos
+    
     form, err := c.MultipartForm()
     if err != nil {
         return response.BadRequest(c, "Failed to parse multipart form", err)
     }
+
     photos := form.File["photos"]
     if len(photos) < 2 {
         return response.BadRequest(c, "Minimum 2 photos required", nil)
@@ -118,19 +113,16 @@ func (h *WaterResourcesHandler) ListReports(c *fiber.Ctx) error {
     limit, _ := strconv.Atoi(c.Query("limit", "10"))
 
     filters := map[string]interface{}{
-        "institution_unit": c.Query("institution_unit"),
-        "irrigation_type":  c.Query("irrigation_type"),
-        "irrigation_area":  c.Query("irrigation_area"),
-        "damage_type":      c.Query("damage_type"),
-        "damage_level":     c.Query("damage_level"),
-        "urgency_category": c.Query("urgency_category"),
+        "institution_unit":  c.Query("institution_unit"),
+        "irrigation_type":   c.Query("irrigation_type"),
+        "irrigation_area":   c.Query("irrigation_area"),
+        "damage_type":       c.Query("damage_type"),
+        "damage_level":      c.Query("damage_level"),
+        "urgency_category":  c.Query("urgency_category"),
         "status":           c.Query("status"),
         "start_date":       c.Query("start_date"),
         "end_date":         c.Query("end_date"),
     }
-
-    // === NORMALIZE FILTERS ===
-    normalizeWaterFilters(filters)
 
     result, err := h.waterUseCase.ListReports(c.Context(), page, limit, filters)
     if err != nil {
@@ -159,9 +151,6 @@ func (h *WaterResourcesHandler) UpdateReport(c *fiber.Ctx) error {
         return response.BadRequest(c, "Invalid request body", err)
     }
 
-    // === NORMALIZE DTO ===
-    req.Normalize()
-
     if err := req.Validate(); err != nil {
         return response.ValidationError(c, err)
     }
@@ -187,11 +176,6 @@ func (h *WaterResourcesHandler) UpdateStatus(c *fiber.Ctx) error {
         return response.BadRequest(c, "Invalid request body", err)
     }
 
-    // === NORMALIZE DTO (jika ada) ===
-    if n, ok := any(&req).(interface{ Normalize() }); ok {
-        n.Normalize()
-    }
-
     if err := req.Validate(); err != nil {
         return response.ValidationError(c, err)
     }
@@ -202,7 +186,6 @@ func (h *WaterResourcesHandler) UpdateStatus(c *fiber.Ctx) error {
 
     return response.Success(c, "Report status updated successfully", nil)
 }
-
 
 func (h *WaterResourcesHandler) DeleteReport(c *fiber.Ctx) error {
     id := c.Params("id")
@@ -242,10 +225,10 @@ func (h *WaterResourcesHandler) GetUrgentReports(c *fiber.Ctx) error {
 func (h *WaterResourcesHandler) GetDamageByArea(c *fiber.Ctx) error {
     startDateStr := c.Query("start_date", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
     endDateStr := c.Query("end_date", time.Now().Format("2006-01-02"))
-
+    
     startDate, _ := time.Parse("2006-01-02", startDateStr)
     endDate, _ := time.Parse("2006-01-02", endDateStr)
-
+    
     results, err := h.waterUseCase.GetDamageByArea(c.Context(), startDate, endDate)
     if err != nil {
         return response.InternalError(c, "Failed to retrieve damage statistics by area", err)
@@ -254,16 +237,12 @@ func (h *WaterResourcesHandler) GetDamageByArea(c *fiber.Ctx) error {
     return response.Success(c, "Damage statistics by area retrieved successfully", results)
 }
 
-func (h *WaterResourcesHandler) GetDashboard(c *fiber.Ctx) error {
-    rawType := c.Query("irrigation_type", "ALL")
-    startStr := c.Query("start_date", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
-    endStr := c.Query("end_date", time.Now().Format("2006-01-02")) // default: hari ini
 
-    // Normalisasi irrigation_type
-    typeNorm, ok := normalizeIrrigationTypeParam(rawType)
-    if !ok {
-        return response.BadRequest(c, "invalid irrigation_type", fmt.Errorf("use: ALL or one of IRIGASI_PRIMER, IRIGASI_SEKUNDER, IRIGASI_TERSIER, BENDUNG, EMBUNG_DAM, PINTU_AIR, SALURAN_DRAINASE, LAINNYA"))
-    }
+func (h *WaterResourcesHandler) GetDashboard(c *fiber.Ctx) error {
+    // Query params
+    irrigationType := c.Query("irrigation_type", "ALL")
+    startStr := c.Query("start_date", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
+    endStr := c.Query("end_date", time.Now().Format("2026-01-02")) // default: hari ini
 
     startDate, err := time.Parse("2006-01-02", startStr)
     if err != nil {
@@ -274,13 +253,12 @@ func (h *WaterResourcesHandler) GetDashboard(c *fiber.Ctx) error {
         return response.BadRequest(c, "invalid end_date format, use YYYY-MM-DD", err)
     }
 
-    data, err := h.waterUseCase.GetDashboard(c.Context(), typeNorm, startDate, endDate)
+    data, err := h.waterUseCase.GetDashboard(c.Context(), irrigationType, startDate, endDate)
     if err != nil {
         return response.InternalError(c, "Failed to build water resources dashboard", err)
     }
     return response.Success(c, "Water resources dashboard", data)
 }
-
 
 func (h *WaterResourcesHandler) GetWaterResourcesOverview(c *fiber.Ctx) error {
     irrigationType := c.Query("irrigation_type", "all") // all, IRIGASI_PRIMER, IRIGASI_SEKUNDER, etc.
@@ -316,59 +294,4 @@ func (h *WaterResourcesHandler) GetWaterResourcesOverview(c *fiber.Ctx) error {
     }
 
     return response.Success(c, "Water resources overview retrieved successfully", overview)
-}
-
-// ---- letakkan di file yang sama (di bawah type handler) ----
-
-// Field "lokasi" → pakai NormalizeLocation
-var waterLocationKeys = map[string]bool{
-    "reporter_name":       true,
-    "irrigation_area":     true, // query key
-    "irrigation_area_name": true, // kalau dipakai di tempat lain
-}
-
-// Field "enum/kategori" → pakai NormalizeEnum
-var waterEnumKeys = map[string]bool{
-    "institution_unit": true,
-    "irrigation_type":  true,
-    "damage_type":      true,
-    "damage_level":     true,
-    "urgency_category": true,
-    "status":           true,
-}
-
-func normalizeWaterFilters(filters map[string]interface{}) {
-    for k, v := range filters {
-        s, ok := v.(string)
-        if !ok || s == "" {
-            continue
-        }
-        if waterLocationKeys[k] {
-            filters[k] = utils.NormalizeLocation(s)
-            continue
-        }
-        if waterEnumKeys[k] {
-            filters[k] = utils.NormalizeEnum(s)
-            continue
-        }
-    }
-}
-
-// Normalisasi + validasi irrigation_type; "" artinya 'ALL'
-func normalizeIrrigationTypeParam(t string) (string, bool) {
-    n := utils.NormalizeEnum(strings.TrimSpace(t))
-    if n == "" || n == "all" {
-        return "", true
-    }
-    valid := map[string]bool{
-        "irigasi_primer":    true,
-        "irigasi_sekunder":  true,
-        "irigasi_tersier":   true,
-        "bendung":           true,
-        "embung_dam":        true,
-        "pintu_air":         true,
-        "saluran_drainase":  true,
-        "lainnya":           true,
-    }
-    return n, valid[n]
 }
