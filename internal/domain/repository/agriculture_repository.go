@@ -74,8 +74,10 @@ type AgricultureRepository interface {
     GetAgriculturalEquipmentStats(ctx context.Context, startDate, endDate time.Time) (map[string]interface{}, error)
     GetEquipmentDistributionByDistrict(ctx context.Context, startDate, endDate time.Time) ([]map[string]interface{}, error)
     GetEquipmentTrend(ctx context.Context, equipmentType string, years []int) ([]map[string]interface{}, error)
+    GetEquipmentIndividualDistribution(ctx context.Context, startDate, endDate time.Time) ([]map[string]interface{}, error)
     
     // Land and Irrigation Methods
     GetLandAndIrrigationStats(ctx context.Context, startDate, endDate time.Time) (map[string]interface{}, error)
     GetLandDistributionByDistrict(ctx context.Context, startDate, endDate time.Time) ([]map[string]interface{}, error)
+    GetLandIndividualDistribution(ctx context.Context, startDate, endDate time.Time) ([]map[string]interface{}, error)
 }
