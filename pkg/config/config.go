@@ -53,10 +53,16 @@ type JWTConfig struct {
 }
 
 func Load() *Config {
-    err := godotenv.Load()
-    if err != nil {
-        log.Println("No .env file found, using environment variables")
-    }
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = "development"
+	}
+
+	envFiles := []string{".env", ".env." + appEnv}
+	err := godotenv.Load(envFiles...)
+	if err != nil {
+		log.Println("No .env file found, using environment variables")
+	}
 
     return &Config{
         App: AppConfig{
