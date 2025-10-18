@@ -97,12 +97,6 @@ CREATE TABLE agriculture_photos (
 
 CREATE INDEX idx_agriculture_photos_report_id ON agriculture_photos(report_id);
 
--- Create trigger to automatically update updated_at timestamp
-CREATE TRIGGER trigger_update_agriculture_updated_at
-    BEFORE UPDATE ON agriculture_reports
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
 -- +goose Down
 DROP TABLE IF EXISTS agriculture_photos;
 DROP TABLE IF EXISTS agriculture_reports;

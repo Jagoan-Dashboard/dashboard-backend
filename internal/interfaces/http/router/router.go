@@ -161,4 +161,20 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
         
         return c.JSON(fiber.Map{"message": "Advanced agriculture analytics"})
     })
+
+    executiveRoutes := api.Group("/executive")
+    economyRoutes := executiveRoutes.Group("/economy")
+    economyRoutes.Get("/overview", cont.ExecutiveHandler.GetEkonomiOverview)
+
+    populationRoutes := executiveRoutes.Group("/population")
+    populationRoutes.Get("/overview", cont.ExecutiveHandler.GetPopulationOverview)
+
+    povertyRoutes := executiveRoutes.Group("/poverty")
+    povertyRoutes.Get("/overview", cont.ExecutiveHandler.GetPovertyOverview)
+
+    employmentRoutes := executiveRoutes.Group("/employment")
+    employmentRoutes.Get("/overview", cont.ExecutiveHandler.GetEmploymentOverview)
+
+    educationRoutes := executiveRoutes.Group("/education")
+    educationRoutes.Get("/overview", cont.ExecutiveHandler.GetEducationOverview)
 }

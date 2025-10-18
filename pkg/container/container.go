@@ -29,7 +29,8 @@ type Container struct {
     SpatialPlanningRepo    repository.SpatialPlanningRepository
     WaterResourcesRepo     repository.WaterResourcesRepository
     BinaMargaRepo          repository.BinaMargaRepository
-    AgricultureRepo          repository.AgricultureRepository
+    AgricultureRepo        repository.AgricultureRepository
+    ExecutiveRepo          repository.ExecutiveRepository
 
     StorageService         storage.StorageService
     AuthService            auth.JWTService
@@ -40,6 +41,7 @@ type Container struct {
     WaterResourcesUseCase  *usecase.WaterResourcesUseCase
     BinaMargaUseCase       *usecase.BinaMargaUseCase
     AgricultureUseCase       *usecase.AgricultureUseCase
+    ExecutiveUseCase      *usecase.ExecutiveUseCase
      
     AuthHandler            *handler.AuthHandler
     ReportHandler          *handler.ReportHandler
@@ -47,6 +49,7 @@ type Container struct {
     WaterResourcesHandler  *handler.WaterResourcesHandler
     BinaMargaHandler       *handler.BinaMargaHandler
     AgricultureHandler       *handler.AgricultureHandler
+    ExecutiveHandler       *handler.ExecutiveHandler
 }
 
 func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, minioClient *minio.Client) *Container {
@@ -64,6 +67,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mi
     container.WaterResourcesRepo = postgres.NewWaterResourcesRepository(db)
     container.BinaMargaRepo = postgres.NewBinaMargaRepository(db)
     container.AgricultureRepo = postgres.NewAgricultureRepository(db)
+    container.ExecutiveRepo = postgres.NewExecutiveRepository(db)
  
     container.StorageService = storage.NewMinioStorage(
         minioClient,
@@ -102,10 +106,16 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mi
         container.StorageService,
         container.CacheRepo,
     )
-
+    container.ExecutiveUseCase = usecase.NewExecutiveUseCase(
+        container.ExecutiveRepo,
+    )
     
-    container.AuthHandler = handler.NewAuthHandler(container.AuthUseCase)
-    container.ReportHandler = handler.NewReportHandler(container.ReportUseCase)
+    container.AuthHandler = handler.NewAuthHandler(
+        container.AuthUseCase,
+    )
+    container.ReportHandler = handler.NewReportHandler(
+        container.ReportUseCase,
+    )
     container.SpatialPlanningHandler = handler.NewSpatialPlanningHandler(
         container.SpatialPlanningUseCase,
     )
@@ -118,8 +128,11 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mi
     container.AgricultureHandler = handler.NewAgricultureHandler(
         container.AgricultureUseCase,
     )
+    container.ExecutiveHandler = handler.NewExecutiveHandler(
+        container.ExecutiveUseCase,
+    )
+
 
     return container
 
-    return container
 }
