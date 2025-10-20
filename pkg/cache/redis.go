@@ -4,6 +4,7 @@ package cache
 import (
     "context"
     "fmt"
+    "log"
     "building-report-backend/pkg/config"
     
     "github.com/redis/go-redis/v9"
@@ -16,10 +17,10 @@ func NewRedisClient(cfg config.RedisConfig) *redis.Client {
         DB:       cfg.DB,
     })
 
-    
     ctx := context.Background()
     if err := client.Ping(ctx).Err(); err != nil {
-        panic(fmt.Sprintf("Failed to connect to Redis: %v", err))
+        log.Printf("Warning: Failed to connect to Redis: %v. Some features may be limited.", err)
+        // Don't panic, return the client anyway - operations will fail gracefully when used
     }
 
     return client
