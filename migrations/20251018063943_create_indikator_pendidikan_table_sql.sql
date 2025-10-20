@@ -1,6 +1,8 @@
 -- +goose Up
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TABLE indikator_pendidikan (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     indikator VARCHAR(150) NOT NULL,
     tahun INTEGER NOT NULL,
     nilai DECIMAL(15, 4) NOT NULL,
@@ -21,25 +23,25 @@ COMMENT ON COLUMN indikator_pendidikan.nilai IS 'Nilai indikator dengan 4 digit 
 -- Seeder data
 INSERT INTO indikator_pendidikan (id, indikator, tahun, nilai) VALUES
 -- Rata-rata Lama Sekolah
-(gen_random_uuid(), 'Rata-rata Lama Sekolah', 2020, 7.06),
-(gen_random_uuid(), 'Rata-rata Lama Sekolah', 2021, 7.26),
-(gen_random_uuid(), 'Rata-rata Lama Sekolah', 2022, 7.59),
-(gen_random_uuid(), 'Rata-rata Lama Sekolah', 2023, 7.78),
-(gen_random_uuid(), 'Rata-rata Lama Sekolah', 2024, 7.84),
+(uuid_generate_v4(), 'Rata-rata Lama Sekolah', 2020, 7.06),
+(uuid_generate_v4(), 'Rata-rata Lama Sekolah', 2021, 7.26),
+(uuid_generate_v4(), 'Rata-rata Lama Sekolah', 2022, 7.59),
+(uuid_generate_v4(), 'Rata-rata Lama Sekolah', 2023, 7.78),
+(uuid_generate_v4(), 'Rata-rata Lama Sekolah', 2024, 7.84),
 
 -- Harapan Lama Sekolah
-(gen_random_uuid(), 'Harapan Lama Sekolah', 2020, 12.70),
-(gen_random_uuid(), 'Harapan Lama Sekolah', 2021, 12.83),
-(gen_random_uuid(), 'Harapan Lama Sekolah', 2022, 12.84),
-(gen_random_uuid(), 'Harapan Lama Sekolah', 2023, 12.85),
-(gen_random_uuid(), 'Harapan Lama Sekolah', 2024, 12.89),
+(uuid_generate_v4(), 'Harapan Lama Sekolah', 2020, 12.70),
+(uuid_generate_v4(), 'Harapan Lama Sekolah', 2021, 12.83),
+(uuid_generate_v4(), 'Harapan Lama Sekolah', 2022, 12.84),
+(uuid_generate_v4(), 'Harapan Lama Sekolah', 2023, 12.85),
+(uuid_generate_v4(), 'Harapan Lama Sekolah', 2024, 12.89),
 
 -- Proporsi Penduduk dengan Pendidikan Tinggi
-(gen_random_uuid(), 'Proporsi dengan Pendidikan Tinggi', 2020, 5.23),
-(gen_random_uuid(), 'Proporsi dengan Pendidikan Tinggi', 2021, 6.79),
-(gen_random_uuid(), 'Proporsi dengan Pendidikan Tinggi', 2022, 6.87),
-(gen_random_uuid(), 'Proporsi dengan Pendidikan Tinggi', 2023, 7.42),
-(gen_random_uuid(), 'Proporsi dengan Pendidikan Tinggi', 2024, 7.50);
+(uuid_generate_v4(), 'Proporsi dengan Pendidikan Tinggi', 2020, 5.23),
+(uuid_generate_v4(), 'Proporsi dengan Pendidikan Tinggi', 2021, 6.79),
+(uuid_generate_v4(), 'Proporsi dengan Pendidikan Tinggi', 2022, 6.87),
+(uuid_generate_v4(), 'Proporsi dengan Pendidikan Tinggi', 2023, 7.42),
+(uuid_generate_v4(), 'Proporsi dengan Pendidikan Tinggi', 2024, 7.50);
 
 -- +goose Down
 DROP INDEX IF EXISTS idx_indikator_pendidikan_indikator_tahun;
