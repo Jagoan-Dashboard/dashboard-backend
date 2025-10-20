@@ -2,10 +2,8 @@
     package config
 
     import (
-        "log"
         "os"
         "strconv"
-        "github.com/joho/godotenv"
     )
 
     type Config struct {
@@ -52,10 +50,6 @@
     }
 
     func Load() *Config {
-        err := godotenv.Load()
-        if err != nil {
-            log.Println("No .env file found, using environment variables")
-        }
 
         return &Config{
             App: AppConfig{

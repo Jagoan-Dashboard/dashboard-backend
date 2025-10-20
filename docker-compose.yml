@@ -126,7 +126,6 @@ services:
           memory: 512M
     security_opt:
       - no-new-privileges:true
-
   nginx:
     image: nginx:alpine
     container_name: building-report-nginx
