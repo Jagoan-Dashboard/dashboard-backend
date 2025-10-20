@@ -15,4 +15,5 @@ type UserRepository interface {
     FindByUsername(ctx context.Context, username string) (*entity.User, error)
     FindByEmail(ctx context.Context, email string) (*entity.User, error)
     FindAll(ctx context.Context, limit, offset int) ([]*entity.User, int64, error)
+    FindByUsernameOrEmail(ctx context.Context, identifier string) (*entity.User, error)
 }

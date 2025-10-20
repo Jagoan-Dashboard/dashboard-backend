@@ -1,5 +1,12 @@
 # Makefile
 .PHONY: help run build test migrate
+MIGRATIONS_DIR := ./migrations
+
+# Load .env jika ada
+ifneq (,$(wildcard .env))
+include .env
+export
+endif
 
 help:
 	@echo "Available commands:"
@@ -96,3 +103,10 @@ migrate-down:
 migrate-status:
 	@echo "Migration status..."
 	@goose -dir migrations postgres "host=$(DB_HOST) port=$(DB_PORT) user=$(DB_USER) password=$(DB_PASSWORD) dbname=$(DB_NAME) sslmode=disable" status
+
+migrate-create:
+	@if [ -z "$(name)" ]; then \
+		echo "❌ Usage: make migrate-create name=<migration_name>"; \
+	else \
+		goose create $(name) sql -dir $(MIGRATIONS_DIR); \
+	fi

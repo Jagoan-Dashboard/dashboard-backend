@@ -6,8 +6,8 @@
 
 DROP TABLE IF EXISTS agriculture_photos;
 DROP TABLE IF EXISTS agriculture_reports;
-DROP TABLE IF EXISTS bina_marga_photos;
-DROP TABLE IF EXISTS bina_marga_reports;
+DROP TABLE IF EXISTS bina_marga_photos CASCADE;
+DROP TABLE IF EXISTS bina_marga_reports CASCADE;
 DROP TABLE IF EXISTS water_resources_photos;
 DROP TABLE IF EXISTS water_resources_reports;
 DROP TABLE IF EXISTS spatial_planning_photos;

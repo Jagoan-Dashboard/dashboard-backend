@@ -16,10 +16,9 @@ type RegisterRequest struct {
 func (r *RegisterRequest) Validate() error {
     return validate.Struct(r)
 }
-
 type LoginRequest struct {
-    Username string `json:"username" validate:"required"`
-    Password string `json:"password" validate:"required"`
+    Identifier string `json:"identifier" validate:"required"` // bisa username atau email
+    Password   string `json:"password" validate:"required"`
 }
 
 func (l *LoginRequest) Validate() error {
