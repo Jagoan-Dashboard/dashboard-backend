@@ -111,8 +111,9 @@ services:
       - no-new-privileges:true
 
   nginx:
-    image: nginx:alpine
+    image: nginx:latest
     restart: unless-stopped
+    pull_policy: always
     # Hapus 'ports' eksternal (80:80, 443:443)
     # Gunakan 'expose' untuk menunjukkan port internal yang akan di-route oleh Traefik
     expose:
