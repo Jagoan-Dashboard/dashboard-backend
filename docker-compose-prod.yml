@@ -112,7 +112,7 @@ services:
       - no-new-privileges:true
 
   nginx:
-    image: nginx:latest
+    image: nginx:1.29.2-alpine-slim
     restart: unless-stopped
     pull_policy: always
     # Hapus 'ports' eksternal (80:80, 443:443)
