@@ -202,64 +202,6 @@ func (h *WaterResourcesHandler) DeleteReport(c *fiber.Ctx) error {
     return response.Success(c, "Report deleted successfully", nil)
 }
 
-func (h *WaterResourcesHandler) GetStatistics(c *fiber.Ctx) error {
-    stats, err := h.waterUseCase.GetStatistics(c.Context())
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve statistics", err)
-    }
-
-    return response.Success(c, "Statistics retrieved successfully", stats)
-}
-
-func (h *WaterResourcesHandler) GetUrgentReports(c *fiber.Ctx) error {
-    limit, _ := strconv.Atoi(c.Query("limit", "10"))
-    
-    reports, err := h.waterUseCase.GetUrgentReports(c.Context(), limit)
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve urgent reports", err)
-    }
-
-    return response.Success(c, "Urgent reports retrieved successfully", reports)
-}
-
-func (h *WaterResourcesHandler) GetDamageByArea(c *fiber.Ctx) error {
-    startDateStr := c.Query("start_date", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
-    endDateStr := c.Query("end_date", time.Now().Format("2006-01-02"))
-    
-    startDate, _ := time.Parse("2006-01-02", startDateStr)
-    endDate, _ := time.Parse("2006-01-02", endDateStr)
-    
-    results, err := h.waterUseCase.GetDamageByArea(c.Context(), startDate, endDate)
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve damage statistics by area", err)
-    }
-
-    return response.Success(c, "Damage statistics by area retrieved successfully", results)
-}
-
-
-func (h *WaterResourcesHandler) GetDashboard(c *fiber.Ctx) error {
-    // Query params
-    irrigationType := c.Query("irrigation_type", "ALL")
-    startStr := c.Query("start_date", time.Now().AddDate(0, -1, 0).Format("2006-01-02"))
-    endStr := c.Query("end_date", time.Now().Format("2026-01-02")) // default: hari ini
-
-    startDate, err := time.Parse("2006-01-02", startStr)
-    if err != nil {
-        return response.BadRequest(c, "invalid start_date format, use YYYY-MM-DD", err)
-    }
-    endDate, err := time.Parse("2006-01-02", endStr)
-    if err != nil {
-        return response.BadRequest(c, "invalid end_date format, use YYYY-MM-DD", err)
-    }
-
-    data, err := h.waterUseCase.GetDashboard(c.Context(), irrigationType, startDate, endDate)
-    if err != nil {
-        return response.InternalError(c, "Failed to build water resources dashboard", err)
-    }
-    return response.Success(c, "Water resources dashboard", data)
-}
-
 func (h *WaterResourcesHandler) GetWaterResourcesOverview(c *fiber.Ctx) error {
     irrigationType := c.Query("irrigation_type", "all") // all, IRIGASI_PRIMER, IRIGASI_SEKUNDER, etc.
     

@@ -93,12 +93,12 @@ func (r *reportRepositoryImpl) FindByUserID(ctx context.Context, userID string, 
     return reports, total, err
 }
 
-// Raw SQL Methods for Statistics
+
 
 func (r *reportRepositoryImpl) GetStatistics(ctx context.Context, buildingType string) (map[string]interface{}, error) {
     stats := make(map[string]interface{})
     
-    // Build base query
+    
     baseWhere := ""
     args := []interface{}{}
     argIndex := 1
@@ -109,7 +109,7 @@ func (r *reportRepositoryImpl) GetStatistics(ctx context.Context, buildingType s
         argIndex++
     }
     
-    // 1. Total reports
+    
     query := fmt.Sprintf(`SELECT COUNT(*) FROM reports %s`, baseWhere)
     var totalReports int64
     err := r.db.WithContext(ctx).Raw(query, args...).Scan(&totalReports).Error
@@ -125,7 +125,7 @@ func (r *reportRepositoryImpl) GetStatistics(ctx context.Context, buildingType s
         return stats, nil
     }
     
-    // 2. Average floor area
+    
     query = fmt.Sprintf(`SELECT COALESCE(AVG(floor_area), 0) FROM reports %s`, baseWhere)
     var avgFloorArea float64
     err = r.db.WithContext(ctx).Raw(query, args...).Scan(&avgFloorArea).Error
@@ -134,7 +134,7 @@ func (r *reportRepositoryImpl) GetStatistics(ctx context.Context, buildingType s
     }
     stats["average_floor_area"] = avgFloorArea
     
-    // 3. Average floor count
+    
     query = fmt.Sprintf(`SELECT COALESCE(AVG(floor_count), 0) FROM reports %s`, baseWhere)
     var avgFloorCount float64
     err = r.db.WithContext(ctx).Raw(query, args...).Scan(&avgFloorCount).Error
@@ -143,7 +143,7 @@ func (r *reportRepositoryImpl) GetStatistics(ctx context.Context, buildingType s
     }
     stats["average_floor_count"] = avgFloorCount
     
-    // 4. Damaged buildings count (report_status = 'REHABILITASI')
+    
     var damagedQuery string
     var damagedArgs []interface{}
     if buildingType != "" && buildingType != "all" {

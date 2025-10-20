@@ -255,82 +255,6 @@ func (uc *WaterResourcesUseCase) DeleteReport(ctx context.Context, id string, us
     return nil
 }
 
-func (uc *WaterResourcesUseCase) GetStatistics(ctx context.Context) (*dto.WaterResourcesStatisticsResponse, error) {
-    
-    cacheKey := "water:stats"
-    var stats dto.WaterResourcesStatisticsResponse
-    
-    err := uc.cache.Get(ctx, cacheKey, &stats)
-    if err == nil {
-        return &stats, nil
-    }
-
-    
-    rawStats, err := uc.waterRepo.GetStatistics(ctx)
-    if err != nil {
-        return nil, err
-    }
-
-    
-    response := &dto.WaterResourcesStatisticsResponse{
-        TotalReports:         rawStats["total_reports"].(int64),
-        UrgentPending:        rawStats["urgent_pending"].(int64),
-        TotalAffectedAreaHa:  rawStats["total_affected_area_ha"].(float64),
-        TotalAffectedFarmers: rawStats["total_affected_farmers"].(int64),
-        EstimatedTotalBudget: rawStats["estimated_total_budget"].(float64),
-    }
-
-    
-    if damageTypes, ok := rawStats["damage_types"].([]interface{}); ok {
-        for _, v := range damageTypes {
-            if m, ok := v.(map[string]interface{}); ok {
-                response.DamageTypes = append(response.DamageTypes, m)
-            }
-        }
-    }
-
-    if irrigationTypes, ok := rawStats["irrigation_types"].([]interface{}); ok {
-        for _, v := range irrigationTypes {
-            if m, ok := v.(map[string]interface{}); ok {
-                response.IrrigationTypes = append(response.IrrigationTypes, m)
-            }
-        }
-    }
-
-    if statusDist, ok := rawStats["status_distribution"].([]interface{}); ok {
-        for _, v := range statusDist {
-            if m, ok := v.(map[string]interface{}); ok {
-                response.StatusDistribution = append(response.StatusDistribution, m)
-            }
-        }
-    }
-
-    
-    uc.cache.Set(ctx, cacheKey, response, 300)
-
-    return response, nil
-}
-
-func (uc *WaterResourcesUseCase) GetUrgentReports(ctx context.Context, limit int) ([]*entity.WaterResourcesReport, error) {
-    
-    cacheKey := fmt.Sprintf("water:urgent:%d", limit)
-    
-    reports, err := uc.waterRepo.GetUrgentReports(ctx, limit)
-    if err != nil {
-        return nil, err
-    }
-
-    
-    uc.cache.Set(ctx, cacheKey, reports, 120)
-
-    return reports, nil
-}
-
-func (uc *WaterResourcesUseCase) GetDamageByArea(ctx context.Context, startDate, endDate time.Time) ([]map[string]interface{}, error) {
-    return uc.waterRepo.GetDamageStatisticsByArea(ctx, startDate, endDate)
-}
-
-
 func (uc *WaterResourcesUseCase) calculateEstimatedBudget(report *entity.WaterResourcesReport) float64 {
     baseCost := 1000000.0 
     
@@ -375,74 +299,6 @@ func (uc *WaterResourcesUseCase) sendUrgentNotification(ctx context.Context, rep
     
     fmt.Printf("URGENT: New water resource damage report at %s affecting %d farmers\n", 
         report.IrrigationAreaName, report.AffectedFarmersCount)
-}
-
-func (uc *WaterResourcesUseCase) GetDashboard(
-    ctx context.Context,
-    irrigationType string,
-    startDate, endDate time.Time,
-) (*dto.WaterResourcesDashboardResponse, error) {
-
-    // KPI
-    totalArea, totalRice, totalReports, err := uc.waterRepo.GetSummaryKPIs(ctx, irrigationType, startDate, endDate)
-    if err != nil {
-        return nil, err
-    }
-
-    // Distribusi (urgency, damage type, level)
-    urgRows, err := uc.waterRepo.GroupCountBy(ctx, "urgency_category", irrigationType, startDate, endDate)
-    if err != nil {
-        return nil, err
-    }
-    dmgTypeRows, err := uc.waterRepo.GroupCountBy(ctx, "damage_type", irrigationType, startDate, endDate)
-    if err != nil {
-        return nil, err
-    }
-    dmgLevelRows, err := uc.waterRepo.GroupCountBy(ctx, "damage_level", irrigationType, startDate, endDate)
-    if err != nil {
-        return nil, err
-    }
-
-    // Map points
-    pts, err := uc.waterRepo.GetMapPoints(ctx, irrigationType, startDate, endDate)
-    if err != nil {
-        return nil, err
-    }
-
-    // Build DTO
-    res := &dto.WaterResourcesDashboardResponse{}
-    res.KPIs.TotalDamageAreaM2 = totalArea
-    res.KPIs.TotalRiceFieldHa = totalRice
-    res.KPIs.TotalReports = totalReports
-
-    res.UrgencyDistribution = make([]dto.KeyCount, len(urgRows))
-    for i, r0 := range urgRows {
-        res.UrgencyDistribution[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
-    }
-
-    res.TopDamageTypes = make([]dto.KeyCount, len(dmgTypeRows))
-    for i, r0 := range dmgTypeRows {
-        res.TopDamageTypes[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
-    }
-
-    res.TopDamageLevels = make([]dto.KeyCount, len(dmgLevelRows))
-    for i, r0 := range dmgLevelRows {
-        res.TopDamageLevels[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
-    }
-
-    res.MapPoints = make([]dto.DashboardMapPoint, len(pts))
-    for i, p := range pts {
-        res.MapPoints[i] = dto.DashboardMapPoint{
-            Latitude:        p.Latitude,
-            Longitude:       p.Longitude,
-            IrrigationArea:  p.IrrigationArea,
-            DamageType:      p.DamageType,
-            DamageLevel:     p.DamageLevel,
-            UrgencyCategory: p.UrgencyCategory,
-        }
-    }
-
-    return res, nil
 }
 
 func (uc *WaterResourcesUseCase) GetWaterResourcesOverview(ctx context.Context, irrigationType string) (*dto.WaterResourcesOverviewResponse, error) {
@@ -577,7 +433,6 @@ func (uc *WaterResourcesUseCase) GetWaterResourcesOverview(ctx context.Context, 
     return &response, nil
 }
 
-// Alternative: Generic helper function untuk safe type conversion
 func safeInt64(value interface{}) int64 {
     switch v := value.(type) {
     case int64:
@@ -593,9 +448,6 @@ func safeInt64(value interface{}) int64 {
     }
 }
 
-func safeInt(value interface{}) int {
-    return int(safeInt64(value))
-}
 
 func safeFloat64(value interface{}) float64 {
     switch v := value.(type) {

@@ -17,6 +17,17 @@ func NewUserRepository(db *gorm.DB) repository.UserRepository {
     return &userRepositoryImpl{db: db}
 }
 
+func (r *userRepositoryImpl) FindByUsernameOrEmail(ctx context.Context, identifier string) (*entity.User, error) {
+    var user entity.User
+    err := r.db.WithContext(ctx).
+        Where("username = ? OR email = ?", identifier, identifier).
+        First(&user).Error
+    if err != nil {
+        return nil, err
+    }
+    return &user, nil
+}
+
 func (r *userRepositoryImpl) Create(ctx context.Context, user *entity.User) error {
     return r.db.WithContext(ctx).Create(user).Error
 }

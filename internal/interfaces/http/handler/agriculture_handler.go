@@ -1,11 +1,9 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"building-report-backend/internal/application/dto"
@@ -54,7 +52,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         return response.BadRequest(c, "Invalid longitude format", err)
     }
 
-    // FOOD
+    
     req.FoodCommodity = c.FormValue("food_commodity")
     if req.FoodCommodity != "" {
         req.FoodLandStatus = c.FormValue("food_land_status")
@@ -71,7 +69,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         req.FoodTechnology = c.FormValue("food_technology")
     }
 
-    // HORTI
+    
     req.HortiCommodity = c.FormValue("horti_commodity")
     if req.HortiCommodity != "" {
         req.HortiSubCommodity = c.FormValue("horti_sub_commodity")
@@ -90,7 +88,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         req.PostHarvestProblems = c.FormValue("post_harvest_problems")
     }
 
-    // PLANTATION
+    
     req.PlantationCommodity = c.FormValue("plantation_commodity")
     if req.PlantationCommodity != "" {
         req.PlantationLandStatus = c.FormValue("plantation_land_status")
@@ -108,7 +106,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         req.ProductionProblems = c.FormValue("production_problems")
     }
 
-    // PEST
+    
     if hasPest, err := strconv.ParseBool(c.FormValue("has_pest_disease")); err == nil {
         req.HasPestDisease = hasPest
         if hasPest {
@@ -119,7 +117,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         }
     }
 
-    // WEATHER / CONSTRAINTS / NEEDS
+    
     req.WeatherCondition = c.FormValue("weather_condition")
     req.WeatherImpact = c.FormValue("weather_impact")
     req.MainConstraint = c.FormValue("main_constraint")
@@ -134,7 +132,7 @@ func (h *AgricultureHandler) CreateReport(c *fiber.Ctx) error {
         return response.BadRequest(c, "At least one commodity (food/horticulture/plantation) must be specified", nil)
     }
 
-    // === NORMALIZE: panggil DTO normalizer ===
+    
     req.Normalize()
 
     if err := req.Validate(); err != nil {
@@ -213,7 +211,7 @@ func (h *AgricultureHandler) ListReports(c *fiber.Ctx) error {
         }
     }
 
-    // === NORMALIZE FILTERS ===
+    
     normalizeFilters(filters)
 
     result, err := h.agricultureUseCase.ListReports(c.Context(), page, limit, filters)
@@ -232,7 +230,7 @@ func (h *AgricultureHandler) UpdateReport(c *fiber.Ctx) error {
         return response.BadRequest(c, "Invalid request body", err)
     }
 
-    // === NORMALIZE: panggil DTO normalizer ===
+    
     req.Normalize()
 
     if err := req.Validate(); err != nil {
@@ -266,276 +264,6 @@ func (h *AgricultureHandler) DeleteReport(c *fiber.Ctx) error {
     }
 
     return response.Success(c, "Report deleted successfully", nil)
-}
-
-func (h *AgricultureHandler) GetStatistics(c *fiber.Ctx) error {
-    stats, err := h.agricultureUseCase.GetStatistics(c.Context())
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve statistics", err)
-    }
-
-    return response.Success(c, "Statistics retrieved successfully", stats)
-}
-
-func (h *AgricultureHandler) GetByExtensionOfficer(c *fiber.Ctx) error {
-    raw := c.Params("officer")
-    if raw == "" {
-        return response.BadRequest(c, "Extension officer name is required", nil)
-    }
-    extensionOfficer := utils.NormalizeLocation(raw)
-
-    page, _ := strconv.Atoi(c.Query("page", "1"))
-    limit, _ := strconv.Atoi(c.Query("limit", "10"))
-    if page < 1 { page = 1 }
-    if limit < 1 || limit > 50 { limit = 10 }
-
-    result, err := h.agricultureUseCase.GetByExtensionOfficer(c.Context(), extensionOfficer, page, limit)
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve reports by extension officer", err)
-    }
-
-    return response.Success(c, "Reports by extension officer retrieved successfully", result)
-}
-
-func (h *AgricultureHandler) GetPestDiseaseReports(c *fiber.Ctx) error {
-    limit, _ := strconv.Atoi(c.Query("limit", "20"))
-    
-    if limit < 1 || limit > 100 {
-        limit = 20
-    }
-
-    reports, err := h.agricultureUseCase.GetPestDiseaseReports(c.Context(), limit)
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve pest disease reports", err)
-    }
-
-    return response.Success(c, "Pest disease reports retrieved successfully", reports)
-}
-
-func (h *AgricultureHandler) GetCommodityProduction(c *fiber.Ctx) error {
-    
-    endDate := time.Now()
-    startDate := endDate.AddDate(0, -3, 0)
-    
-    if startDateStr := c.Query("start_date"); startDateStr != "" {
-        if parsedDate, err := time.Parse("2006-01-02", startDateStr); err == nil {
-            startDate = parsedDate
-        } else {
-            return response.BadRequest(c, "Invalid start_date format, use YYYY-MM-DD", err)
-        }
-    }
-    
-    if endDateStr := c.Query("end_date"); endDateStr != "" {
-        if parsedDate, err := time.Parse("2006-01-02", endDateStr); err == nil {
-            endDate = parsedDate
-        } else {
-            return response.BadRequest(c, "Invalid end_date format, use YYYY-MM-DD", err)
-        }
-    }
-    
-    
-    if startDate.After(endDate) {
-        return response.BadRequest(c, "Start date cannot be after end date", nil)
-    }
-    
-    if endDate.Sub(startDate) > 365*24*time.Hour {
-        return response.BadRequest(c, "Date range cannot exceed 1 year", nil)
-    }
-
-    results, err := h.agricultureUseCase.GetCommodityProduction(c.Context(), startDate, endDate)
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve commodity production statistics", err)
-    }
-
-    return response.Success(c, "Commodity production statistics retrieved successfully", map[string]interface{}{
-        "data":       results,
-        "start_date": startDate.Format("2006-01-02"),
-        "end_date":   endDate.Format("2006-01-02"),
-    })
-}
-
-func (h *AgricultureHandler) GetExtensionOfficerPerformance(c *fiber.Ctx) error {
-    
-    endDate := time.Now()
-    startDate := endDate.AddDate(0, -6, 0)
-    
-    if startDateStr := c.Query("start_date"); startDateStr != "" {
-        if parsedDate, err := time.Parse("2006-01-02", startDateStr); err == nil {
-            startDate = parsedDate
-        }
-    }
-    
-    if endDateStr := c.Query("end_date"); endDateStr != "" {
-        if parsedDate, err := time.Parse("2006-01-02", endDateStr); err == nil {
-            endDate = parsedDate
-        }
-    }
-
-    results, err := h.agricultureUseCase.GetExtensionOfficerPerformance(c.Context(), startDate, endDate)
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve extension officer performance", err)
-    }
-
-    return response.Success(c, "Extension officer performance retrieved successfully", map[string]interface{}{
-        "data":       results,
-        "start_date": startDate.Format("2006-01-02"),
-        "end_date":   endDate.Format("2006-01-02"),
-    })
-}
-
-func (h *AgricultureHandler) GetTechnologyAdoptionStats(c *fiber.Ctx) error {
-    stats, err := h.agricultureUseCase.GetTechnologyAdoptionStats(c.Context())
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve technology adoption statistics", err)
-    }
-
-    return response.Success(c, "Technology adoption statistics retrieved successfully", stats)
-}
-
-func (h *AgricultureHandler) GetFarmerNeedsAnalysis(c *fiber.Ctx) error {
-    analysis, err := h.agricultureUseCase.GetFarmerNeedsAnalysis(c.Context())
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve farmer needs analysis", err)
-    }
-
-    return response.Success(c, "Farmer needs analysis retrieved successfully", analysis)
-}
-
-func (h *AgricultureHandler) GetReportsByVillage(c *fiber.Ctx) error {
-    raw := c.Params("village")
-    if raw == "" {
-        return response.BadRequest(c, "Village name is required", nil)
-    }
-    village := utils.NormalizeLocation(raw)
-
-    page, _ := strconv.Atoi(c.Query("page", "1"))
-    limit, _ := strconv.Atoi(c.Query("limit", "10"))
-
-    filters := map[string]interface{}{
-        "village": village,
-    }
-
-    result, err := h.agricultureUseCase.ListReports(c.Context(), page, limit, filters)
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve reports by village", err)
-    }
-
-    return response.Success(c, "Reports by village retrieved successfully", result)
-}
-
-
-func (h *AgricultureHandler) GetReportsByDateRange(c *fiber.Ctx) error {
-    startDateStr := c.Query("start_date")
-    endDateStr := c.Query("end_date")
-    
-    if startDateStr == "" || endDateStr == "" {
-        return response.BadRequest(c, "Both start_date and end_date are required", nil)
-    }
-
-    _, err := time.Parse("2006-01-02", startDateStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid start_date format, use YYYY-MM-DD", err)
-    }
-    
-    _, err = time.Parse("2006-01-02", endDateStr)
-    if err != nil {
-        return response.BadRequest(c, "Invalid end_date format, use YYYY-MM-DD", err)
-    }
-
-    page, _ := strconv.Atoi(c.Query("page", "1"))
-    limit, _ := strconv.Atoi(c.Query("limit", "10"))
-
-    filters := map[string]interface{}{
-        "start_date": startDateStr,
-        "end_date":   endDateStr,
-    }
-    
-    result, err := h.agricultureUseCase.ListReports(c.Context(), page, limit, filters)
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve reports by date range", err)
-    }
-
-    return response.Success(c, "Reports by date range retrieved successfully", result)
-}
-
-func (h *AgricultureHandler) GetDashboardSummary(c *fiber.Ctx) error {
-    
-    stats, err := h.agricultureUseCase.GetStatistics(c.Context())
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve statistics", err)
-    }
-
-    
-    pestReports, err := h.agricultureUseCase.GetPestDiseaseReports(c.Context(), 5)
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve pest disease reports", err)
-    }
-
-    
-    farmerNeeds, err := h.agricultureUseCase.GetFarmerNeedsAnalysis(c.Context())
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve farmer needs", err)
-    }
-
-    
-    technologyStats, err := h.agricultureUseCase.GetTechnologyAdoptionStats(c.Context())
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve technology adoption stats", err)
-    }
-
-    summary := map[string]interface{}{
-        "statistics":            stats,
-        "recent_pest_reports":   pestReports,
-        "farmer_needs_summary":  farmerNeeds,
-        "technology_adoption":   technologyStats,
-        "generated_at":          time.Now(),
-    }
-
-    return response.Success(c, "Dashboard summary retrieved successfully", summary)
-}
-
-func (h *AgricultureHandler) GetReportsByCommodity(c *fiber.Ctx) error {
-    commodityType := strings.ToLower(strings.TrimSpace(c.Query("type")))
-    commodity := utils.NormalizeEnum(c.Query("commodity"))
-
-    if commodityType == "" {
-        return response.BadRequest(c, "Commodity type parameter is required (food, horticulture, plantation)", nil)
-    }
-
-    page, _ := strconv.Atoi(c.Query("page", "1"))
-    limit, _ := strconv.Atoi(c.Query("limit", "10"))
-
-    filters := map[string]interface{}{}
-
-    switch commodityType {
-    case "food":
-        if commodity != "" {
-            filters["food_commodity"] = commodity
-        } else {
-            filters["has_food_commodity"] = true
-        }
-    case "horticulture":
-        if commodity != "" {
-            filters["horti_commodity"] = commodity
-        } else {
-            filters["has_horti_commodity"] = true
-        }
-    case "plantation":
-        if commodity != "" {
-            filters["plantation_commodity"] = commodity
-        } else {
-            filters["has_plantation_commodity"] = true
-        }
-    default:
-        return response.BadRequest(c, "Invalid commodity type. Use: food, horticulture, or plantation", nil)
-    }
-
-    result, err := h.agricultureUseCase.ListReports(c.Context(), page, limit, filters)
-    if err != nil {
-        return response.InternalError(c, "Failed to retrieve reports by commodity", err)
-    }
-
-    return response.Success(c, "Reports by commodity retrieved successfully", result)
 }
 
 func (h *AgricultureHandler) GetExecutiveDashboard(c *fiber.Ctx) error {
@@ -674,87 +402,6 @@ func (h *AgricultureHandler) GetLandAndIrrigationStats(c *fiber.Ctx) error {
     return response.Success(c, "Land and irrigation statistics retrieved successfully", stats)
 }
 
-
-
-
-func (h *AgricultureHandler) ValidateDateRange(startDate, endDate time.Time) error {
-    if endDate.Before(startDate) {
-        return errors.New("end_date cannot be before start_date")
-    }
-    
-    
-    if endDate.Sub(startDate) > 2*365*24*time.Hour {
-        return errors.New("date range cannot exceed 2 years")
-    }
-    
-    return nil
-}
-
-
-func (h *AgricultureHandler) ParseAndValidateDate(dateStr, fieldName string) (time.Time, error) {
-    if dateStr == "" {
-        return time.Time{}, fmt.Errorf("%s parameter is required", fieldName)
-    }
-    
-    date, err := time.Parse("2006-01-02", dateStr)
-    if err != nil {
-        return time.Time{}, fmt.Errorf("invalid %s format, use YYYY-MM-DD", fieldName)
-    }
-    
-    
-    if date.After(time.Now()) {
-        return time.Time{}, fmt.Errorf("%s cannot be in the future", fieldName)
-    }
-    
-    
-    if date.Before(time.Now().AddDate(-10, 0, 0)) {
-        return time.Time{}, fmt.Errorf("%s cannot be more than 10 years ago", fieldName)
-    }
-    
-    return date, nil
-}
-
-
-func (h *AgricultureHandler) GetCommodityType(commodityName string) string {
-    foodCrops := []string{"padi", "jagung", "kedelai", "ubi jalar", "ubi kayu", "kacang tanah"}
-    horticulture := []string{"cabai", "tomat", "wortel", "bawang merah", "bawang putih", "kentang"}
-    plantation := []string{"kelapa", "kopi", "kakao", "karet", "kelapa sawit", "tebu"}
-    
-    commodityLower := strings.ToLower(commodityName)
-    
-    for _, crop := range foodCrops {
-        if strings.Contains(commodityLower, crop) {
-            return "FOOD"
-        }
-    }
-    
-    for _, crop := range horticulture {
-        if strings.Contains(commodityLower, crop) {
-            return "HORTICULTURE"
-        }
-    }
-    
-    for _, crop := range plantation {
-        if strings.Contains(commodityLower, crop) {
-            return "PLANTATION"
-        }
-    }
-    
-    return "UNKNOWN"
-}
-
-
-func (h *AgricultureHandler) LogRequestMetrics(c *fiber.Ctx, endpoint string, duration time.Duration) {
-    log.Printf("[METRICS] Endpoint: %s, Method: %s, Duration: %v, IP: %s, UserAgent: %s",
-        endpoint,
-        c.Method(),
-        duration,
-        c.IP(),
-        c.Get("User-Agent"),
-    )
-}
-
-
 func (h *AgricultureHandler) HandlePanic(c *fiber.Ctx) {
     if r := recover(); r != nil {
         log.Printf("[PANIC] Agriculture handler panic: %v", r)
@@ -770,7 +417,7 @@ var locationKeys = map[string]bool{
     "farmer_group":      true,
 }
 
-// Kunci yang harus dinormalisasi sebagai "enum" (lowercase + spasi -> underscore)
+
 var enumKeys = map[string]bool{
     "farmer_group_type":     true,
     "food_commodity":        true,
@@ -779,11 +426,11 @@ var enumKeys = map[string]bool{
     "main_constraint":       true,
     "weather_condition":     true,
     "water_access":          true,
-    // Tambahkan jika nanti kamu pakai di query:
-    // "weather_impact": true,
+    
+    
 }
 
-// Utility untuk normalisasi filter query (string only)
+
 func normalizeFilters(filters map[string]interface{}) {
     for k, v := range filters {
         s, ok := v.(string)
@@ -798,6 +445,6 @@ func normalizeFilters(filters map[string]interface{}) {
             filters[k] = utils.NormalizeEnum(s)
             continue
         }
-        // biarkan key tanggal/boolean/angka tanpa diubah
+        
     }
 }
