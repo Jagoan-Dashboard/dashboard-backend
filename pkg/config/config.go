@@ -46,7 +46,6 @@
         BucketName string
         PublicURL  string
     }
-
     type JWTConfig struct {
         Secret      string
         ExpiryHours int

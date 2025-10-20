@@ -71,14 +71,22 @@ func main() {
 
 	log.Printf("🌐 CORS Allowed Origins: %s", cleanedOrigins)
 
+	// Check if we're using wildcard origins to determine if credentials should be allowed
+	var allowCredentials bool
+	if strings.Contains(cleanedOrigins, "*") {
+		allowCredentials = false // Cannot use credentials with wildcard origins for security
+	} else {
+		allowCredentials = true  // Can use credentials with specific origins
+	}
+
 	app.Use(cors.New(cors.Config{
-    AllowOrigins:     "*",
-    AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
-    AllowHeaders:     "Origin,Content-Type,Accept,Authorization,Cache-Control,Pragma,Expires,X-Requested-With",
-    ExposeHeaders:    "Content-Length,Content-Type,Authorization", 
-    AllowCredentials: false,
-    MaxAge:           86400,
-}))
+		AllowOrigins:     cleanedOrigins, // Use actual allowed origins instead of "*"
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization,Cache-Control,Pragma,Expires,X-Requested-With",
+		ExposeHeaders:    "Content-Length,Content-Type,Authorization", 
+		AllowCredentials: allowCredentials,
+		MaxAge:           86400,
+	}))
 
 	// 5. Handle preflight requests
 	app.Options("/*", func(c *fiber.Ctx) error {
