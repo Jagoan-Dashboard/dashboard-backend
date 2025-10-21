@@ -1028,94 +1028,6 @@ func (r *agricultureRepositoryImpl) GetFoodCropHarvestSchedule(ctx context.Conte
 	return results, err
 }
 
-func (r *agricultureRepositoryImpl) GetHorticultureTechnology(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
-	var results []map[string]interface{}
-
-	whereClause := "horti_commodity IS NOT NULL AND horti_commodity != '' AND horti_technology IS NOT NULL AND horti_technology != '' AND horti_technology != 'TIDAK_ADA'"
-	args := []interface{}{}
-
-	if commodityName != "" {
-		whereClause += " AND horti_commodity = ?"
-		args = append(args, commodityName)
-	}
-
-	query := `
-        SELECT 
-            horti_technology as technology,
-            COUNT(*) as count,
-            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
-        FROM agriculture_reports
-        WHERE ` + whereClause + `
-        GROUP BY horti_technology
-        ORDER BY count DESC
-    `
-
-	err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
-	return results, err
-}
-
-func (r *agricultureRepositoryImpl) GetHorticulturePestDominance(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
-	var results []map[string]interface{}
-
-	whereClause := "horti_commodity IS NOT NULL AND horti_commodity != ''"
-	args := []interface{}{}
-
-	if commodityName != "" {
-		whereClause += " AND horti_commodity = ?"
-		args = append(args, commodityName)
-	}
-
-	query := `
-        SELECT 
-            CASE 
-                WHEN has_pest_disease = false OR pest_disease_type IS NULL OR pest_disease_type = '' THEN 'TIDAK_ADA'
-                ELSE pest_disease_type
-            END as pest_type,
-            COUNT(*) as count,
-            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
-        FROM agriculture_reports
-        WHERE ` + whereClause + `
-        GROUP BY 
-            CASE 
-                WHEN has_pest_disease = false OR pest_disease_type IS NULL OR pest_disease_type = '' THEN 'TIDAK_ADA'
-                ELSE pest_disease_type
-            END
-        ORDER BY count DESC
-    `
-
-	err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
-	return results, err
-}
-
-func (r *agricultureRepositoryImpl) GetHorticultureHarvestSchedule(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
-	var results []map[string]interface{}
-
-	whereClause := "horti_commodity IS NOT NULL AND horti_commodity != '' AND horti_harvest_date IS NOT NULL"
-	args := []interface{}{}
-
-	if commodityName != "" {
-		whereClause += " AND horti_commodity = ?"
-		args = append(args, commodityName)
-	}
-
-	query := `
-    SELECT 
-        horti_commodity as commodity_detail,
-        DATE(horti_harvest_date) as harvest_date,  
-        farmer_name,
-        village,
-        horti_land_area as land_area
-    FROM agriculture_reports
-    WHERE ` + whereClause + `
-    AND horti_harvest_date >= CURRENT_DATE
-    ORDER BY horti_harvest_date ASC
-    LIMIT 20
-`
-
-	err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
-	return results, err
-}
-
 func (r *agricultureRepositoryImpl) GetPlantationStats(ctx context.Context, commodityName string) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 
@@ -1876,99 +1788,6 @@ func (r *agricultureRepositoryImpl) GetEquipmentIndividualDistribution(ctx conte
 	return results, nil
 }
 
-func (r *agricultureRepositoryImpl) GetHorticultureStats(ctx context.Context, commodityName string) (map[string]interface{}, error) {
-	result := make(map[string]interface{})
-
-	baseQuery := r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
-		Where("horti_commodity IS NOT NULL AND horti_commodity != ''")
-
-	if commodityName != "" {
-		trimmedName := strings.TrimSpace(commodityName)
-		// FIX: Cari di horti_sub_commodity, bukan horti_commodity
-		baseQuery = baseQuery.Where(
-			"UPPER(TRIM(horti_sub_commodity)) LIKE UPPER(?)",
-			"%"+trimmedName+"%",
-		)
-	}
-
-	var landArea float64
-	baseQuery.Select("COALESCE(SUM(horti_land_area), 0)").Scan(&landArea)
-
-	result["land_area"] = landArea
-	result["estimated_production"] = landArea * 10.0
-
-	// Query untuk pest affected area
-	pestQuery := r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
-		Where("horti_commodity IS NOT NULL AND horti_commodity != '' AND has_pest_disease = true")
-
-	if commodityName != "" {
-		trimmedName := strings.TrimSpace(commodityName)
-		pestQuery = pestQuery.Where(
-			"UPPER(TRIM(horti_sub_commodity)) LIKE UPPER(?)",
-			"%"+trimmedName+"%",
-		)
-	}
-
-	var pestAffectedArea float64
-	pestQuery.Select("COALESCE(SUM(horti_land_area), 0)").Scan(&pestAffectedArea)
-	result["pest_affected_area"] = pestAffectedArea
-
-	var pestReportCount int64
-	pestQuery.Count(&pestReportCount)
-	result["pest_report_count"] = pestReportCount
-
-	return result, nil
-}
-
-func (r *agricultureRepositoryImpl) GetHorticultureDistribution(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
-	var results []map[string]interface{}
-
-	query := `
-        SELECT 
-            latitude, longitude, village, district, 
-            horti_sub_commodity as commodity,
-            horti_land_area as land_area
-        FROM agriculture_reports
-        WHERE horti_commodity IS NOT NULL AND horti_commodity != '' 
-        AND latitude IS NOT NULL AND longitude IS NOT NULL`
-
-	args := []interface{}{}
-
-	if commodityName != "" {
-		query += " AND UPPER(TRIM(horti_sub_commodity)) LIKE UPPER(?)"
-		args = append(args, "%"+commodityName+"%")
-	}
-
-	err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
-	return results, err
-}
-
-func (r *agricultureRepositoryImpl) GetHorticultureGrowthPhases(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
-	var results []map[string]interface{}
-
-	query := `
-        SELECT 
-            horti_growth_phase as phase,
-            COUNT(*) as count,
-            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
-        FROM agriculture_reports
-        WHERE horti_commodity IS NOT NULL AND horti_commodity != '' 
-        AND horti_growth_phase IS NOT NULL AND horti_growth_phase != ''`
-
-	args := []interface{}{}
-
-	if commodityName != "" {
-		query += " AND UPPER(TRIM(horti_sub_commodity)) LIKE UPPER(?)"
-		args = append(args, "%"+commodityName+"%")
-	}
-
-	query += `
-        GROUP BY horti_growth_phase
-        ORDER BY count DESC`
-
-	err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
-	return results, err
-}
 
 func (r *agricultureRepositoryImpl) GetLandIndividualDistribution(ctx context.Context, startDate, endDate time.Time) ([]map[string]interface{}, error) {
 	var results []map[string]interface{}
@@ -2014,4 +1833,275 @@ func (r *agricultureRepositoryImpl) GetLandIndividualDistribution(ctx context.Co
 	}
 
 	return results, nil
+}
+
+// ============================================
+// REPOSITORY dengan Built-in Debug
+// ============================================
+
+func (r *agricultureRepositoryImpl) GetHorticultureStats(ctx context.Context, commodityName string) (map[string]interface{}, error) {
+    result := make(map[string]interface{})
+    
+    // DEBUG: Show input
+    fmt.Printf("\n[HORTI DEBUG] ==================\n")
+    fmt.Printf("[HORTI DEBUG] Raw input: '%s' (len=%d)\n", commodityName, len(commodityName))
+    
+    // Base query
+    baseQuery := r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
+        Where("horti_commodity IS NOT NULL AND horti_commodity != ''")
+    
+    // Aggressive cleaning
+    originalInput := commodityName
+    if commodityName != "" {
+        commodityName = strings.ToUpper(strings.TrimSpace(commodityName))
+        commodityName = strings.ReplaceAll(commodityName, " ", "_")
+        
+        fmt.Printf("[HORTI DEBUG] Cleaned input: '%s' (len=%d)\n", commodityName, len(commodityName))
+        fmt.Printf("[HORTI DEBUG] Input hex: % X\n", commodityName)
+        
+        baseQuery = baseQuery.Where(
+            "UPPER(REPLACE(horti_sub_commodity, ' ', '_')) LIKE UPPER(?)", 
+            "%"+commodityName+"%",
+        )
+    }
+    
+    // Show what's in DB
+    if originalInput != "" {
+        var dbValues []string
+        r.db.WithContext(ctx).Raw(`
+            SELECT DISTINCT horti_sub_commodity 
+            FROM agriculture_reports 
+            WHERE horti_sub_commodity IS NOT NULL 
+            AND horti_sub_commodity != ''
+            ORDER BY horti_sub_commodity
+        `).Pluck("horti_sub_commodity", &dbValues)
+        
+        fmt.Printf("[HORTI DEBUG] Available in DB: %v\n", dbValues)
+        
+        // Check if any matches
+        var matchCount int64
+        r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
+            Where("horti_commodity IS NOT NULL AND horti_commodity != ''").
+            Where("UPPER(REPLACE(horti_sub_commodity, ' ', '_')) LIKE UPPER(?)", "%"+commodityName+"%").
+            Count(&matchCount)
+        
+        fmt.Printf("[HORTI DEBUG] Match count: %d\n", matchCount)
+    }
+    
+    // Calculate land area
+    var landArea float64
+    err := baseQuery.Select("COALESCE(SUM(horti_land_area), 0)").Scan(&landArea).Error
+    if err != nil {
+        fmt.Printf("[HORTI DEBUG] ERROR: %v\n", err)
+        return nil, fmt.Errorf("failed to calculate land area: %w", err)
+    }
+    
+    fmt.Printf("[HORTI DEBUG] Land area result: %.2f\n", landArea)
+    fmt.Printf("[HORTI DEBUG] ==================\n\n")
+    
+    result["land_area"] = landArea
+    result["estimated_production"] = landArea * 10.0
+    
+    // Pest affected area
+    pestQuery := r.db.WithContext(ctx).Model(&entity.AgricultureReport{}).
+        Where("horti_commodity IS NOT NULL AND horti_commodity != '' AND has_pest_disease = true")
+    
+    if commodityName != "" {
+        pestQuery = pestQuery.Where(
+            "UPPER(REPLACE(horti_sub_commodity, ' ', '_')) LIKE UPPER(?)", 
+            "%"+commodityName+"%",
+        )
+    }
+    
+    var pestAffectedArea float64
+    err = pestQuery.Select("COALESCE(SUM(horti_land_area), 0)").Scan(&pestAffectedArea).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to calculate pest affected area: %w", err)
+    }
+    result["pest_affected_area"] = pestAffectedArea
+    
+    var pestReportCount int64
+    err = pestQuery.Count(&pestReportCount).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to count pest reports: %w", err)
+    }
+    result["pest_report_count"] = pestReportCount
+    
+    return result, nil
+}
+
+func (r *agricultureRepositoryImpl) GetHorticultureDistribution(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            latitude, 
+            longitude, 
+            village, 
+            district, 
+            COALESCE(horti_sub_commodity, horti_commodity::text) as commodity,
+            horti_land_area as land_area
+        FROM agriculture_reports
+        WHERE horti_commodity IS NOT NULL AND horti_commodity != '' 
+        AND latitude IS NOT NULL AND longitude IS NOT NULL`
+    
+    args := []interface{}{}
+    
+    if commodityName != "" {
+        commodityName = strings.ToUpper(strings.TrimSpace(commodityName))
+        commodityName = strings.ReplaceAll(commodityName, " ", "_")
+        
+        query += " AND UPPER(REPLACE(horti_sub_commodity, ' ', '_')) LIKE UPPER(?)"
+        args = append(args, "%"+commodityName+"%")
+    }
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get horticulture distribution: %w", err)
+    }
+    
+    return results, err
+}
+
+func (r *agricultureRepositoryImpl) GetHorticultureGrowthPhases(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    query := `
+        SELECT 
+            horti_growth_phase::text as phase,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+        FROM agriculture_reports
+        WHERE horti_commodity IS NOT NULL AND horti_commodity != '' 
+        AND horti_growth_phase IS NOT NULL AND horti_growth_phase != ''`
+    
+    args := []interface{}{}
+    
+    if commodityName != "" {
+        commodityName = strings.ToUpper(strings.TrimSpace(commodityName))
+        commodityName = strings.ReplaceAll(commodityName, " ", "_")
+        
+        query += " AND UPPER(REPLACE(horti_sub_commodity, ' ', '_')) LIKE UPPER(?)"
+        args = append(args, "%"+commodityName+"%")
+    }
+    
+    query += `
+        GROUP BY horti_growth_phase
+        ORDER BY count DESC`
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get growth phases: %w", err)
+    }
+    
+    return results, err
+}
+
+func (r *agricultureRepositoryImpl) GetHorticultureTechnology(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    whereClause := "horti_commodity IS NOT NULL AND horti_commodity != '' AND horti_technology IS NOT NULL AND horti_technology != '' AND horti_technology != 'TIDAK_ADA'"
+    args := []interface{}{}
+    
+    if commodityName != "" {
+        commodityName = strings.ToUpper(strings.TrimSpace(commodityName))
+        commodityName = strings.ReplaceAll(commodityName, " ", "_")
+        
+        whereClause += " AND UPPER(REPLACE(horti_sub_commodity, ' ', '_')) LIKE UPPER(?)"
+        args = append(args, "%"+commodityName+"%")
+    }
+    
+    query := `
+        SELECT 
+            horti_technology::text as technology,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+        FROM agriculture_reports
+        WHERE ` + whereClause + `
+        GROUP BY horti_technology
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get technology data: %w", err)
+    }
+    
+    return results, err
+}
+
+func (r *agricultureRepositoryImpl) GetHorticulturePestDominance(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    whereClause := "horti_commodity IS NOT NULL AND horti_commodity != ''"
+    args := []interface{}{}
+    
+    if commodityName != "" {
+        commodityName = strings.ToUpper(strings.TrimSpace(commodityName))
+        commodityName = strings.ReplaceAll(commodityName, " ", "_")
+        
+        whereClause += " AND UPPER(REPLACE(horti_sub_commodity, ' ', '_')) LIKE UPPER(?)"
+        args = append(args, "%"+commodityName+"%")
+    }
+    
+    query := `
+        SELECT 
+            CASE 
+                WHEN has_pest_disease = false OR pest_disease_type IS NULL OR pest_disease_type = '' THEN 'TIDAK_ADA'
+                ELSE pest_disease_type::text
+            END as pest_type,
+            COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+        FROM agriculture_reports
+        WHERE ` + whereClause + `
+        GROUP BY 
+            CASE 
+                WHEN has_pest_disease = false OR pest_disease_type IS NULL OR pest_disease_type = '' THEN 'TIDAK_ADA'
+                ELSE pest_disease_type::text
+            END
+        ORDER BY count DESC
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get pest dominance: %w", err)
+    }
+    
+    return results, err
+}
+
+func (r *agricultureRepositoryImpl) GetHorticultureHarvestSchedule(ctx context.Context, commodityName string) ([]map[string]interface{}, error) {
+    var results []map[string]interface{}
+    
+    whereClause := "horti_commodity IS NOT NULL AND horti_commodity != '' AND horti_harvest_date IS NOT NULL"
+    args := []interface{}{}
+    
+    if commodityName != "" {
+        commodityName = strings.ToUpper(strings.TrimSpace(commodityName))
+        commodityName = strings.ReplaceAll(commodityName, " ", "_")
+        
+        whereClause += " AND UPPER(REPLACE(horti_sub_commodity, ' ', '_')) LIKE UPPER(?)"
+        args = append(args, "%"+commodityName+"%")
+    }
+    
+    query := `
+        SELECT 
+            COALESCE(horti_sub_commodity, horti_commodity::text) as commodity_detail,
+            DATE(horti_harvest_date) as harvest_date,  
+            farmer_name,
+            village,
+            horti_land_area as land_area
+        FROM agriculture_reports
+        WHERE ` + whereClause + `
+        AND horti_harvest_date >= CURRENT_DATE
+        ORDER BY horti_harvest_date ASC
+        LIMIT 20
+    `
+    
+    err := r.db.WithContext(ctx).Raw(query, args...).Scan(&results).Error
+    if err != nil {
+        return nil, fmt.Errorf("failed to get harvest schedule: %w", err)
+    }
+    
+    return results, err
 }
