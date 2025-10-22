@@ -9,7 +9,7 @@ import (
 
 type CreateWaterResourcesRequest struct {
     ReporterName          string    `json:"reporter_name" validate:"required"`
-    InstitutionUnit       string    `json:"institution_unit" validate:"required,oneof=DINAS DESA KECAMATAN"`
+    InstitutionUnit       string    `json:"institution_unit" validate:"required,oneof=DINAS DESA KECAMATAN UPT_IRIGASI POKTAN DINAS_PUPR"`
     PhoneNumber           string    `json:"phone_number" validate:"required"`
     ReportDateTime        time.Time `json:"report_datetime" validate:"required"`
     IrrigationAreaName    string    `json:"irrigation_area_name" validate:"required"`
@@ -24,7 +24,7 @@ type CreateWaterResourcesRequest struct {
     AffectedRiceFieldArea float64   `json:"affected_rice_field_area" validate:"min=0"`
     AffectedFarmersCount  int       `json:"affected_farmers_count" validate:"min=0"`
     UrgencyCategory       string    `json:"urgency_category" validate:"required,oneof=MENDESAK RUTIN"`
-    Notes                 string    `json:"notes,omitempty"`
+    Notes                 string    `json:"notes,omitempty"` 
 }
 
 func (r *CreateWaterResourcesRequest) Validate() error {

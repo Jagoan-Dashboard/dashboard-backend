@@ -8,7 +8,7 @@ import (
 type CreateBinaMargaRequest struct {
     
     ReporterName        string    `json:"reporter_name" validate:"required"`
-    InstitutionUnit     string    `json:"institution_unit" validate:"required,oneof=DINAS DESA KECAMATAN"`
+    InstitutionUnit     string    `json:"institution_unit" validate:"required,oneof=DINAS DESA KECAMATAN DINAS_PUPR UPT_JALAN"`
     PhoneNumber         string    `json:"phone_number" validate:"required"`
     ReportDateTime      time.Time `json:"report_datetime" validate:"required"`
     
@@ -36,13 +36,13 @@ type CreateBinaMargaRequest struct {
     
     
     TrafficCondition    string    `json:"traffic_condition" validate:"required"` 
-    TrafficImpact       string    `json:"traffic_impact"`
+    TrafficImpact       string    `json:"traffic_impact,omitempty"` 
     DailyTrafficVolume  int       `json:"daily_traffic_volume" validate:"min=0"`
     UrgencyLevel        string    `json:"urgency_level" validate:"required,oneof=DARURAT CEPAT RUTIN"`
     
     
-    CauseOfDamage       string    `json:"cause_of_damage,omitempty"`
-    Notes               string    `json:"notes,omitempty"`
+    CauseOfDamage       string    `json:"cause_of_damage,omitempty"` 
+    Notes               string    `json:"notes,omitempty"` 
 }
 
 func (r *CreateBinaMargaRequest) Validate() error {
@@ -72,13 +72,13 @@ type UpdateBinaMargaRequest struct {
     
     
     TrafficCondition       string  `json:"traffic_condition,omitempty"`
-    TrafficImpact          string  `json:"traffic_impact,omitempty"`
+    TrafficImpact          string  `json:"traffic_impact,omitempty"` 
     DailyTrafficVolume     int     `json:"daily_traffic_volume,omitempty"`
     UrgencyLevel           string  `json:"urgency_level,omitempty"`
     
     
-    CauseOfDamage          string  `json:"cause_of_damage,omitempty"`
-    Notes                  string  `json:"notes,omitempty"`
+    CauseOfDamage          string  `json:"cause_of_damage,omitempty"` 
+    Notes                  string  `json:"notes,omitempty"` 
     HandlingRecommendation string  `json:"handling_recommendation,omitempty"`
     EstimatedBudget        float64 `json:"estimated_budget,omitempty"`
     EstimatedRepairTime    int     `json:"estimated_repair_time,omitempty"`

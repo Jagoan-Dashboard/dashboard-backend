@@ -705,3 +705,35 @@ const (
     PestDiseaseCommodityHortikultura PestDiseaseCommodityType = "HORTIKULTURA"
     PestDiseaseCommodityPerkebunan  PestDiseaseCommodityType = "PERKEBUNAN"
 )
+
+type WaterResourcesInstitutionUnit string
+
+const (
+    WaterInstitutionUPTIrigasi WaterResourcesInstitutionUnit = "UPT_IRIGASI"
+    WaterInstitutionPoktan     WaterResourcesInstitutionUnit = "POKTAN"
+    WaterInstitutionDinasPUPR  WaterResourcesInstitutionUnit = "DINAS_PUPR"
+   
+    WaterInstitutionDinas     WaterResourcesInstitutionUnit = "DINAS"
+    WaterInstitutionDesa      WaterResourcesInstitutionUnit = "DESA"
+    WaterInstitutionKecamatan WaterResourcesInstitutionUnit = "KECAMATAN"
+)
+
+type BinaMargaInstitutionUnit string
+
+const (
+    BinaMargaInstitutionDinasPUPR BinaMargaInstitutionUnit = "DINAS_PUPR"
+    BinaMargaInstitutionKecamatan BinaMargaInstitutionUnit = "KECAMATAN"
+    BinaMargaInstitutionDesa      BinaMargaInstitutionUnit = "DESA"
+    BinaMargaInstitutionUPTJalan  BinaMargaInstitutionUnit = "UPT_JALAN"
+    BinaMargaInstitutionDinas BinaMargaInstitutionUnit = "DINAS"
+)
+
+type SpatialPlanningInstitutionUnit string
+
+const (
+    SpatialInstitutionDinasPUPR SpatialPlanningInstitutionUnit = "DINAS_PUPR"
+    SpatialInstitutionKecamatan SpatialPlanningInstitutionUnit = "KECAMATAN"
+    SpatialInstitutionDesa      SpatialPlanningInstitutionUnit = "DESA"
+    SpatialInstitutionUPTJalan  SpatialPlanningInstitutionUnit = "UPT_JALAN"
+    SpatialInstitutionDinas SpatialPlanningInstitutionUnit = "DINAS"
+)
