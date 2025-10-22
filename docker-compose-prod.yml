@@ -79,6 +79,8 @@ services:
       redis: { condition: service_healthy }
       minio: { condition: service_healthy }
     env_file: .env
+    expose:
+      - "8080"
     # ... (Environment variables di sini) ...
     environment:
       APP_ENV: ${APP_ENV}
@@ -112,7 +114,7 @@ services:
       - no-new-privileges:true
 
   nginx:
-    image: nginx:latest
+    image: nginx:1.29.2-alpine-slim
     restart: unless-stopped
     pull_policy: always
     # Hapus 'ports' eksternal (80:80, 443:443)
