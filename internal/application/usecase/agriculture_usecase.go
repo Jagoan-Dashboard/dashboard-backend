@@ -836,7 +836,6 @@ func (uc *AgricultureUseCase) GetAgriculturalEquipmentStats(ctx context.Context,
 		})
 	}
 
-	
 	uc.cache.Set(ctx, cacheKey, &response, 1200*time.Second)
 
 	return &response, nil

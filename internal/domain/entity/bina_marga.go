@@ -13,9 +13,12 @@ type BinaMargaReport struct {
 	PhoneNumber     string              `json:"phone_number" gorm:"type:varchar(20)"`
 	ReportDateTime  time.Time           `json:"report_datetime" gorm:"not null"`
 
+	
+	District      string    `json:"district" gorm:"type:varchar(255)"` 
+	
 	RoadName      string    `json:"road_name" gorm:"type:varchar(255)"`
-	RoadType      RoadType  `json:"road_type" gorm:"type:varchar(50)"`
-	RoadClass     RoadClass `json:"road_class" gorm:"type:varchar(50)"`
+	RoadType      RoadType  `json:"road_type" gorm:"type:varchar(50)"` 
+	RoadClass     RoadClass `json:"road_class" gorm:"type:varchar(50)"` 
 	SegmentLength float64   `json:"segment_length" gorm:"comment:'in meters'"`
 	Latitude      float64   `json:"latitude"`
 	Longitude     float64   `json:"longitude"`
@@ -28,6 +31,7 @@ type BinaMargaReport struct {
 	DamagedArea      float64         `json:"damaged_area" gorm:"comment:'calculated from length x width'"`
 	TotalDamagedArea float64         `json:"total_damaged_area" gorm:"comment:'total area reported in square meters'"`
 
+	
 	BridgeName          string              `json:"bridge_name" gorm:"type:varchar(255)"`
 	BridgeStructureType BridgeStructureType `json:"bridge_structure_type" gorm:"type:varchar(50)"`
 	BridgeDamageType    BridgeDamageType    `json:"bridge_damage_type" gorm:"type:varchar(100)"`
@@ -45,7 +49,7 @@ type BinaMargaReport struct {
 	HandlingRecommendation string           `json:"handling_recommendation" gorm:"type:text"`
 	EstimatedBudget        float64          `json:"estimated_budget"`
 	EstimatedRepairTime    int              `json:"estimated_repair_time" gorm:"comment:'in days'"`
-	// CreatedBy             string                 `json:"created_by" gorm:"type:varchar(26);not null"`
+	
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
