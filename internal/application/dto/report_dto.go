@@ -30,9 +30,12 @@ func (r *CreateReportRequest) Validate() error {
         return err
     }
 
+    
     isPembangunanBaru := r.ReportStatus == "PEMBANGUNAN_BARU"
+    isKerusakan := r.ReportStatus == "KERUSAKAN"  
 
-    if !isPembangunanBaru {
+    
+    if !isPembangunanBaru && !isKerusakan {
         if r.WorkType == "" {
             return errors.New("WorkType is required for rehabilitation reports")
         }
@@ -109,17 +112,17 @@ type BuildingTypeStatisticsResponse struct {
 }
 
 type TataBangunanOverviewResponse struct {
-    // Baris pertama
+    
     BasicStats          ReportStatisticsResponse         `json:"basic_stats"`
     
-    // Baris kedua
+    
     LocationDistribution []LocationStatisticsResponse    `json:"location_distribution"`
     StatusDistribution   []StatusStatisticsResponse      `json:"status_distribution"`
     
-    // Baris ketiga
+    
     WorkTypeDistribution []WorkTypeStatisticsResponse    `json:"work_type_distribution"`
     ConditionDistribution []ConditionStatisticsResponse  `json:"condition_distribution"`
     
-    // Summary by building type
+    
     BuildingTypeDistribution []BuildingTypeStatisticsResponse `json:"building_type_distribution"`
 }

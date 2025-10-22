@@ -46,6 +46,7 @@ func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBin
 		InstitutionUnit:    entity.InstitutionUnitType(req.InstitutionUnit),
 		PhoneNumber:        req.PhoneNumber,
 		ReportDateTime:     req.ReportDateTime,
+		District:           req.District, // ✅ NEW
 		RoadName:           req.RoadName,
 		RoadType:           entity.RoadType(req.RoadType),
 		RoadClass:          entity.RoadClass(req.RoadClass),
@@ -183,6 +184,9 @@ func (uc *BinaMargaUseCase) UpdateReport(ctx context.Context, id string, req *dt
 	//     return nil, ErrUnauthorized
 	// }
 
+	if req.District != "" {
+		report.District = req.District
+	}
 	if req.RoadName != "" {
 		report.RoadName = req.RoadName
 	}

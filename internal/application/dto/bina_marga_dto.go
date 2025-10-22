@@ -13,6 +13,9 @@ type CreateBinaMargaRequest struct {
     ReportDateTime      time.Time `json:"report_datetime" validate:"required"`
     
     
+    District            string    `json:"district" validate:"required"` 
+    
+    
     RoadName            string    `json:"road_name" validate:"omitempty"`
     RoadType            string    `json:"road_type" validate:"omitempty,oneof=JALAN_NASIONAL JALAN_PROVINSI JALAN_KABUPATEN JALAN_DESA"`
     RoadClass           string    `json:"road_class" validate:"omitempty,oneof=ARTERI KOLEKTOR LOKAL LINGKUNGAN"`
@@ -51,6 +54,8 @@ func (r *CreateBinaMargaRequest) Validate() error {
 
 type UpdateBinaMargaRequest struct {
     
+    District               string  `json:"district,omitempty"`
+    
     RoadName               string  `json:"road_name,omitempty"`
     RoadType               string  `json:"road_type,omitempty"`
     RoadClass              string  `json:"road_class,omitempty"`
@@ -72,13 +77,13 @@ type UpdateBinaMargaRequest struct {
     
     
     TrafficCondition       string  `json:"traffic_condition,omitempty"`
-    TrafficImpact          string  `json:"traffic_impact,omitempty"` 
+    TrafficImpact          string  `json:"traffic_impact,omitempty"`
     DailyTrafficVolume     int     `json:"daily_traffic_volume,omitempty"`
     UrgencyLevel           string  `json:"urgency_level,omitempty"`
     
     
-    CauseOfDamage          string  `json:"cause_of_damage,omitempty"` 
-    Notes                  string  `json:"notes,omitempty"` 
+    CauseOfDamage          string  `json:"cause_of_damage,omitempty"`
+    Notes                  string  `json:"notes,omitempty"`
     HandlingRecommendation string  `json:"handling_recommendation,omitempty"`
     EstimatedBudget        float64 `json:"estimated_budget,omitempty"`
     EstimatedRepairTime    int     `json:"estimated_repair_time,omitempty"`

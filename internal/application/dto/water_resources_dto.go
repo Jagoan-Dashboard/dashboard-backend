@@ -16,7 +16,9 @@ type CreateWaterResourcesRequest struct {
     IrrigationType        string    `json:"irrigation_type" validate:"required"`
     Latitude              float64   `json:"latitude" validate:"required,min=-90,max=90"`
     Longitude             float64   `json:"longitude" validate:"required,min=-180,max=180"`
-    DamageType            string    `json:"damage_type" validate:"required"`
+    
+    DamageType            string    `json:"damage_type" validate:"required,oneof=RETAK_BOCOR LONGSOR_AMBROL SEDIMENTASI_TINGGI TERSUMBAT_SAMPAH STRUKTUR_RUSAK STRUKTUR_BETON_RUSAK PINTU_AIR_MACET TANGGUL_JEBOL LAINNYA"`
+    
     DamageLevel           string    `json:"damage_level" validate:"required,oneof=RINGAN SEDANG BERAT"`
     EstimatedLength       float64   `json:"estimated_length" validate:"min=0"`
     EstimatedWidth        float64   `json:"estimated_width" validate:"min=0"`
@@ -24,7 +26,7 @@ type CreateWaterResourcesRequest struct {
     AffectedRiceFieldArea float64   `json:"affected_rice_field_area" validate:"min=0"`
     AffectedFarmersCount  int       `json:"affected_farmers_count" validate:"min=0"`
     UrgencyCategory       string    `json:"urgency_category" validate:"required,oneof=MENDESAK RUTIN"`
-    Notes                 string    `json:"notes,omitempty"` 
+    Notes                 string    `json:"notes,omitempty"`
 }
 
 func (r *CreateWaterResourcesRequest) Validate() error {
