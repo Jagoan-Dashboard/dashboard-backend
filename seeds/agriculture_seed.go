@@ -3,9 +3,10 @@ package seeds
 import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/pkg/utils"
-	"gorm.io/gorm"
 	"log"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 func timePtr(t time.Time) *time.Time {
@@ -14,13 +15,13 @@ func timePtr(t time.Time) *time.Time {
 
 func SeedAgriculture(db *gorm.DB) error {
 	now := time.Now()
-	
+
 	// Get first user for CreatedBy
 	var firstUser entity.User
 	if err := db.First(&firstUser).Error; err != nil {
 		return err
 	}
-	
+
 	reports := []entity.AgricultureReport{
 		// 1. Padi Sawah - Irigasi Teknis
 		{
@@ -34,7 +35,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Ngawi",
 			Latitude:         -7.4040,
 			Longitude:        111.4460,
-			
+
 			// Food Crops
 			FoodCommodity:    entity.FoodCommodityPadiSawah,
 			FoodLandStatus:   entity.LandStatusMilikSendiri,
@@ -44,23 +45,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			FoodPlantingDate: timePtr(now.AddDate(0, 0, -45)),
 			FoodHarvestDate:  timePtr(now.AddDate(0, 0, 75)),
 			FoodTechnology:   entity.TechnologyMethodJajarLegowo,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionCerah,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintIrigasiSulit,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopeBantuanAlsintan,
-			TrainingNeeded:   entity.TrainingNeededPHT,
-			UrgentNeeds:      entity.UrgentNeedsBibitPupukSegera,
-			WaterAccess:      entity.WaterAccessMudah,
-			Suggestions:      "Perlu bantuan pompa air untuk mengantisipasi musim kemarau",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -5),
-			UpdatedAt:        now.AddDate(0, 0, -5),
+			FarmerHope:     entity.FarmerHopeBantuanAlsintan,
+			TrainingNeeded: entity.TrainingNeededPHT,
+			UrgentNeeds:    entity.UrgentNeedsBibitPupukSegera,
+			WaterAccess:    entity.WaterAccessMudah,
+			Suggestions:    "Perlu bantuan pompa air untuk mengantisipasi musim kemarau",
+			// CreatedBy:        firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -5),
+			UpdatedAt: now.AddDate(0, 0, -5),
 		},
-		
+
 		// 2. Jagung - Lahan Kering
 		{
 			ID:               utils.GenerateULID(),
@@ -73,7 +74,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Ngawi",
 			Latitude:         -7.3800,
 			Longitude:        111.4200,
-			
+
 			// Food Crops
 			FoodCommodity:    entity.FoodCommodityJagung,
 			FoodLandStatus:   entity.LandStatusMilikSendiri,
@@ -83,23 +84,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			FoodPlantingDate: timePtr(now.AddDate(0, 0, -70)),
 			FoodHarvestDate:  timePtr(now.AddDate(0, 0, 20)),
 			FoodTechnology:   entity.TechnologyMethodBibitUnggul,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionHujan,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintModal,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopeBantuanModal,
-			TrainingNeeded:   entity.TrainingNeededPascapanen,
-			UrgentNeeds:      entity.UrgentNeedsModalDarurat,
-			WaterAccess:      entity.WaterAccessTerbatas,
-			Suggestions:      "Memerlukan bantuan modal dan akses pasar untuk hasil panen jagung",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -8),
-			UpdatedAt:        now.AddDate(0, 0, -8),
+			FarmerHope:     entity.FarmerHopeBantuanModal,
+			TrainingNeeded: entity.TrainingNeededPascapanen,
+			UrgentNeeds:    entity.UrgentNeedsModalDarurat,
+			WaterAccess:    entity.WaterAccessTerbatas,
+			Suggestions:    "Memerlukan bantuan modal dan akses pasar untuk hasil panen jagung",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -8),
+			UpdatedAt: now.AddDate(0, 0, -8),
 		},
-		
+
 		// 3. Kedelai - Organik
 		{
 			ID:               utils.GenerateULID(),
@@ -112,7 +113,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Karangjati",
 			Latitude:         -7.4200,
 			Longitude:        111.3800,
-			
+
 			// Food Crops
 			FoodCommodity:    entity.FoodCommodityKedelai,
 			FoodLandStatus:   entity.LandStatusSewa,
@@ -122,23 +123,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			FoodPlantingDate: timePtr(now.AddDate(0, 0, -30)),
 			FoodHarvestDate:  timePtr(now.AddDate(0, 0, 60)),
 			FoodTechnology:   entity.TechnologyMethodPupukOrganik,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionMendung,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintHama,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopePelatihan,
-			TrainingNeeded:   entity.TrainingNeededSertifikasi,
-			UrgentNeeds:      entity.UrgentNeedsObatHama,
-			WaterAccess:      entity.WaterAccessTerbatas,
-			Suggestions:      "Pelatihan pengendalian hama organik dan sertifikasi produk organik",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -3),
-			UpdatedAt:        now.AddDate(0, 0, -3),
+			FarmerHope:     entity.FarmerHopePelatihan,
+			TrainingNeeded: entity.TrainingNeededSertifikasi,
+			UrgentNeeds:    entity.UrgentNeedsObatHama,
+			WaterAccess:    entity.WaterAccessTerbatas,
+			Suggestions:    "Pelatihan pengendalian hama organik dan sertifikasi produk organik",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -3),
+			UpdatedAt: now.AddDate(0, 0, -3),
 		},
-		
+
 		// 4. Padi Ladang - Lahan Tadah Hujan
 		{
 			ID:               utils.GenerateULID(),
@@ -151,7 +152,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Paron",
 			Latitude:         -7.5100,
 			Longitude:        111.3400,
-			
+
 			// Food Crops
 			FoodCommodity:    entity.FoodCommodityPadiLadang,
 			FoodLandStatus:   entity.LandStatusBagiHasil,
@@ -161,23 +162,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			FoodPlantingDate: timePtr(now.AddDate(0, 0, -85)),
 			FoodHarvestDate:  timePtr(now.AddDate(0, 0, 25)),
 			FoodTechnology:   entity.TechnologyMethodTidakAda,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionHujan,
 			WeatherImpact:    entity.WeatherImpactTanamanRebah,
 			MainConstraint:   entity.MainConstraintIklim,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopeAsuransi,
-			TrainingNeeded:   entity.TrainingNeededBudidayaModern,
-			UrgentNeeds:      entity.UrgentNeedsBibitPupukSegera,
-			WaterAccess:      entity.WaterAccessJauh,
-			Suggestions:      "Asuransi pertanian dan sistem early warning cuaca ekstrem",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -10),
-			UpdatedAt:        now.AddDate(0, 0, -10),
+			FarmerHope:     entity.FarmerHopeAsuransi,
+			TrainingNeeded: entity.TrainingNeededBudidayaModern,
+			UrgentNeeds:    entity.UrgentNeedsBibitPupukSegera,
+			WaterAccess:    entity.WaterAccessJauh,
+			Suggestions:    "Asuransi pertanian dan sistem early warning cuaca ekstrem",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -10),
+			UpdatedAt: now.AddDate(0, 0, -10),
 		},
-		
+
 		// 5. Sayuran (Cabai) - Hortikultura
 		{
 			ID:               utils.GenerateULID(),
@@ -190,7 +191,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Kedunggalar",
 			Latitude:         -7.4500,
 			Longitude:        111.5200,
-			
+
 			// Horticulture Crops
 			HortiCommodity:    entity.HortiCommoditySayuran,
 			HortiSubCommodity: "Cabai Merah Keriting",
@@ -201,23 +202,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			HortiPlantingDate: timePtr(now.AddDate(0, 0, -60)),
 			HortiHarvestDate:  timePtr(now.AddDate(0, 0, 30)),
 			HortiTechnology:   entity.HortiTechnologyGreenhouse,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionCerah,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintHama,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopeAksesPasar,
-			TrainingNeeded:   entity.TrainingNeededPHT,
-			UrgentNeeds:      entity.UrgentNeedsObatHama,
-			WaterAccess:      entity.WaterAccessMudah,
-			Suggestions:      "Akses ke pasar modern dan cold storage untuk menjaga kualitas cabai",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -2),
-			UpdatedAt:        now.AddDate(0, 0, -2),
+			FarmerHope:     entity.FarmerHopeAksesPasar,
+			TrainingNeeded: entity.TrainingNeededPHT,
+			UrgentNeeds:    entity.UrgentNeedsObatHama,
+			WaterAccess:    entity.WaterAccessMudah,
+			Suggestions:    "Akses ke pasar modern dan cold storage untuk menjaga kualitas cabai",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -2),
+			UpdatedAt: now.AddDate(0, 0, -2),
 		},
-		
+
 		// 6. Tomat - Teknologi Hidroponik
 		{
 			ID:               utils.GenerateULID(),
@@ -230,7 +231,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Ngawi",
 			Latitude:         -7.4010,
 			Longitude:        111.4380,
-			
+
 			// Horticulture Crops
 			HortiCommodity:    entity.HortiCommoditySayuran,
 			HortiSubCommodity: "Tomat",
@@ -241,23 +242,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			HortiPlantingDate: timePtr(now.AddDate(0, 0, -35)),
 			HortiHarvestDate:  timePtr(now.AddDate(0, 0, 55)),
 			HortiTechnology:   entity.HortiTechnologyHydroponik,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionCerah,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintTeknologi,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopePelatihan,
-			TrainingNeeded:   entity.TrainingNeededGreenhouseIoT,
-			UrgentNeeds:      entity.UrgentNeedsAlsintan,
-			WaterAccess:      entity.WaterAccessMudah,
-			Suggestions:      "Bantuan peralatan hidroponik dan pendampingan intensif teknologi modern",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -1),
-			UpdatedAt:        now.AddDate(0, 0, -1),
+			FarmerHope:     entity.FarmerHopePelatihan,
+			TrainingNeeded: entity.TrainingNeededGreenhouseIoT,
+			UrgentNeeds:    entity.UrgentNeedsAlsintan,
+			WaterAccess:    entity.WaterAccessMudah,
+			Suggestions:    "Bantuan peralatan hidroponik dan pendampingan intensif teknologi modern",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -1),
+			UpdatedAt: now.AddDate(0, 0, -1),
 		},
-		
+
 		// 7. Bawang Merah - Musim Panen
 		{
 			ID:               utils.GenerateULID(),
@@ -270,7 +271,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Mantingan",
 			Latitude:         -7.4300,
 			Longitude:        111.3600,
-			
+
 			// Horticulture Crops
 			HortiCommodity:    entity.HortiCommoditySayuran,
 			HortiSubCommodity: "Bawang Merah",
@@ -281,23 +282,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			HortiPlantingDate: timePtr(now.AddDate(0, 0, -65)),
 			HortiHarvestDate:  timePtr(now.AddDate(0, 0, 5)),
 			HortiTechnology:   entity.HortiTechnologyBibitUnggul,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionCerah,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintAksesPasar,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopeAksesPasar,
-			TrainingNeeded:   entity.TrainingNeededPascapanen,
-			UrgentNeeds:      entity.UrgentNeedsPasarDarurat,
-			WaterAccess:      entity.WaterAccessMudah,
-			Suggestions:      "Perlu gudang penyimpanan dengan sirkulasi udara baik dan akses ke pedagang besar",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -4),
-			UpdatedAt:        now.AddDate(0, 0, -4),
+			FarmerHope:     entity.FarmerHopeAksesPasar,
+			TrainingNeeded: entity.TrainingNeededPascapanen,
+			UrgentNeeds:    entity.UrgentNeedsPasarDarurat,
+			WaterAccess:    entity.WaterAccessMudah,
+			Suggestions:    "Perlu gudang penyimpanan dengan sirkulasi udara baik dan akses ke pedagang besar",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -4),
+			UpdatedAt: now.AddDate(0, 0, -4),
 		},
-		
+
 		// 8. Tebu - Tanaman Perkebunan
 		{
 			ID:               utils.GenerateULID(),
@@ -310,7 +311,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Jogorogo",
 			Latitude:         -7.5300,
 			Longitude:        111.2800,
-			
+
 			// Plantation Crops
 			PlantationCommodity:    entity.PlantationCommodityTebu,
 			PlantationLandStatus:   entity.LandStatusMilikSendiri,
@@ -320,23 +321,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			PlantationPlantingDate: timePtr(now.AddDate(0, 0, -180)),
 			PlantationHarvestDate:  timePtr(now.AddDate(0, 0, 185)),
 			PlantationTechnology:   entity.PlantationTechnologyTidakAda,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionCerah,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintIrigasiSulit,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopeBantuanAlsintan,
-			TrainingNeeded:   entity.TrainingNeededBudidayaModern,
-			UrgentNeeds:      entity.UrgentNeedsBibitPupukSegera,
-			WaterAccess:      entity.WaterAccessTerbatas,
-			Suggestions:      "Diperlukan sistem irigasi tetes dan alat tebang tebu mekanis",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -15),
-			UpdatedAt:        now.AddDate(0, 0, -15),
+			FarmerHope:     entity.FarmerHopeBantuanAlsintan,
+			TrainingNeeded: entity.TrainingNeededBudidayaModern,
+			UrgentNeeds:    entity.UrgentNeedsBibitPupukSegera,
+			WaterAccess:    entity.WaterAccessTerbatas,
+			Suggestions:    "Diperlukan sistem irigasi tetes dan alat tebang tebu mekanis",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -15),
+			UpdatedAt: now.AddDate(0, 0, -15),
 		},
-		
+
 		// 9. Kopi - Perkebunan
 		{
 			ID:               utils.GenerateULID(),
@@ -349,7 +350,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Sine",
 			Latitude:         -7.4800,
 			Longitude:        111.5800,
-			
+
 			// Plantation Crops
 			PlantationCommodity:    entity.PlantationCommodityKopi,
 			PlantationLandStatus:   entity.LandStatusMilikSendiri,
@@ -359,23 +360,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			PlantationPlantingDate: timePtr(now.AddDate(-2, 0, 0)),
 			PlantationHarvestDate:  timePtr(now.AddDate(0, 2, 0)),
 			PlantationTechnology:   entity.PlantationTechnologyPupukOrganik,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionMendung,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintAksesPasar,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopePelatihan,
-			TrainingNeeded:   entity.TrainingNeededPascapanen,
-			UrgentNeeds:      entity.UrgentNeedsAlsintan,
-			WaterAccess:      entity.WaterAccessJauh,
-			Suggestions:      "Pelatihan roasting dan packaging untuk meningkatkan nilai jual kopi",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -7),
-			UpdatedAt:        now.AddDate(0, 0, -7),
+			FarmerHope:     entity.FarmerHopePelatihan,
+			TrainingNeeded: entity.TrainingNeededPascapanen,
+			UrgentNeeds:    entity.UrgentNeedsAlsintan,
+			WaterAccess:    entity.WaterAccessJauh,
+			Suggestions:    "Pelatihan roasting dan packaging untuk meningkatkan nilai jual kopi",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -7),
+			UpdatedAt: now.AddDate(0, 0, -7),
 		},
-		
+
 		// 10. Ubi Kayu - Pangan Alternatif
 		{
 			ID:               utils.GenerateULID(),
@@ -388,7 +389,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Gerih",
 			Latitude:         -7.5500,
 			Longitude:        111.3200,
-			
+
 			// Food Crops
 			FoodCommodity:    entity.FoodCommodityUbiKayu,
 			FoodLandStatus:   entity.LandStatusMilikSendiri,
@@ -398,23 +399,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			FoodPlantingDate: timePtr(now.AddDate(0, -8, 0)),
 			FoodHarvestDate:  timePtr(now.AddDate(0, 2, 0)),
 			FoodTechnology:   entity.TechnologyMethodTidakAda,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionCerah,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintAksesPasar,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopeAksesPasar,
-			TrainingNeeded:   entity.TrainingNeededPascapanen,
-			UrgentNeeds:      entity.UrgentNeedsAlsintan,
-			WaterAccess:      entity.WaterAccessJauh,
-			Suggestions:      "Akses ke pabrik tepung tapioka dan pelatihan diversifikasi olahan singkong",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -12),
-			UpdatedAt:        now.AddDate(0, 0, -12),
+			FarmerHope:     entity.FarmerHopeAksesPasar,
+			TrainingNeeded: entity.TrainingNeededPascapanen,
+			UrgentNeeds:    entity.UrgentNeedsAlsintan,
+			WaterAccess:    entity.WaterAccessJauh,
+			Suggestions:    "Akses ke pabrik tepung tapioka dan pelatihan diversifikasi olahan singkong",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -12),
+			UpdatedAt: now.AddDate(0, 0, -12),
 		},
-		
+
 		// 11. Pisang - Buah-buahan
 		{
 			ID:               utils.GenerateULID(),
@@ -427,7 +428,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Padas",
 			Latitude:         -7.6200,
 			Longitude:        111.4700,
-			
+
 			// Horticulture Crops
 			HortiCommodity:    entity.HortiCommodityBuah,
 			HortiSubCommodity: "Pisang Raja",
@@ -438,23 +439,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			HortiPlantingDate: timePtr(now.AddDate(0, -9, 0)),
 			HortiHarvestDate:  timePtr(now.AddDate(0, 1, 0)),
 			HortiTechnology:   entity.HortiTechnologyBibitUnggul,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionMendung,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintHama,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopePelatihan,
-			TrainingNeeded:   entity.TrainingNeededPHT,
-			UrgentNeeds:      entity.UrgentNeedsObatHama,
-			WaterAccess:      entity.WaterAccessTerbatas,
-			Suggestions:      "Pengendalian hama penggerek batang dan akses pasar buah segar",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -5),
-			UpdatedAt:        now.AddDate(0, 0, -5),
+			FarmerHope:     entity.FarmerHopePelatihan,
+			TrainingNeeded: entity.TrainingNeededPHT,
+			UrgentNeeds:    entity.UrgentNeedsObatHama,
+			WaterAccess:    entity.WaterAccessTerbatas,
+			Suggestions:    "Pengendalian hama penggerek batang dan akses pasar buah segar",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -5),
+			UpdatedAt: now.AddDate(0, 0, -5),
 		},
-		
+
 		// 12. Padi Sawah - Serangan Hama
 		{
 			ID:               utils.GenerateULID(),
@@ -467,7 +468,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Kedunggalar",
 			Latitude:         -7.4600,
 			Longitude:        111.5100,
-			
+
 			// Food Crops
 			FoodCommodity:    entity.FoodCommodityPadiSawah,
 			FoodLandStatus:   entity.LandStatusMilikSendiri,
@@ -477,30 +478,30 @@ func SeedAgriculture(db *gorm.DB) error {
 			FoodPlantingDate: timePtr(now.AddDate(0, 0, -65)),
 			FoodHarvestDate:  timePtr(now.AddDate(0, 0, 45)),
 			FoodTechnology:   entity.TechnologyMethodPengendalianHama,
-			
+
 			// Pest Disease
 			HasPestDisease:       true,
 			PestDiseaseType:      entity.PestDiseaseWerengCoklat,
 			PestDiseaseCommodity: "Padi Sawah",
 			AffectedArea:         entity.AffectedAreaLevel25Sampai50,
 			ControlAction:        entity.ControlActionPHT,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionHujan,
 			WeatherImpact:    entity.WeatherImpactDaunMenguning,
 			MainConstraint:   entity.MainConstraintHama,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopePelatihan,
-			TrainingNeeded:   entity.TrainingNeededPHT,
-			UrgentNeeds:      entity.UrgentNeedsObatHama,
-			WaterAccess:      entity.WaterAccessMudah,
-			Suggestions:      "Serangan wereng coklat cukup parah, perlu pengendalian segera dan monitoring intensif",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -2),
-			UpdatedAt:        now.AddDate(0, 0, -2),
+			FarmerHope:     entity.FarmerHopePelatihan,
+			TrainingNeeded: entity.TrainingNeededPHT,
+			UrgentNeeds:    entity.UrgentNeedsObatHama,
+			WaterAccess:    entity.WaterAccessMudah,
+			Suggestions:    "Serangan wereng coklat cukup parah, perlu pengendalian segera dan monitoring intensif",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -2),
+			UpdatedAt: now.AddDate(0, 0, -2),
 		},
-		
+
 		// 13. Kacang Tanah - Program Diversifikasi
 		{
 			ID:               utils.GenerateULID(),
@@ -513,7 +514,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Ngawi",
 			Latitude:         -7.3950,
 			Longitude:        111.4550,
-			
+
 			// Food Crops
 			FoodCommodity:    entity.FoodCommodityKacangTanah,
 			FoodLandStatus:   entity.LandStatusSewa,
@@ -523,23 +524,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			FoodPlantingDate: timePtr(now.AddDate(0, 0, -80)),
 			FoodHarvestDate:  timePtr(now.AddDate(0, 0, 10)),
 			FoodTechnology:   entity.TechnologyMethodBibitUnggul,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionCerah,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintModal,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopeBantuanModal,
-			TrainingNeeded:   entity.TrainingNeededPascapanen,
-			UrgentNeeds:      entity.UrgentNeedsAlsintan,
-			WaterAccess:      entity.WaterAccessJauh,
-			Suggestions:      "Memerlukan mesin pengering kacang dan akses ke industri pengolahan",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -14),
-			UpdatedAt:        now.AddDate(0, 0, -14),
+			FarmerHope:     entity.FarmerHopeBantuanModal,
+			TrainingNeeded: entity.TrainingNeededPascapanen,
+			UrgentNeeds:    entity.UrgentNeedsAlsintan,
+			WaterAccess:    entity.WaterAccessJauh,
+			Suggestions:    "Memerlukan mesin pengering kacang dan akses ke industri pengolahan",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -14),
+			UpdatedAt: now.AddDate(0, 0, -14),
 		},
-		
+
 		// 14. Kelapa - Tanaman Perkebunan
 		{
 			ID:               utils.GenerateULID(),
@@ -552,7 +553,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Paron",
 			Latitude:         -7.5150,
 			Longitude:        111.3350,
-			
+
 			// Plantation Crops
 			PlantationCommodity:    entity.PlantationCommodityKelapa,
 			PlantationLandStatus:   entity.LandStatusMilikSendiri,
@@ -562,23 +563,23 @@ func SeedAgriculture(db *gorm.DB) error {
 			PlantationPlantingDate: timePtr(now.AddDate(-6, 0, 0)),
 			PlantationHarvestDate:  timePtr(now.AddDate(0, 1, 0)),
 			PlantationTechnology:   entity.PlantationTechnologyTidakAda,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionCerah,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintAksesPasar,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopeAksesPasar,
-			TrainingNeeded:   entity.TrainingNeededPascapanen,
-			UrgentNeeds:      entity.UrgentNeedsAlsintan,
-			WaterAccess:      entity.WaterAccessJauh,
-			Suggestions:      "Akses ke pabrik kopra dan pelatihan diversifikasi olahan kelapa (VCO, serat)",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -20),
-			UpdatedAt:        now.AddDate(0, 0, -20),
+			FarmerHope:     entity.FarmerHopeAksesPasar,
+			TrainingNeeded: entity.TrainingNeededPascapanen,
+			UrgentNeeds:    entity.UrgentNeedsAlsintan,
+			WaterAccess:    entity.WaterAccessJauh,
+			Suggestions:    "Akses ke pabrik kopra dan pelatihan diversifikasi olahan kelapa (VCO, serat)",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -20),
+			UpdatedAt: now.AddDate(0, 0, -20),
 		},
-		
+
 		// 15. Ubi Jalar - Pangan Alternatif
 		{
 			ID:               utils.GenerateULID(),
@@ -591,7 +592,7 @@ func SeedAgriculture(db *gorm.DB) error {
 			District:         "Ngrambe",
 			Latitude:         -7.3800,
 			Longitude:        111.3400,
-			
+
 			// Food Crops
 			FoodCommodity:    entity.FoodCommodityUbiJalar,
 			FoodLandStatus:   entity.LandStatusMilikSendiri,
@@ -601,21 +602,21 @@ func SeedAgriculture(db *gorm.DB) error {
 			FoodPlantingDate: timePtr(now.AddDate(0, 0, -90)),
 			FoodHarvestDate:  timePtr(now.AddDate(0, 0, 30)),
 			FoodTechnology:   entity.TechnologyMethodPupukOrganik,
-			
+
 			// Environmental
 			WeatherCondition: entity.WeatherConditionCerah,
 			WeatherImpact:    entity.WeatherImpactTidakAda,
 			MainConstraint:   entity.MainConstraintAksesPasar,
-			
+
 			// Farmer Needs
-			FarmerHope:       entity.FarmerHopeAksesPasar,
-			TrainingNeeded:   entity.TrainingNeededPascapanen,
-			UrgentNeeds:      entity.UrgentNeedsPasarDarurat,
-			WaterAccess:      entity.WaterAccessTerbatas,
-			Suggestions:      "Pengolahan ubi jalar menjadi produk olahan bernilai tambah tinggi",
-			CreatedBy:        firstUser.ID,
-			CreatedAt:        now.AddDate(0, 0, -6),
-			UpdatedAt:        now.AddDate(0, 0, -6),
+			FarmerHope:     entity.FarmerHopeAksesPasar,
+			TrainingNeeded: entity.TrainingNeededPascapanen,
+			UrgentNeeds:    entity.UrgentNeedsPasarDarurat,
+			WaterAccess:    entity.WaterAccessTerbatas,
+			Suggestions:    "Pengolahan ubi jalar menjadi produk olahan bernilai tambah tinggi",
+			// CreatedBy:      firstUser.ID,
+			CreatedAt: now.AddDate(0, 0, -6),
+			UpdatedAt: now.AddDate(0, 0, -6),
 		},
 	}
 

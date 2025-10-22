@@ -3,8 +3,9 @@ package seeds
 import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/pkg/utils"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 func SeedSpatialPlanning(db *gorm.DB) error {
@@ -32,9 +33,9 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Address:             "Jl. Karangjati Gang 5 No. 23, Ngawi",
 			Status:              entity.SpatialStatusPending,
 			Notes:               "Perlu tindakan segera karena mengganggu akses jalan warga",
-			CreatedBy:           firstUser.ID,
-			CreatedAt:           time.Now().AddDate(0, 0, -10),
-			UpdatedAt:           time.Now().AddDate(0, 0, -10),
+			// CreatedBy:           firstUser.ID,
+			CreatedAt: time.Now().AddDate(0, 0, -10),
+			UpdatedAt: time.Now().AddDate(0, 0, -10),
 		},
 		{
 			ID:                  utils.GenerateULID(),
@@ -73,9 +74,9 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Address:             "Sempadan Sungai Bengawan Solo, Desa Geneng",
 			Status:              entity.SpatialStatusProcessing,
 			Notes:               "Koordinasi dengan Dinas Lingkungan Hidup dan BPBD",
-			CreatedBy:           firstUser.ID,
-			CreatedAt:           time.Now().AddDate(0, 0, -15),
-			UpdatedAt:           time.Now().AddDate(0, 0, -15),
+			// CreatedBy:           firstUser.ID,
+			CreatedAt: time.Now().AddDate(0, 0, -15),
+			UpdatedAt: time.Now().AddDate(0, 0, -15),
 		},
 		{
 			ID:                  utils.GenerateULID(),
@@ -94,9 +95,9 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Address:             "Kawasan Wisata Mantingan, Ngawi",
 			Status:              entity.SpatialStatusPending,
 			Notes:               "Menunggu hasil survey lapangan dari tim teknis",
-			CreatedBy:           firstUser.ID,
-			CreatedAt:           time.Now().AddDate(0, 0, -3),
-			UpdatedAt:           time.Now().AddDate(0, 0, -3),
+			// CreatedBy:           firstUser.ID,
+			CreatedAt: time.Now().AddDate(0, 0, -3),
+			UpdatedAt: time.Now().AddDate(0, 0, -3),
 		},
 		{
 			ID:                  utils.GenerateULID(),
@@ -115,9 +116,9 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Address:             "RTH Ketanggi, Ngawi",
 			Status:              entity.SpatialStatusResolved,
 			Notes:               "Sudah ditindaklanjuti dengan pemberian teguran tertulis",
-			CreatedBy:           firstUser.ID,
-			CreatedAt:           time.Now().AddDate(0, 0, -20),
-			UpdatedAt:           time.Now().AddDate(0, 0, -1),
+			// CreatedBy:           firstUser.ID,
+			CreatedAt: time.Now().AddDate(0, 0, -20),
+			UpdatedAt: time.Now().AddDate(0, 0, -1),
 		},
 	}
 

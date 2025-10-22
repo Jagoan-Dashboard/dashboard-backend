@@ -1,33 +1,53 @@
-# Production Environment Configuration
-# Copy this file to .env and update the values
+# Build stage
+FROM golang:1.24-alpine AS builder
 
-# Application
-APP_ENV=production
-APP_PORT=8081
-APP_ALLOWED_ORIGINS=https://backend-dashboard.jagoansatudata.com
+# Install dependencies
+RUN apk update && apk add --no-cache git ca-certificates tzdata && update-ca-certificates
 
-# Database - CHANGE THESE PASSWORDS!
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=CHANGE_THIS_PASSWORD
-DB_NAME=building_reports
-DB_SSL_MODE=disable
+WORKDIR /app
 
-# Redis - CHANGE THIS PASSWORD!
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_PASSWORD=CHANGE_THIS_REDIS_PASSWORD
-REDIS_DB=0
+# Copy modules and download dependencies
+COPY go.mod go.sum ./ 
+RUN go mod download
+RUN go mod verify
 
-# MinIO - CHANGE THESE CREDENTIALS!
-MINIO_ENDPOINT=minio:9000
-MINIO_ACCESS_KEY=CHANGE_THIS_ACCESS_KEY
-MINIO_SECRET_KEY=CHANGE_THIS_SECRET_KEY_MIN_8_CHARS
-MINIO_USE_SSL=false
-MINIO_BUCKET_NAME=reports
-MINIO_PUBLIC_URL=https://s3-backend-dashboard.jagoansatudata.com
+# Copy all source code
+COPY . .
 
-# JWT - GENERATE A SECURE SECRET (minimum 32 characters)!
-JWT_SECRET=CHANGE_THIS_TO_A_VERY_SECURE_SECRET_KEY_MIN_32_CHARS
-JWT_EXPIRY_HOURS=24
+# Install goose binary
+RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+
+# Build API binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags='-w -s -extldflags "-static"' \
+    -a -installsuffix cgo \
+    -o main cmd/api/main.go
+
+# Build Seeder binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags='-w -s -extldflags "-static"' \
+    -a -installsuffix cgo \
+    -o seeder cmd/seeder/main.go
+
+# Final stage
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates tzdata
+
+# Create a non-root user
+RUN adduser -D -g '' appuser
+
+# Copy migrations files
+COPY --from=builder /app/migrations /app/migrations
+
+# Copy binaries from builder stage
+COPY --from=builder /go/bin/goose /usr/local/bin/
+COPY --from=builder /app/main /app/main
+COPY --from=builder /app/seeder /app/seeder
+
+USER appuser
+
+EXPOSE 8080
+
+# Default command to run the API
+ENTRYPOINT ["/app/main"]

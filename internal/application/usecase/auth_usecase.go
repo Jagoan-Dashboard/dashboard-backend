@@ -131,7 +131,8 @@ func (uc *AuthUseCase) generateAuthResponse(ctx context.Context, user *entity.Us
 }
 
 func (uc *AuthUseCase) Login(ctx context.Context, req *dto.LoginRequest) (*dto.AuthResponse, error) {
-    user, err := uc.userRepo.FindByUsername(ctx, req.Username)
+
+    user, err := uc.userRepo.FindByUsernameOrEmail(ctx, req.Identifier)
     if err != nil {
         return nil, ErrInvalidCredentials
     }

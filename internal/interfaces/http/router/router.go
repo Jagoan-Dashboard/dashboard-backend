@@ -1,7 +1,6 @@
 package router
 
 import (
-    "building-report-backend/internal/interfaces/http/middleware"
     "building-report-backend/pkg/container"
     
     "github.com/gofiber/fiber/v2"
@@ -43,13 +42,6 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     reportRoutes.Delete("/:id", cont.ReportHandler.DeleteReport)
 
     reportRoutes.Get("/tata-bangunan/overview", cont.ReportHandler.GetTataBangunanOverview)
-    reportRoutes.Get("/tata-bangunan/basic-statistics", cont.ReportHandler.GetBasicStatistics)
-    reportRoutes.Get("/tata-bangunan/location-distribution", cont.ReportHandler.GetLocationDistribution)
-    reportRoutes.Get("/tata-bangunan/work-type-statistics", cont.ReportHandler.GetWorkTypeStatistics)
-    reportRoutes.Get("/tata-bangunan/condition-statistics", cont.ReportHandler.GetConditionAfterRehabStatistics)
-    reportRoutes.Get("/tata-bangunan/status-statistics", cont.ReportHandler.GetStatusStatistics)
-    reportRoutes.Get("/tata-bangunan/building-type-distribution", cont.ReportHandler.GetBuildingTypeDistribution)
-
     
     spatialRoutes := api.Group("/spatial-planning")
     spatialRoutes.Get("/", cont.SpatialPlanningHandler.ListReports)
@@ -59,39 +51,14 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     spatialRoutes.Delete("/:id", cont.SpatialPlanningHandler.DeleteReport)
 
     spatialRoutes.Get("/tata-ruang/overview", cont.SpatialPlanningHandler.GetTataRuangOverview)
-    spatialRoutes.Get("/tata-ruang/basic-statistics", cont.SpatialPlanningHandler.GetTataRuangBasicStatistics)
-    spatialRoutes.Get("/tata-ruang/location-distribution", cont.SpatialPlanningHandler.GetTataRuangLocationDistribution)
-    spatialRoutes.Get("/tata-ruang/urgency-statistics", cont.SpatialPlanningHandler.GetUrgencyLevelStatistics)
-    spatialRoutes.Get("/tata-ruang/violation-type-statistics", cont.SpatialPlanningHandler.GetViolationTypeStatistics)
-    spatialRoutes.Get("/tata-ruang/violation-level-statistics", cont.SpatialPlanningHandler.GetViolationLevelStatistics)
-    spatialRoutes.Get("/tata-ruang/area-category-distribution", cont.SpatialPlanningHandler.GetAreaCategoryDistribution)
-    spatialRoutes.Get("/tata-ruang/environmental-impact-statistics", cont.SpatialPlanningHandler.GetEnvironmentalImpactStatistics)
 
     waterRoutes := api.Group("/water-resources")
     waterRoutes.Get("/", cont.WaterResourcesHandler.ListReports)
     waterRoutes.Get("/overview", cont.WaterResourcesHandler.GetWaterResourcesOverview)
-    waterRoutes.Get("/priority", cont.WaterResourcesHandler.ListByPriority)
-    waterRoutes.Get("/statistics", cont.WaterResourcesHandler.GetStatistics)
-    waterRoutes.Get("/urgent", cont.WaterResourcesHandler.GetUrgentReports)
-    waterRoutes.Get("/damage-by-area", cont.WaterResourcesHandler.GetDamageByArea)
-    waterRoutes.Get("/:id", cont.WaterResourcesHandler.GetReport)
-    waterRoutes.Put("/:id", cont.WaterResourcesHandler.UpdateReport)
-    waterRoutes.Delete("/:id", cont.WaterResourcesHandler.DeleteReport)
-    waterRoutes.Get("/dashboard", cont.WaterResourcesHandler.GetDashboard)
 
     binaMargaRoutes := api.Group("/bina-marga")
     binaMargaRoutes.Get("/", cont.BinaMargaHandler.ListReports)
     binaMargaRoutes.Get("/overview", cont.BinaMargaHandler.GetBinaMargaOverview)
-    binaMargaRoutes.Get("/priority", cont.BinaMargaHandler.ListByPriority)
-    binaMargaRoutes.Get("/statistics", cont.BinaMargaHandler.GetStatistics)
-    binaMargaRoutes.Get("/emergency", cont.BinaMargaHandler.GetEmergencyReports)
-    binaMargaRoutes.Get("/blocked", cont.BinaMargaHandler.GetBlockedRoads)
-    binaMargaRoutes.Get("/damage-by-road-type", cont.BinaMargaHandler.GetDamageByRoadType)
-    binaMargaRoutes.Get("/damage-by-location", cont.BinaMargaHandler.GetDamageByLocation)
-    binaMargaRoutes.Get("/:id", cont.BinaMargaHandler.GetReport)
-    binaMargaRoutes.Put("/:id", cont.BinaMargaHandler.UpdateReport)
-    binaMargaRoutes.Delete("/:id", cont.BinaMargaHandler.DeleteReport)
-    binaMargaRoutes.Get("/dashboard", cont.BinaMargaHandler.GetDashboard)
 
     agricultureRoutes := api.Group("/agriculture")
     
@@ -107,58 +74,20 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     agricultureRoutes.Get("/:id", cont.AgricultureHandler.GetReport)
     agricultureRoutes.Put("/:id", cont.AgricultureHandler.UpdateReport)
     agricultureRoutes.Delete("/:id", cont.AgricultureHandler.DeleteReport)
-    
-    agricultureRoutes.Get("/statistics/overview", cont.AgricultureHandler.GetStatistics)
-    agricultureRoutes.Get("/statistics/commodity-production", cont.AgricultureHandler.GetCommodityProduction)
-    agricultureRoutes.Get("/statistics/technology-adoption", cont.AgricultureHandler.GetTechnologyAdoptionStats)
-    agricultureRoutes.Get("/statistics/farmer-needs", cont.AgricultureHandler.GetFarmerNeedsAnalysis)
 
-    agricultureRoutes.Get("/extension-officer/:officer/reports", cont.AgricultureHandler.GetByExtensionOfficer)
-    agricultureRoutes.Get("/extension-officer/performance", cont.AgricultureHandler.GetExtensionOfficerPerformance)
+    executiveRoutes := api.Group("/executive")
+    economyRoutes := executiveRoutes.Group("/economy")
+    economyRoutes.Get("/overview", cont.ExecutiveHandler.GetEkonomiOverview)
 
-    agricultureRoutes.Get("/village/:village/reports", cont.AgricultureHandler.GetReportsByVillage)
-    agricultureRoutes.Get("/reports/by-date-range", cont.AgricultureHandler.GetReportsByDateRange)
+    populationRoutes := executiveRoutes.Group("/population")
+    populationRoutes.Get("/overview", cont.ExecutiveHandler.GetPopulationOverview)
 
-    agricultureRoutes.Get("/pest-disease/reports", cont.AgricultureHandler.GetPestDiseaseReports)
+    povertyRoutes := executiveRoutes.Group("/poverty")
+    povertyRoutes.Get("/overview", cont.ExecutiveHandler.GetPovertyOverview)
 
-    agricultureRoutes.Get("/dashboard/summary", cont.AgricultureHandler.GetDashboardSummary)
+    employmentRoutes := executiveRoutes.Group("/employment")
+    employmentRoutes.Get("/overview", cont.ExecutiveHandler.GetEmploymentOverview)
 
-    adminWaterRoutes := api.Group("/admin/water-resources", middleware.RequireRole("ADMIN"))
-    adminWaterRoutes.Put("/:id/status", cont.WaterResourcesHandler.UpdateStatus)
-
-    adminRoutes := api.Group("/admin", middleware.RequireRole("ADMIN"))
-           adminRoutes.Get("/users", func(c *fiber.Ctx) error {
-            return c.JSON(fiber.Map{"message": "Admin users list"})
-        })
-
-        adminSpatialRoutes := api.Group("/admin/spatial-planning", middleware.RequireRole("ADMIN"))
-        adminSpatialRoutes.Put("/:id/status", cont.SpatialPlanningHandler.UpdateStatus)
-
-        
-        adminBinaMargaRoutes := adminRoutes.Group("/bina-marga")
-        adminBinaMargaRoutes.Put("/:id/status", cont.BinaMargaHandler.UpdateStatus)
-
-        
-        dashboardRoutes := api.Group("/dashboard")
-        dashboardRoutes.Get("/overview", func(c *fiber.Ctx) error {
-            return c.JSON(fiber.Map{
-                "message": "Dashboard overview endpoint - implement consolidated statistics",
-            })
-        })
-        dashboardRoutes.Get("/urgent-reports", func(c *fiber.Ctx) error {
-            return c.JSON(fiber.Map{
-                "message": "All urgent reports across all modules",
-            })
-        })
-
-        
-    adminAgricultureRoutes := adminRoutes.Group("/agriculture")
-    adminAgricultureRoutes.Get("/reports/all", func(c *fiber.Ctx) error {
-        
-        return c.JSON(fiber.Map{"message": "Admin view all agriculture reports"})
-    })
-    adminAgricultureRoutes.Get("/analytics/advanced", func(c *fiber.Ctx) error {
-        
-        return c.JSON(fiber.Map{"message": "Advanced agriculture analytics"})
-    })
+    educationRoutes := executiveRoutes.Group("/education")
+    educationRoutes.Get("/overview", cont.ExecutiveHandler.GetEducationOverview)
 }
