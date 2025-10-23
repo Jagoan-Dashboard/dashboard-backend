@@ -1,4 +1,3 @@
-
 package entity
 
 import (
@@ -11,7 +10,7 @@ type SpatialPlanningReport struct {
     ReporterName           string                       `json:"reporter_name" gorm:"not null"`
     Institution            InstitutionType              `json:"institution" gorm:"type:varchar(50)"`
     PhoneNumber            string                       `json:"phone_number" gorm:"type:varchar(20)"`
-    ReportDateTime         time.Time                    `json:"report_datetime" gorm:"not null"`
+    ReportDateTime         time.Time                    `json:"report_datetime" gorm:"column:report_datetime;not null"`
     AreaDescription        string                       `json:"area_description" gorm:"type:text"`
     AreaCategory           AreaCategory                 `json:"area_category" gorm:"type:varchar(100)"`
     ViolationType          SpatialViolationType         `json:"violation_type" gorm:"type:varchar(150)"`

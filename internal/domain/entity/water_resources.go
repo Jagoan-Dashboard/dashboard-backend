@@ -11,7 +11,7 @@ type WaterResourcesReport struct {
     ReporterName           string                   `json:"reporter_name" gorm:"not null"`
     InstitutionUnit        InstitutionUnitType      `json:"institution_unit" gorm:"type:varchar(50)"`
     PhoneNumber            string                   `json:"phone_number" gorm:"type:varchar(20)"`
-    ReportDateTime         time.Time                `json:"report_datetime" gorm:"not null"`
+    ReportDateTime         time.Time                `json:"report_datetime" gorm:"column:report_datetime;not null"`
     IrrigationAreaName     string                   `json:"irrigation_area_name" gorm:"type:varchar(255)"`
     IrrigationType         IrrigationType           `json:"irrigation_type" gorm:"type:varchar(50)"`
     Latitude               float64                  `json:"latitude"`

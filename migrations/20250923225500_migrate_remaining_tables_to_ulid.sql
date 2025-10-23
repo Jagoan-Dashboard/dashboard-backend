@@ -5,43 +5,50 @@
 CREATE TABLE water_resources_reports (
     id VARCHAR(26) PRIMARY KEY,
     reporter_name VARCHAR(255) NOT NULL,
-    reporter_role VARCHAR(50) NOT NULL,
-    village VARCHAR(255) NOT NULL,
-    district VARCHAR(255) NOT NULL,
-    location_details TEXT,
-    water_source_type VARCHAR(50) NOT NULL,
-    damage_type VARCHAR(100) NOT NULL,
-    damage_severity VARCHAR(50) NOT NULL,
-    urgent_level VARCHAR(50) NOT NULL,
-    affected_population INTEGER,
-    estimated_loss DECIMAL(15, 2),
+    institution_unit VARCHAR(50) NOT NULL,
+    phone_number VARCHAR(20),
+    report_datetime TIMESTAMP NOT NULL,
+    irrigation_area_name VARCHAR(255),
+    irrigation_type VARCHAR(50) NOT NULL,
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
-    water_flow_before DECIMAL(8, 2),
-    water_flow_after DECIMAL(8, 2),
-    infrastructure_condition VARCHAR(100),
-    report_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-    priority_score INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    damage_type VARCHAR(100) NOT NULL,
+    damage_level VARCHAR(50) NOT NULL,
+    estimated_length DECIMAL(10, 2) DEFAULT 0,
+    estimated_width DECIMAL(10, 2) DEFAULT 0,
+    estimated_depth DECIMAL(10, 2) DEFAULT 0,
+    estimated_area DECIMAL(10, 2) DEFAULT 0,
+    estimated_volume DECIMAL(10, 2) DEFAULT 0,
+    affected_rice_field_area DECIMAL(10, 2) DEFAULT 0,
+    affected_farmers_count INTEGER DEFAULT 0,
+    urgency_category VARCHAR(50) NOT NULL,
+    status VARCHAR(50) DEFAULT 'PENDING',
+    notes TEXT,
+    handling_recommendation TEXT,
+    estimated_budget DECIMAL(15, 2) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for water_resources_reports
-CREATE INDEX idx_water_resources_village ON water_resources_reports(village);
-CREATE INDEX idx_water_resources_district ON water_resources_reports(district);
+CREATE INDEX idx_water_resources_institution ON water_resources_reports(institution_unit);
+CREATE INDEX idx_water_resources_irrigation_type ON water_resources_reports(irrigation_type);
 CREATE INDEX idx_water_resources_damage_type ON water_resources_reports(damage_type);
-CREATE INDEX idx_water_resources_urgent_level ON water_resources_reports(urgent_level);
-CREATE INDEX idx_water_resources_report_status ON water_resources_reports(report_status);
-CREATE INDEX idx_water_resources_priority_score ON water_resources_reports(priority_score);
+CREATE INDEX idx_water_resources_damage_level ON water_resources_reports(damage_level);
+CREATE INDEX idx_water_resources_urgency ON water_resources_reports(urgency_category);
+CREATE INDEX idx_water_resources_status ON water_resources_reports(status);
+CREATE INDEX idx_water_resources_report_datetime ON water_resources_reports(report_datetime);
+CREATE INDEX idx_water_resources_irrigation_area ON water_resources_reports(irrigation_area_name);
+CREATE INDEX idx_water_resources_priority ON water_resources_reports(urgency_category, damage_level, affected_rice_field_area, affected_farmers_count);
 
 -- Recreate water_resources_photos table with ULID
 CREATE TABLE water_resources_photos (
     id VARCHAR(26) PRIMARY KEY,
     report_id VARCHAR(26) NOT NULL REFERENCES water_resources_reports(id) ON DELETE CASCADE,
     photo_url VARCHAR(500) NOT NULL,
-    photo_type VARCHAR(50),
+    photo_angle VARCHAR(50),
     caption VARCHAR(255),
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_water_resources_photos_report_id ON water_resources_photos(report_id);
@@ -50,45 +57,73 @@ CREATE INDEX idx_water_resources_photos_report_id ON water_resources_photos(repo
 CREATE TABLE bina_marga_reports (
     id VARCHAR(26) PRIMARY KEY,
     reporter_name VARCHAR(255) NOT NULL,
-    reporter_role VARCHAR(50) NOT NULL,
-    village VARCHAR(255) NOT NULL,
+    institution_unit VARCHAR(50) NOT NULL,
+    phone_number VARCHAR(20),
+    report_datetime TIMESTAMP NOT NULL,
     district VARCHAR(255) NOT NULL,
     road_name VARCHAR(255) NOT NULL,
-    road_type VARCHAR(50) NOT NULL,
-    road_status VARCHAR(50) NOT NULL,
-    damage_type VARCHAR(100) NOT NULL,
-    damage_severity VARCHAR(50) NOT NULL,
-    urgent_level VARCHAR(50) NOT NULL,
-    road_length DECIMAL(8, 2),
-    road_width DECIMAL(6, 2),
-    affected_length DECIMAL(8, 2),
+    segment_length DECIMAL(10, 2) DEFAULT 0,
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
-    traffic_impact VARCHAR(100),
-    estimated_cost DECIMAL(15, 2),
-    report_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-    priority_score INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    pavement_type VARCHAR(50) NOT NULL,
+    damage_type VARCHAR(100) NOT NULL,
+    damage_level VARCHAR(50) NOT NULL,
+    damaged_length DECIMAL(10, 2) DEFAULT 0,
+    damaged_width DECIMAL(10, 2) DEFAULT 0,
+    damaged_area DECIMAL(10, 2) DEFAULT 0,
+    total_damaged_area DECIMAL(10, 2) DEFAULT 0,
+    bridge_name VARCHAR(255),
+    bridge_section VARCHAR(255),
+    bridge_structure_type VARCHAR(50),
+    bridge_damage_type VARCHAR(100),
+    bridge_damage_level VARCHAR(50),
+    traffic_condition VARCHAR(50) NOT NULL,
+    traffic_impact VARCHAR(50) NOT NULL,
+    daily_traffic_volume INTEGER DEFAULT 0,
+    urgency_level VARCHAR(50) NOT NULL,
+    cause_of_damage TEXT,
+    status VARCHAR(50) DEFAULT 'PENDING',
+    notes TEXT,
+    handling_recommendation TEXT,
+    estimated_budget DECIMAL(15, 2) DEFAULT 0,
+    estimated_repair_time INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for bina_marga_reports
-CREATE INDEX idx_bina_marga_village ON bina_marga_reports(village);
+CREATE INDEX idx_bina_marga_institution ON bina_marga_reports(institution_unit);
+CREATE INDEX idx_bina_marga_road_name ON bina_marga_reports(road_name);
 CREATE INDEX idx_bina_marga_district ON bina_marga_reports(district);
-CREATE INDEX idx_bina_marga_road_type ON bina_marga_reports(road_type);
+CREATE INDEX idx_bina_marga_pavement_type ON bina_marga_reports(pavement_type);
 CREATE INDEX idx_bina_marga_damage_type ON bina_marga_reports(damage_type);
-CREATE INDEX idx_bina_marga_urgent_level ON bina_marga_reports(urgent_level);
-CREATE INDEX idx_bina_marga_report_status ON bina_marga_reports(report_status);
-CREATE INDEX idx_bina_marga_priority_score ON bina_marga_reports(priority_score);
+CREATE INDEX idx_bina_marga_damage_level ON bina_marga_reports(damage_level);
+CREATE INDEX idx_bina_marga_urgency ON bina_marga_reports(urgency_level);
+CREATE INDEX idx_bina_marga_traffic_impact ON bina_marga_reports(traffic_impact);
+CREATE INDEX idx_bina_marga_traffic_condition ON bina_marga_reports(traffic_condition);
+CREATE INDEX idx_bina_marga_bridge_name ON bina_marga_reports(bridge_name);
+CREATE INDEX idx_bina_marga_bridge_section ON bina_marga_reports(bridge_section);
+CREATE INDEX idx_bina_marga_status ON bina_marga_reports(status);
+CREATE INDEX idx_bina_marga_report_datetime ON bina_marga_reports(report_datetime);
+CREATE INDEX idx_bina_marga_location ON bina_marga_reports(latitude, longitude);
+CREATE INDEX idx_bina_marga_priority ON bina_marga_reports(urgency_level, damage_level, traffic_impact);
+CREATE INDEX idx_bina_marga_filters ON bina_marga_reports(status, urgency_level, damage_level, created_at);
+CREATE INDEX idx_bina_marga_bridges ON bina_marga_reports(bridge_name)
+  WHERE bridge_name IS NOT NULL AND bridge_name <> '';
+CREATE INDEX idx_bina_marga_emergency ON bina_marga_reports(urgency_level, status)
+  WHERE urgency_level = 'DARURAT' AND status NOT IN ('COMPLETED', 'REJECTED');
+CREATE INDEX idx_bina_marga_blocked ON bina_marga_reports(traffic_impact, traffic_condition, status)
+  WHERE (traffic_impact = 'TERPUTUS' OR traffic_condition = 'TIDAK_BISA_DILALUI_PUTUS')
+    AND status NOT IN ('COMPLETED', 'REJECTED');
 
 -- Recreate bina_marga_photos table with ULID
 CREATE TABLE bina_marga_photos (
     id VARCHAR(26) PRIMARY KEY,
     report_id VARCHAR(26) NOT NULL REFERENCES bina_marga_reports(id) ON DELETE CASCADE,
     photo_url VARCHAR(500) NOT NULL,
-    photo_type VARCHAR(50),
+    photo_angle VARCHAR(50),
     caption VARCHAR(255),
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_bina_marga_photos_report_id ON bina_marga_photos(report_id);

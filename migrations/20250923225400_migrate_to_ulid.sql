@@ -81,41 +81,38 @@ CREATE INDEX idx_report_photos_photo_type ON report_photos(photo_type);
 CREATE TABLE spatial_planning_reports (
     id VARCHAR(26) PRIMARY KEY,
     reporter_name VARCHAR(255) NOT NULL,
-    reporter_role VARCHAR(50) NOT NULL,
-    village VARCHAR(255) NOT NULL,
-    district VARCHAR(255) NOT NULL,
-    location_details TEXT,
-    violation_type VARCHAR(100) NOT NULL,
+    institution VARCHAR(50) NOT NULL,
+    phone_number VARCHAR(20),
+    report_datetime TIMESTAMP NOT NULL,
+    area_description TEXT,
+    area_category VARCHAR(100) NOT NULL,
+    violation_type VARCHAR(150) NOT NULL,
     violation_level VARCHAR(50) NOT NULL,
-    urgency_level VARCHAR(50) NOT NULL,
-    area_category VARCHAR(50) NOT NULL,
-    environmental_impact VARCHAR(100),
+    environmental_impact VARCHAR(100) NOT NULL,
+    urgency_level VARCHAR(20) NOT NULL,
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
-    total_area DECIMAL(12, 2),
-    affected_area DECIMAL(12, 2),
-    report_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-    priority_score INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    address TEXT,
+    status VARCHAR(50) DEFAULT 'PENDING',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes for spatial_planning_reports
-CREATE INDEX idx_spatial_planning_village ON spatial_planning_reports(village);
-CREATE INDEX idx_spatial_planning_district ON spatial_planning_reports(district);
+CREATE INDEX idx_spatial_planning_institution ON spatial_planning_reports(institution);
+CREATE INDEX idx_spatial_planning_area_category ON spatial_planning_reports(area_category);
 CREATE INDEX idx_spatial_planning_violation_type ON spatial_planning_reports(violation_type);
+CREATE INDEX idx_spatial_planning_violation_level ON spatial_planning_reports(violation_level);
 CREATE INDEX idx_spatial_planning_urgency_level ON spatial_planning_reports(urgency_level);
-CREATE INDEX idx_spatial_planning_report_status ON spatial_planning_reports(report_status);
-CREATE INDEX idx_spatial_planning_priority_score ON spatial_planning_reports(priority_score);
+CREATE INDEX idx_spatial_planning_status ON spatial_planning_reports(status);
+CREATE INDEX idx_spatial_planning_report_datetime ON spatial_planning_reports(report_datetime);
 
--- Recreate spatial_planning_photos table with ULID
 CREATE TABLE spatial_planning_photos (
     id VARCHAR(26) PRIMARY KEY,
     report_id VARCHAR(26) NOT NULL REFERENCES spatial_planning_reports(id) ON DELETE CASCADE,
     photo_url VARCHAR(500) NOT NULL,
-    photo_type VARCHAR(50),
     caption VARCHAR(255),
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_spatial_planning_photos_report_id ON spatial_planning_photos(report_id);
