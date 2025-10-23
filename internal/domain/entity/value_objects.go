@@ -729,15 +729,6 @@ const (
     SpatialInstitutionDinas SpatialPlanningInstitutionUnit = "DINAS"
 )
 
-type ReportStatusType string
-
-const (
-    StatusRehabilitasi    ReportStatusType = "REHABILITASI"
-    StatusPembangunanBaru ReportStatusType = "PEMBANGUNAN_BARU"
-    StatusKerusakan       ReportStatusType = "KERUSAKAN"  
-    StatusLainnya         ReportStatusType = "LAINNYA"
-)
-
 // Update DamageType - change STRUKTUR_BETON_RUSAK to STRUKTUR_RUSAK
 type DamageType string
 
