@@ -61,6 +61,12 @@ func (h *WaterResourcesHandler) CreateReport(c *fiber.Ctx) error {
     if width, err := strconv.ParseFloat(c.FormValue("estimated_width"), 64); err == nil {
         req.EstimatedWidth = width
     }
+    if depth, err := strconv.ParseFloat(c.FormValue("estimated_depth"), 64); err == nil {
+        req.EstimatedDepth = depth
+    }
+    if area, err := strconv.ParseFloat(c.FormValue("estimated_area"), 64); err == nil {
+        req.EstimatedArea = area
+    }
     if volume, err := strconv.ParseFloat(c.FormValue("estimated_volume"), 64); err == nil {
         req.EstimatedVolume = volume
     }

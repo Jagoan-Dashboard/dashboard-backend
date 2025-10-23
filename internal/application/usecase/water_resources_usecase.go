@@ -48,6 +48,8 @@ func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.Crea
         DamageLevel:           entity.DamageLevel(req.DamageLevel),
         EstimatedLength:       req.EstimatedLength,
         EstimatedWidth:        req.EstimatedWidth,
+        EstimatedDepth:        req.EstimatedDepth,
+        EstimatedArea:         req.EstimatedArea,
         EstimatedVolume:       req.EstimatedVolume,
         AffectedRiceFieldArea: req.AffectedRiceFieldArea,
         AffectedFarmersCount:  req.AffectedFarmersCount,
@@ -293,6 +295,7 @@ func (uc *WaterResourcesUseCase) calculateEstimatedBudget(report *entity.WaterRe
     return totalBudget
 }
 
+// func (uc *WaterResourcesUseCase) sendUrgentNotification(ctx context.Context, report *entity.WaterResourcesReport) {
 func (uc *WaterResourcesUseCase) sendUrgentNotification(ctx context.Context, report *entity.WaterResourcesReport) {
     
     

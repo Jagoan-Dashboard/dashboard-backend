@@ -20,6 +20,8 @@ type WaterResourcesReport struct {
     DamageLevel            DamageLevel              `json:"damage_level" gorm:"type:varchar(50)"`
     EstimatedLength        float64                  `json:"estimated_length" gorm:"comment:'in meters'"`
     EstimatedWidth         float64                  `json:"estimated_width" gorm:"comment:'in meters'"`
+    EstimatedDepth         float64                  `json:"estimated_depth" gorm:"comment:'in meters'"`
+    EstimatedArea          float64                  `json:"estimated_area" gorm:"comment:'in m² or ha'"`
     EstimatedVolume        float64                  `json:"estimated_volume" gorm:"comment:'in m² or ha'"`
     AffectedRiceFieldArea  float64                  `json:"affected_rice_field_area" gorm:"comment:'in hectares'"`
     AffectedFarmersCount   int                      `json:"affected_farmers_count"`

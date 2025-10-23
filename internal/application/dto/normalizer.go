@@ -78,8 +78,8 @@ func (r *CreateBinaMargaRequest) Normalize() {
 	r.BridgeName = utils.NormalizeLocation(r.BridgeName)
 	
 	r.InstitutionUnit = utils.NormalizeEnum(r.InstitutionUnit)
-	r.RoadType = utils.NormalizeEnum(r.RoadType)
-	r.RoadClass = utils.NormalizeEnum(r.RoadClass)
+	// r.RoadType = utils.NormalizeEnum(r.RoadType)
+	// r.RoadClass = utils.NormalizeEnum(r.RoadClass)
 	r.PavementType = utils.NormalizeEnum(r.PavementType)
 	r.DamageType = utils.NormalizeEnum(r.DamageType)
 	r.DamageLevel = utils.NormalizeEnum(r.DamageLevel)
@@ -95,8 +95,8 @@ func (r *UpdateBinaMargaRequest) Normalize() {
 	r.RoadName = utils.NormalizeLocation(r.RoadName)
 	r.BridgeName = utils.NormalizeLocation(r.BridgeName)
 	
-	r.RoadType = utils.NormalizeEnum(r.RoadType)
-	r.RoadClass = utils.NormalizeEnum(r.RoadClass)
+	// r.RoadType = utils.NormalizeEnum(r.RoadType)
+	// r.RoadClass = utils.NormalizeEnum(r.RoadClass)
 	r.PavementType = utils.NormalizeEnum(r.PavementType)
 	r.DamageType = utils.NormalizeEnum(r.DamageType)
 	r.DamageLevel = utils.NormalizeEnum(r.DamageLevel)

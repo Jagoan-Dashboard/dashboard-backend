@@ -14,6 +14,8 @@ CREATE TABLE water_resources_reports (
     damage_level VARCHAR(50) NOT NULL,
     estimated_length DECIMAL(10, 2) DEFAULT 0,
     estimated_width DECIMAL(10, 2) DEFAULT 0,
+    estimated_depth DECIMAL(10, 2) DEFAULT 0,
+    estimated_area DECIMAL(10, 2) DEFAULT 0,
     estimated_volume DECIMAL(10, 2) DEFAULT 0,
     affected_rice_field_area DECIMAL(10, 2) DEFAULT 0,
     affected_farmers_count INTEGER DEFAULT 0,
