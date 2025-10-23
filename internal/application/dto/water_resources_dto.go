@@ -9,7 +9,7 @@ import (
 
 type CreateWaterResourcesRequest struct {
     ReporterName          string    `json:"reporter_name" validate:"required"`
-    InstitutionUnit       string    `json:"institution_unit" validate:"required,oneof=DINAS DESA KECAMATAN UPT_IRIGASI POKTAN DINAS_PUPR"`
+    InstitutionUnit       string    `json:"institution_unit" validate:"required,oneof=UPT_IRIGASI POKTAN DINAS_PUPR"`
     PhoneNumber           string    `json:"phone_number" validate:"required"`
     ReportDateTime        time.Time `json:"report_datetime" validate:"required"`
     IrrigationAreaName    string    `json:"irrigation_area_name" validate:"required"`
@@ -22,6 +22,8 @@ type CreateWaterResourcesRequest struct {
     DamageLevel           string    `json:"damage_level" validate:"required,oneof=RINGAN SEDANG BERAT"`
     EstimatedLength       float64   `json:"estimated_length" validate:"min=0"`
     EstimatedWidth        float64   `json:"estimated_width" validate:"min=0"`
+    EstimatedDepth        float64   `json:"estimated_depth" validate:"min=0"`
+    EstimatedArea         float64   `json:"estimated_area" validate:"min=0"`
     EstimatedVolume       float64   `json:"estimated_volume" validate:"min=0"`
     AffectedRiceFieldArea float64   `json:"affected_rice_field_area" validate:"min=0"`
     AffectedFarmersCount  int       `json:"affected_farmers_count" validate:"min=0"`
@@ -40,6 +42,8 @@ type UpdateWaterResourcesRequest struct {
     DamageLevel            string  `json:"damage_level,omitempty"`
     EstimatedLength        float64 `json:"estimated_length,omitempty"`
     EstimatedWidth         float64 `json:"estimated_width,omitempty"`
+    EstimatedDepth         float64 `json:"estimated_depth,omitempty"`
+    EstimatedArea          float64 `json:"estimated_area,omitempty"`
     EstimatedVolume        float64 `json:"estimated_volume,omitempty"`
     AffectedRiceFieldArea  float64 `json:"affected_rice_field_area,omitempty"`
     AffectedFarmersCount   int     `json:"affected_farmers_count,omitempty"`

@@ -6,31 +6,33 @@ import (
 )
 
 type WaterResourcesReport struct {
-	ID                     string                `json:"id" gorm:"type:varchar(26);primary_key"`
-	ReporterName           string                `json:"reporter_name" gorm:"not null"`
-	InstitutionUnit        InstitutionUnitType   `json:"institution_unit" gorm:"type:varchar(50)"`
-	PhoneNumber            string                `json:"phone_number" gorm:"type:varchar(20)"`
-	ReportDateTime         time.Time             `json:"report_datetime" gorm:"not null"`
-	IrrigationAreaName     string                `json:"irrigation_area_name" gorm:"type:varchar(255)"`
-	IrrigationType         IrrigationType        `json:"irrigation_type" gorm:"type:varchar(50)"`
-	Latitude               float64               `json:"latitude"`
-	Longitude              float64               `json:"longitude"`
-	DamageType             DamageType            `json:"damage_type" gorm:"type:varchar(100)"`
-	DamageLevel            DamageLevel           `json:"damage_level" gorm:"type:varchar(50)"`
-	EstimatedLength        float64               `json:"estimated_length" gorm:"comment:'in meters'"`
-	EstimatedWidth         float64               `json:"estimated_width" gorm:"comment:'in meters'"`
-	EstimatedVolume        float64               `json:"estimated_volume" gorm:"comment:'in m² or ha'"`
-	AffectedRiceFieldArea  float64               `json:"affected_rice_field_area" gorm:"comment:'in hectares'"`
-	AffectedFarmersCount   int                   `json:"affected_farmers_count"`
-	UrgencyCategory        UrgencyCategory       `json:"urgency_category" gorm:"type:varchar(50)"`
-	Photos                 []WaterResourcesPhoto `json:"photos" gorm:"foreignKey:ReportID"`
-	Status                 WaterResourceStatus   `json:"status" gorm:"type:varchar(50);default:'PENDING'"`
-	Notes                  string                `json:"notes" gorm:"type:text"`
-	HandlingRecommendation string                `json:"handling_recommendation" gorm:"type:text"`
-	EstimatedBudget        float64               `json:"estimated_budget"`
-	// CreatedBy              string                   `json:"created_by" gorm:"type:varchar(26);not null"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+    ID                      string                   `json:"id" gorm:"type:varchar(26);primary_key"`
+    ReporterName           string                   `json:"reporter_name" gorm:"not null"`
+    InstitutionUnit        InstitutionUnitType      `json:"institution_unit" gorm:"type:varchar(50)"`
+    PhoneNumber            string                   `json:"phone_number" gorm:"type:varchar(20)"`
+    ReportDateTime         time.Time                `json:"report_datetime" gorm:"not null"`
+    IrrigationAreaName     string                   `json:"irrigation_area_name" gorm:"type:varchar(255)"`
+    IrrigationType         IrrigationType           `json:"irrigation_type" gorm:"type:varchar(50)"`
+    Latitude               float64                  `json:"latitude"`
+    Longitude              float64                  `json:"longitude"`
+    DamageType             DamageType               `json:"damage_type" gorm:"type:varchar(100)"`
+    DamageLevel            DamageLevel              `json:"damage_level" gorm:"type:varchar(50)"`
+    EstimatedLength        float64                  `json:"estimated_length" gorm:"comment:'in meters'"`
+    EstimatedWidth         float64                  `json:"estimated_width" gorm:"comment:'in meters'"`
+    EstimatedDepth         float64                  `json:"estimated_depth" gorm:"comment:'in meters'"`
+    EstimatedArea          float64                  `json:"estimated_area" gorm:"comment:'in m² or ha'"`
+    EstimatedVolume        float64                  `json:"estimated_volume" gorm:"comment:'in m² or ha'"`
+    AffectedRiceFieldArea  float64                  `json:"affected_rice_field_area" gorm:"comment:'in hectares'"`
+    AffectedFarmersCount   int                      `json:"affected_farmers_count"`
+    UrgencyCategory        UrgencyCategory          `json:"urgency_category" gorm:"type:varchar(50)"`
+    Photos                 []WaterResourcesPhoto    `json:"photos" gorm:"foreignKey:ReportID"`
+    Status                 WaterResourceStatus      `json:"status" gorm:"type:varchar(50);default:'PENDING'"`
+    Notes                  string                   `json:"notes" gorm:"type:text"`
+    HandlingRecommendation string                   `json:"handling_recommendation" gorm:"type:text"`
+    EstimatedBudget        float64                  `json:"estimated_budget"`
+    CreatedBy              string                   `json:"created_by" gorm:"type:varchar(26);not null"`
+    // CreatedAt              time.Time                `json:"created_at"`
+    UpdatedAt              time.Time                `json:"updated_at"`
 }
 
 type WaterResourcesPhoto struct {

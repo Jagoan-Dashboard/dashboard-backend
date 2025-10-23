@@ -44,11 +44,13 @@ type BinaMargaRepository interface {
     GetMapPoints(ctx context.Context, roadType string, startDate, endDate time.Time) ([]struct {
         Latitude           float64
         Longitude          float64
+        District           string
         RoadName           string
         RoadType           string
         DamageType         string
         DamageLevel        string
         BridgeName         *string
+        BridgeSection      *string
         BridgeDamageType   *string
         BridgeDamageLevel  *string
         UrgencyLevel       string

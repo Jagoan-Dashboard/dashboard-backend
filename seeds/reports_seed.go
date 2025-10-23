@@ -140,6 +140,6 @@ func SeedReports(db *gorm.DB) error {
 	return nil
 }
 
-func stringPtr(s string) *string {
-	return &s
-}
+// func stringPtr(s string) *string {
+// 	return &s
+// }
