@@ -131,8 +131,8 @@ FROM bina_marga_reports;
 
 CREATE VIEW bina_marga_road_analysis_view AS
 SELECT 
-    road_type,
-    road_class,
+    -- road_type,
+    -- road_class,
     pavement_type,
     COUNT(*) as report_count,
     COUNT(*) FILTER (WHERE status NOT IN ('COMPLETED', 'REJECTED')) as pending_count,
@@ -141,7 +141,8 @@ SELECT
     AVG(estimated_budget) as avg_estimated_budget,
     AVG(estimated_repair_time) as avg_repair_time
 FROM bina_marga_reports
-GROUP BY road_type, road_class, pavement_type;
+-- GROUP BY road_type, road_class, pavement_type;
+GROUP BY pavement_type;
 
 CREATE VIEW bina_marga_bridge_analysis_view AS
 SELECT 
