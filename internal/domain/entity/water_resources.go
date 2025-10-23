@@ -31,7 +31,7 @@ type WaterResourcesReport struct {
     Notes                  string                   `json:"notes" gorm:"type:text"`
     HandlingRecommendation string                   `json:"handling_recommendation" gorm:"type:text"`
     EstimatedBudget        float64                  `json:"estimated_budget"`
-    CreatedBy              string                   `json:"created_by" gorm:"type:varchar(26);not null"`
+    // CreatedBy              string                   `json:"created_by" gorm:"type:varchar(26);not null"`
     CreatedAt              time.Time                `json:"created_at"`
     UpdatedAt              time.Time                `json:"updated_at"`
 }

@@ -24,7 +24,7 @@ type SpatialPlanningReport struct {
     Photos                 []SpatialPlanningPhoto       `json:"photos" gorm:"foreignKey:ReportID"`
     Status                 SpatialReportStatus          `json:"status" gorm:"type:varchar(50);default:'PENDING'"`
     Notes                  string                       `json:"notes" gorm:"type:text"`
-    CreatedBy              string                       `json:"created_by" gorm:"type:varchar(26);not null"`
+    // CreatedBy              string                       `json:"created_by" gorm:"type:varchar(26);not null"`
     CreatedAt              time.Time                    `json:"created_at"`
     UpdatedAt              time.Time                    `json:"updated_at"`
 }

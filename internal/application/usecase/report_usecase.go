@@ -127,9 +127,9 @@ func (uc *ReportUseCase) UpdateReport(ctx context.Context, id string, req *dto.U
     }
 
     
-    if report.CreatedBy != userID {
-        return nil, ErrUnauthorized
-    }
+    // if report.CreatedBy != userID {
+    //     return nil, ErrUnauthorized
+    // }
 
     
     if req.BuildingName != "" {
@@ -158,9 +158,9 @@ func (uc *ReportUseCase) DeleteReport(ctx context.Context, id string, userID str
     }
 
     
-    if report.CreatedBy != userID {
-        return ErrUnauthorized
-    }
+    // if report.CreatedBy != userID {
+    //     return ErrUnauthorized
+    // }
 
     
     for _, photo := range report.Photos {

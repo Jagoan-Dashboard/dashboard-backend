@@ -189,9 +189,9 @@ func (uc *BinaMargaUseCase) UpdateReport(ctx context.Context, id string, req *dt
     }
 
     
-    if report.CreatedBy != userID {
-        return nil, ErrUnauthorized
-    }
+    // if report.CreatedBy != userID {
+    //     return nil, ErrUnauthorized
+    // }
 
     if req.District != "" {
         report.District = req.District
@@ -325,9 +325,9 @@ func (uc *BinaMargaUseCase) DeleteReport(ctx context.Context, id string, userID 
     }
 
     
-    if report.CreatedBy != userID {
-        return ErrUnauthorized
-    }
+    // if report.CreatedBy != userID {
+    //     return ErrUnauthorized
+    // }
 
     
     for _, photo := range report.Photos {

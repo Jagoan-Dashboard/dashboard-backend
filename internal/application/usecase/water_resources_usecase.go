@@ -154,9 +154,9 @@ func (uc *WaterResourcesUseCase) UpdateReport(ctx context.Context, id string, re
     }
 
     
-    if report.CreatedBy != userID {
-        return nil, ErrUnauthorized
-    }
+    // if report.CreatedBy != userID {
+    //     return nil, ErrUnauthorized
+    // }
 
     
     if req.IrrigationAreaName != "" {
@@ -236,9 +236,9 @@ func (uc *WaterResourcesUseCase) DeleteReport(ctx context.Context, id string, us
     }
 
     
-    if report.CreatedBy != userID {
-        return ErrUnauthorized
-    }
+    // if report.CreatedBy != userID {
+    //     return ErrUnauthorized
+    // }
 
     
     for _, photo := range report.Photos {

@@ -25,7 +25,7 @@ type Report struct {
     WorkType              *WorkType              `json:"work_type,omitempty" gorm:"type:varchar(50)"`
     ConditionAfterRehab   *ConditionAfterRehab  `json:"condition_after_rehab,omitempty" gorm:"type:varchar(100)"`
     Photos                []ReportPhoto          `json:"photos" gorm:"foreignKey:ReportID"`
-    CreatedBy             string                 `json:"created_by" gorm:"type:varchar(26);not null"`
+    // CreatedBy             string                 `json:"created_by" gorm:"type:varchar(26);not null"`
     CreatedAt             time.Time              `json:"created_at" gorm:"not null"`
     UpdatedAt             time.Time              `json:"updated_at" gorm:"not null"`
 }
