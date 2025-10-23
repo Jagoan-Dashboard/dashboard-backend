@@ -27,6 +27,7 @@ type ReportStatusType string
 const (
     StatusRehabilitasi   ReportStatusType = "REHABILITASI"
     StatusPembangunanBaru ReportStatusType = "PEMBANGUNAN_BARU"
+    StatusKerusakan ReportStatusType = "KERUSAKAN"
     StatusLainnya        ReportStatusType = "LAINNYA"
 )
 
@@ -153,6 +154,10 @@ const (
     InstitutionUnitDinas     InstitutionUnitType = "DINAS"
     InstitutionUnitDesa      InstitutionUnitType = "DESA"
     InstitutionUnitKecamatan InstitutionUnitType = "KECAMATAN"
+    InstitutionUnitUptIrigasi     InstitutionUnitType = "UPT_IRIGASI"
+    InstitutionUnitPoktan      InstitutionUnitType = "POKTAN"
+    InstitutionUnitDinasPupr InstitutionUnitType = "DINAS_PUPR"
+    InstitutionUnitUptJalan InstitutionUnitType = "UPT_JALAN"
 )
 
 
@@ -208,26 +213,26 @@ const (
     WaterResourceStatusRejected    WaterResourceStatus = "REJECTED"
 )
 
-type RoadType string
+// type RoadType string
 
-const (
-    RoadTypeJalanNasional   RoadType = "JALAN_NASIONAL"
-    RoadTypeJalanProvinsi   RoadType = "JALAN_PROVINSI"
-    RoadTypeJalanKabupaten  RoadType = "JALAN_KABUPATEN"
-    RoadTypeJalanKota       RoadType = "JALAN_KOTA"
-    RoadTypeJalanDesa       RoadType = "JALAN_DESA"
-    RoadTypeJalanLingkungan RoadType = "JALAN_LINGKUNGAN"
-)
+// const (
+//     RoadTypeJalanNasional   RoadType = "JALAN_NASIONAL"
+//     RoadTypeJalanProvinsi   RoadType = "JALAN_PROVINSI"
+//     RoadTypeJalanKabupaten  RoadType = "JALAN_KABUPATEN"
+//     RoadTypeJalanKota       RoadType = "JALAN_KOTA"
+//     RoadTypeJalanDesa       RoadType = "JALAN_DESA"
+//     RoadTypeJalanLingkungan RoadType = "JALAN_LINGKUNGAN"
+// )
 
 
-type RoadClass string
+// type RoadClass string
 
-const (
-    RoadClassArteri      RoadClass = "ARTERI"      
-    RoadClassKolektor    RoadClass = "KOLEKTOR"    
-    RoadClassLokal       RoadClass = "LOKAL"       
-    RoadClassLingkungan  RoadClass = "LINGKUNGAN"  
-)
+// const (
+//     RoadClassArteri      RoadClass = "ARTERI"      
+//     RoadClassKolektor    RoadClass = "KOLEKTOR"    
+//     RoadClassLokal       RoadClass = "LOKAL"       
+//     RoadClassLingkungan  RoadClass = "LINGKUNGAN"  
+// )
 
 type RoadDamageLevel string
 

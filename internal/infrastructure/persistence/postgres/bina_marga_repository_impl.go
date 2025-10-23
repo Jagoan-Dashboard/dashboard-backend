@@ -58,12 +58,15 @@ func (r *binaMargaRepositoryImpl) FindAll(ctx context.Context, limit, offset int
 	if v, ok := filters["institution_unit"].(string); ok && v != "" {
 		query = query.Where("institution_unit = ?", v)
 	}
-	if v, ok := filters["road_type"].(string); ok && v != "" {
-		query = query.Where("road_type = ?", v)
+	if v, ok := filters["district"].(string); ok && v != "" {
+		query = query.Where("district = ?", v)
 	}
-	if v, ok := filters["road_class"].(string); ok && v != "" {
-		query = query.Where("road_class = ?", v)
-	}
+	// if v, ok := filters["road_type"].(string); ok && v != "" {
+	// 	query = query.Where("road_type = ?", v)
+	// }
+	// if v, ok := filters["road_class"].(string); ok && v != "" {
+	// 	query = query.Where("road_class = ?", v)
+	// }
 	if v, ok := filters["damage_type"].(string); ok && v != "" {
 		query = query.Where("damage_type = ?", v)
 	}
@@ -455,7 +458,6 @@ func (r *binaMargaRepositoryImpl) FindEmergencyReports(ctx context.Context, limi
 	return reports, err
 }
 
-
 func (r *binaMargaRepositoryImpl) baseScoped(ctx context.Context, roadType string, startDate, endDate time.Time) *gorm.DB {
     q := r.db.WithContext(ctx).Model(&entity.BinaMargaReport{}).
         Where("report_datetime BETWEEN ? AND ?", startDate, endDate)
@@ -531,11 +533,13 @@ func (r *binaMargaRepositoryImpl) GroupCountBy(ctx context.Context, column, road
 func (r *binaMargaRepositoryImpl) GetMapPoints(ctx context.Context, roadType string, startDate, endDate time.Time) ([]struct {
     Latitude           float64
     Longitude          float64
+	District           string
     RoadName           string
     RoadType           string
     DamageType         string
     DamageLevel        string
     BridgeName         *string
+	BridgeSection      *string
     BridgeDamageType   *string
     BridgeDamageLevel  *string
     UrgencyLevel       string
@@ -543,11 +547,13 @@ func (r *binaMargaRepositoryImpl) GetMapPoints(ctx context.Context, roadType str
     type row struct {
         Latitude          float64
         Longitude         float64
+        District          string
         RoadName          string
         RoadType          string
         DamageType        string
         DamageLevel       string
         BridgeName        *string
+        BridgeSection     *string
         BridgeDamageType  *string
         BridgeDamageLevel *string
         UrgencyLevel      string
@@ -564,11 +570,13 @@ func (r *binaMargaRepositoryImpl) GetMapPoints(ctx context.Context, roadType str
     out := make([]struct {
         Latitude           float64
         Longitude          float64
+        District           string
         RoadName           string
         RoadType           string
         DamageType         string
         DamageLevel        string
         BridgeName         *string
+        BridgeSection      *string
         BridgeDamageType   *string
         BridgeDamageLevel  *string
         UrgencyLevel       string
@@ -577,19 +585,21 @@ func (r *binaMargaRepositoryImpl) GetMapPoints(ctx context.Context, roadType str
         out[i] = struct {
             Latitude           float64
             Longitude          float64
+            District           string
             RoadName           string
             RoadType           string
             DamageType         string
             DamageLevel        string
             BridgeName         *string
+            BridgeSection      *string
             BridgeDamageType   *string
             BridgeDamageLevel  *string
             UrgencyLevel       string
         }{
             Latitude: v.Latitude, Longitude: v.Longitude,
-            RoadName: v.RoadName, RoadType: v.RoadType,
+            District: v.District, RoadName: v.RoadName, RoadType: v.RoadType,
             DamageType: v.DamageType, DamageLevel: v.DamageLevel,
-            BridgeName: v.BridgeName, BridgeDamageType: v.BridgeDamageType, BridgeDamageLevel: v.BridgeDamageLevel,
+            BridgeName: v.BridgeName, BridgeSection: v.BridgeSection, BridgeDamageType: v.BridgeDamageType, BridgeDamageLevel: v.BridgeDamageLevel,
             UrgencyLevel: v.UrgencyLevel,
         }
     }

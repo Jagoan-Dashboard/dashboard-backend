@@ -9,9 +9,10 @@ CREATE TABLE bina_marga_reports (
     institution_unit VARCHAR(50) NOT NULL,
     phone_number VARCHAR(20),
     report_datetime TIMESTAMP NOT NULL,
+    district VARCHAR(255) NOT NULL,
     road_name VARCHAR(255) NOT NULL,
-    road_type VARCHAR(50) NOT NULL,
-    road_class VARCHAR(50) NOT NULL,
+    -- road_type VARCHAR(50) NOT NULL,
+    -- road_class VARCHAR(50) NOT NULL,
     segment_length DECIMAL(10, 2) DEFAULT 0,
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
@@ -23,6 +24,7 @@ CREATE TABLE bina_marga_reports (
     damaged_area DECIMAL(10, 2) DEFAULT 0,
     total_damaged_area DECIMAL(10, 2) DEFAULT 0,
     bridge_name VARCHAR(255),
+    bridge_section VARCHAR(255),
     bridge_structure_type VARCHAR(50),
     bridge_damage_type VARCHAR(100),
     bridge_damage_level VARCHAR(50),
@@ -42,9 +44,10 @@ CREATE TABLE bina_marga_reports (
 
 -- indexes (tetap sama punyamu) ...
 CREATE INDEX idx_bina_marga_institution ON bina_marga_reports(institution_unit);
-CREATE INDEX idx_bina_marga_road_type ON bina_marga_reports(road_type);
-CREATE INDEX idx_bina_marga_road_class ON bina_marga_reports(road_class);
+-- CREATE INDEX idx_bina_marga_road_type ON bina_marga_reports(road_type);
+-- CREATE INDEX idx_bina_marga_road_class ON bina_marga_reports(road_class);
 CREATE INDEX idx_bina_marga_road_name ON bina_marga_reports(road_name);
+CREATE INDEX idx_bina_marga_district ON bina_marga_reports(district);
 CREATE INDEX idx_bina_marga_pavement_type ON bina_marga_reports(pavement_type);
 CREATE INDEX idx_bina_marga_damage_type ON bina_marga_reports(damage_type);
 CREATE INDEX idx_bina_marga_damage_level ON bina_marga_reports(damage_level);
@@ -52,10 +55,12 @@ CREATE INDEX idx_bina_marga_urgency ON bina_marga_reports(urgency_level);
 CREATE INDEX idx_bina_marga_traffic_impact ON bina_marga_reports(traffic_impact);
 CREATE INDEX idx_bina_marga_traffic_condition ON bina_marga_reports(traffic_condition);
 CREATE INDEX idx_bina_marga_bridge_name ON bina_marga_reports(bridge_name);
+CREATE INDEX idx_bina_marga_bridge_section ON bina_marga_reports(bridge_section);
 CREATE INDEX idx_bina_marga_status ON bina_marga_reports(status);
 CREATE INDEX idx_bina_marga_report_datetime ON bina_marga_reports(report_datetime);
 CREATE INDEX idx_bina_marga_location ON bina_marga_reports(latitude, longitude);
-CREATE INDEX idx_bina_marga_priority ON bina_marga_reports(urgency_level, damage_level, traffic_impact, road_class);
+-- CREATE INDEX idx_bina_marga_priority ON bina_marga_reports(urgency_level, damage_level, traffic_impact, road_class);
+CREATE INDEX idx_bina_marga_priority ON bina_marga_reports(urgency_level, damage_level, traffic_impact);
 CREATE INDEX idx_bina_marga_filters ON bina_marga_reports(status, urgency_level, damage_level, created_at);
 CREATE INDEX idx_bina_marga_bridges ON bina_marga_reports(bridge_name)
   WHERE bridge_name IS NOT NULL AND bridge_name <> '';

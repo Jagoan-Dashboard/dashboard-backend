@@ -47,9 +47,10 @@ func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBin
         InstitutionUnit:     entity.InstitutionUnitType(req.InstitutionUnit),
         PhoneNumber:         req.PhoneNumber,
         ReportDateTime:      req.ReportDateTime,
+        District:            req.District,
         RoadName:            req.RoadName,
-        RoadType:            entity.RoadType(req.RoadType),
-        RoadClass:           entity.RoadClass(req.RoadClass),
+        // RoadType:            entity.RoadType(req.RoadType),
+        // RoadClass:           entity.RoadClass(req.RoadClass),
         SegmentLength:       req.SegmentLength,
         Latitude:            req.Latitude,
         Longitude:           req.Longitude,
@@ -72,6 +73,7 @@ func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBin
     
     if req.BridgeName != "" {
         report.BridgeName = req.BridgeName
+        report.BridgeSection = req.BridgeSection
         if req.BridgeStructureType != "" {
             report.BridgeStructureType = entity.BridgeStructureType(req.BridgeStructureType)
         }
@@ -191,16 +193,18 @@ func (uc *BinaMargaUseCase) UpdateReport(ctx context.Context, id string, req *dt
         return nil, ErrUnauthorized
     }
 
-    
+    if req.District != "" {
+        report.District = req.District
+    }
     if req.RoadName != "" {
         report.RoadName = req.RoadName
     }
-    if req.RoadType != "" {
-        report.RoadType = entity.RoadType(req.RoadType)
-    }
-    if req.RoadClass != "" {
-        report.RoadClass = entity.RoadClass(req.RoadClass)
-    }
+    // if req.RoadType != "" {
+    //     report.RoadType = entity.RoadType(req.RoadType)
+    // }
+    // if req.RoadClass != "" {
+    //     report.RoadClass = entity.RoadClass(req.RoadClass)
+    // }
     if req.SegmentLength > 0 {
         report.SegmentLength = req.SegmentLength
     }
@@ -228,6 +232,9 @@ func (uc *BinaMargaUseCase) UpdateReport(ctx context.Context, id string, req *dt
     
     if req.BridgeName != "" {
         report.BridgeName = req.BridgeName
+    }
+    if req.BridgeSection != "" {
+        report.BridgeSection = req.BridgeSection
     }
     if req.BridgeStructureType != "" {
         report.BridgeStructureType = entity.BridgeStructureType(req.BridgeStructureType)
@@ -360,15 +367,15 @@ func (uc *BinaMargaUseCase) calculateEstimatedBudget(report *entity.BinaMargaRep
     }
     
     
-    classMultiplier := 1.0
-    switch report.RoadClass {
-    case entity.RoadClassArteri:
-        classMultiplier = 2.0
-    case entity.RoadClassKolektor:
-        classMultiplier = 1.5
-    case entity.RoadClassLokal:
-        classMultiplier = 1.2
-    }
+    // classMultiplier := 1.0
+    // switch report.RoadClass {
+    // case entity.RoadClassArteri:
+    //     classMultiplier = 2.0
+    // case entity.RoadClassKolektor:
+    //     classMultiplier = 1.5
+    // case entity.RoadClassLokal:
+    //     classMultiplier = 1.2
+    // }
     
     
     pavementMultiplier := 1.0
@@ -417,7 +424,8 @@ func (uc *BinaMargaUseCase) calculateEstimatedBudget(report *entity.BinaMargaRep
         urgencyAdditional = areaCost * 0.2 
     }
     
-    totalBudget := (areaCost * levelMultiplier * classMultiplier * pavementMultiplier * typeMultiplier) + bridgeAdditional + urgencyAdditional
+    // totalBudget := (areaCost * levelMultiplier * classMultiplier * pavementMultiplier * typeMultiplier) + bridgeAdditional + urgencyAdditional
+    totalBudget := (areaCost * levelMultiplier * pavementMultiplier * typeMultiplier) + bridgeAdditional + urgencyAdditional
     
     return totalBudget
 }
@@ -471,13 +479,13 @@ func (uc *BinaMargaUseCase) calculateEstimatedRepairTime(report *entity.BinaMarg
     }
     
     
-    classMultiplier := 1.0
-    switch report.RoadClass {
-    case entity.RoadClassArteri:
-        classMultiplier = 1.5
-    case entity.RoadClassKolektor:
-        classMultiplier = 1.2
-    }
+    // classMultiplier := 1.0
+    // switch report.RoadClass {
+    // case entity.RoadClassArteri:
+    //     classMultiplier = 1.5
+    // case entity.RoadClassKolektor:
+    //     classMultiplier = 1.2
+    // }
     
     
     bridgeAdditional := 0.0
@@ -488,7 +496,8 @@ func (uc *BinaMargaUseCase) calculateEstimatedRepairTime(report *entity.BinaMarg
         }
     }
     
-    totalTime := (baseTime * levelMultiplier * typeMultiplier * pavementMultiplier * classMultiplier) + bridgeAdditional
+    // totalTime := (baseTime * levelMultiplier * typeMultiplier * pavementMultiplier * classMultiplier) + bridgeAdditional
+    totalTime := (baseTime * levelMultiplier * typeMultiplier * pavementMultiplier) + bridgeAdditional
     
     
     if totalTime < 1 {
@@ -595,7 +604,7 @@ func (uc *BinaMargaUseCase) GetDashboard(ctx context.Context, roadType string, s
             Latitude:          p.Latitude,
             Longitude:         p.Longitude,
             RoadName:          p.RoadName,
-            RoadType:          p.RoadType,
+            // RoadType:          p.RoadType,
             DamageType:        p.DamageType,
             DamageLevel:       p.DamageLevel,
             BridgeName:        deref(p.BridgeName),

@@ -42,9 +42,10 @@ func (h *BinaMargaHandler) CreateReport(c *fiber.Ctx) error {
     }
     
     // Parse road information
+    req.District = c.FormValue("district")
     req.RoadName = c.FormValue("road_name")
-    req.RoadType = c.FormValue("road_type")
-    req.RoadClass = c.FormValue("road_class")
+    // req.RoadType = c.FormValue("road_type")
+    // req.RoadClass = c.FormValue("road_class")
     
     // Parse segment length
     if segmentLength, err := strconv.ParseFloat(c.FormValue("segment_length"), 64); err == nil {
@@ -77,6 +78,7 @@ func (h *BinaMargaHandler) CreateReport(c *fiber.Ctx) error {
     
     // Parse bridge information (optional)
     req.BridgeName = c.FormValue("bridge_name")
+    req.BridgeSection = c.FormValue("bridge_section")
     req.BridgeStructureType = c.FormValue("bridge_structure_type")
     req.BridgeDamageType = c.FormValue("bridge_damage_type")
     req.BridgeDamageLevel = c.FormValue("bridge_damage_level")
@@ -157,8 +159,9 @@ func (h *BinaMargaHandler) ListReports(c *fiber.Ctx) error {
 
     filters := map[string]interface{}{
         "institution_unit":      c.Query("institution_unit"),
-        "road_type":            c.Query("road_type"),
-        "road_class":           c.Query("road_class"),
+        "district":              c.Query("district"),
+        // "road_type":            c.Query("road_type"),
+        // "road_class":           c.Query("road_class"),
         "road_name":            c.Query("road_name"),
         "pavement_type":        c.Query("pavement_type"),
         "damage_type":          c.Query("damage_type"),
@@ -167,6 +170,7 @@ func (h *BinaMargaHandler) ListReports(c *fiber.Ctx) error {
         "traffic_impact":       c.Query("traffic_impact"),
         "traffic_condition":    c.Query("traffic_condition"),
         "bridge_name":          c.Query("bridge_name"),
+        "bridge_section":       c.Query("bridge_section"),
         "status":              c.Query("status"),
         "start_date":          c.Query("start_date"),
         "end_date":            c.Query("end_date"),

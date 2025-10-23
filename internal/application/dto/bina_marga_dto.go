@@ -8,14 +8,15 @@ import (
 type CreateBinaMargaRequest struct {
     
     ReporterName        string    `json:"reporter_name" validate:"required"`
-    InstitutionUnit     string    `json:"institution_unit" validate:"required,oneof=DINAS DESA KECAMATAN"`
+    InstitutionUnit     string    `json:"institution_unit" validate:"required,oneof=DINAS_PUPR KECAMATAN DESA UPT_JALAN"`
     PhoneNumber         string    `json:"phone_number" validate:"required"`
     ReportDateTime      time.Time `json:"report_datetime" validate:"required"`
     
     
-    RoadName            string    `json:"road_name" validate:"omitempty"`
-    RoadType            string    `json:"road_type" validate:"omitempty,oneof=JALAN_NASIONAL JALAN_PROVINSI JALAN_KABUPATEN JALAN_DESA"`
-    RoadClass           string    `json:"road_class" validate:"omitempty,oneof=ARTERI KOLEKTOR LOKAL LINGKUNGAN"`
+    District            string    `json:"district" validate:"required"`
+    RoadName            string    `json:"road_name" validate:"required"`
+    // RoadType            string    `json:"road_type" validate:"omitempty,oneof=JALAN_NASIONAL JALAN_PROVINSI JALAN_KABUPATEN JALAN_DESA"`
+    // RoadClass           string    `json:"road_class" validate:"omitempty,oneof=ARTERI KOLEKTOR LOKAL LINGKUNGAN"`
     SegmentLength       float64   `json:"segment_length" validate:"min=0"` 
     Latitude            float64   `json:"latitude" validate:"required,min=-90,max=90"`
     Longitude           float64   `json:"longitude" validate:"required,min=-180,max=180"`
@@ -30,6 +31,7 @@ type CreateBinaMargaRequest struct {
     
     
     BridgeName          string    `json:"bridge_name,omitempty"`
+    BridgeSection       string    `json:"bridge_section,omitempty"`
     BridgeStructureType string    `json:"bridge_structure_type,omitempty"` 
     BridgeDamageType    string    `json:"bridge_damage_type,omitempty"`
     BridgeDamageLevel   string    `json:"bridge_damage_level,omitempty"` 
@@ -51,9 +53,10 @@ func (r *CreateBinaMargaRequest) Validate() error {
 
 type UpdateBinaMargaRequest struct {
     
+    District               string  `json:"district,omitempty"`
     RoadName               string  `json:"road_name,omitempty"`
-    RoadType               string  `json:"road_type,omitempty"`
-    RoadClass              string  `json:"road_class,omitempty"`
+    // RoadType               string  `json:"road_type,omitempty"`
+    // RoadClass              string  `json:"road_class,omitempty"`
     SegmentLength          float64 `json:"segment_length,omitempty"`
     
     
@@ -66,6 +69,7 @@ type UpdateBinaMargaRequest struct {
     
     
     BridgeName             string  `json:"bridge_name,omitempty"`
+    BridgeSection          string  `json:"bridge_section,omitempty"`
     BridgeStructureType    string  `json:"bridge_structure_type,omitempty"`
     BridgeDamageType       string  `json:"bridge_damage_type,omitempty"`
     BridgeDamageLevel      string  `json:"bridge_damage_level,omitempty"`
@@ -111,7 +115,7 @@ type BinaMargaStatisticsResponse struct {
     BlockedRoads           int64                    `json:"blocked_roads"`
     TotalDamagedArea       float64                  `json:"total_damaged_area_sqm"`
     TotalDamagedLength     float64                  `json:"total_damaged_length_m"`
-    RoadTypeDistribution   []map[string]interface{} `json:"road_type_distribution"`
+    // RoadTypeDistribution   []map[string]interface{} `json:"road_type_distribution"`
     DamageTypeDistribution []map[string]interface{} `json:"damage_type_distribution"`
     DamageLevelCounts      []map[string]interface{} `json:"damage_level_counts"`
     UrgencyLevelCounts     []map[string]interface{} `json:"urgency_level_counts"`
@@ -124,8 +128,8 @@ type BinaMargaStatisticsResponse struct {
 }
 
 type RoadDamageByTypeResponse struct {
-    RoadType             string  `json:"road_type"`
-    RoadClass            string  `json:"road_class"`
+    // RoadType             string  `json:"road_type"`
+    // RoadClass            string  `json:"road_class"`
     PavementType         string  `json:"pavement_type"`
     ReportCount          int     `json:"report_count"`
     TotalDamagedArea     float64 `json:"total_damaged_area"`
@@ -139,11 +143,13 @@ type RoadDamageByTypeResponse struct {
 type BinaMargaMapPoint struct {
     Latitude        float64 `json:"latitude"`
     Longitude       float64 `json:"longitude"`
+    District        string  `json:"district"`
     RoadName        string  `json:"road_name"`
-    RoadType        string  `json:"road_type"`
+    // RoadType        string  `json:"road_type"`
     DamageType      string  `json:"damage_type,omitempty"`
     DamageLevel     string  `json:"damage_level,omitempty"`
     BridgeName      string  `json:"bridge_name,omitempty"`
+    BridgeSection   string  `json:"bridge_section,omitempty"`
     BridgeDamageType  string `json:"bridge_damage_type,omitempty"`
     BridgeDamageLevel string `json:"bridge_damage_level,omitempty"`
     UrgencyLevel    string  `json:"urgency_level"`
@@ -184,6 +190,7 @@ type BinaMargaOverviewResponse struct {
 }
 
 type BinaMargaLocationStatsResponse struct {
+    District              string  `json:"district"`
     RoadName              string  `json:"road_name"`
     Latitude              float64 `json:"latitude"`
     Longitude             float64 `json:"longitude"`
