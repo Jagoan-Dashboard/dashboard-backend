@@ -14,10 +14,10 @@ type BinaMargaReport struct {
     PhoneNumber           string                 `json:"phone_number" gorm:"type:varchar(20)"`
     ReportDateTime        time.Time              `json:"report_datetime" gorm:"not null"`
     
-    
+    District              string                 `json:"district" gorm:"type:varchar(50)"`
     RoadName              string                 `json:"road_name" gorm:"type:varchar(255)"`
-    RoadType              RoadType               `json:"road_type" gorm:"type:varchar(50)"`
-    RoadClass             RoadClass              `json:"road_class" gorm:"type:varchar(50)"`
+    // RoadType              RoadType               `json:"road_type" gorm:"type:varchar(50)"`
+    // RoadClass             RoadClass              `json:"road_class" gorm:"type:varchar(50)"`
     SegmentLength         float64                `json:"segment_length" gorm:"comment:'in meters'"`
     Latitude              float64                `json:"latitude"`
     Longitude             float64                `json:"longitude"`
@@ -33,6 +33,7 @@ type BinaMargaReport struct {
     
     
     BridgeName            string                 `json:"bridge_name" gorm:"type:varchar(255)"`
+    BridgeSection         string                 `json:"bridge_section" gorm:"type:varchar(255)"`
     BridgeStructureType   BridgeStructureType    `json:"bridge_structure_type" gorm:"type:varchar(50)"`
     BridgeDamageType      BridgeDamageType       `json:"bridge_damage_type" gorm:"type:varchar(100)"`
     BridgeDamageLevel     BridgeDamageLevel      `json:"bridge_damage_level" gorm:"type:varchar(50)"`
@@ -133,16 +134,16 @@ func (r *BinaMargaReport) CalculatePriority() int {
     }
     
     
-    switch r.RoadClass {
-    case RoadClassArteri:
-        priority += 40
-    case RoadClassKolektor:
-        priority += 30
-    case RoadClassLokal:
-        priority += 20
-    case RoadClassLingkungan:
-        priority += 10
-    }
+    // switch r.RoadClass {
+    // case RoadClassArteri:
+    //     priority += 40
+    // case RoadClassKolektor:
+    //     priority += 30
+    // case RoadClassLokal:
+    //     priority += 20
+    // case RoadClassLingkungan:
+    //     priority += 10
+    // }
     
     
     switch r.TrafficImpact {

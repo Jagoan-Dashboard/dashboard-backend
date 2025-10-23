@@ -25,23 +25,29 @@ type CreateReportRequest struct {
     ConditionAfterRehab  string  `json:"condition_after_rehab,omitempty" form:"condition_after_rehab"`
 }
 
+
 func (r *CreateReportRequest) Validate() error {
     if err := validate.Struct(r); err != nil {
         return err
     }
 
-    isPembangunanBaru := r.ReportStatus == "PEMBANGUNAN_BARU"
-
-    if !isPembangunanBaru {
+    switch r.ReportStatus {
+    case "PEMBANGUNAN_BARU":
+        return nil
+    case "KERUSAKAN":
+        if r.WorkType == "" {
+            return errors.New("WorkType is required for damage reports")
+        }
+        return nil
+    default:
         if r.WorkType == "" {
             return errors.New("WorkType is required for rehabilitation reports")
         }
         if r.ConditionAfterRehab == "" {
             return errors.New("ConditionAfterRehab is required for rehabilitation reports")
         }
+        return nil
     }
-
-    return nil
 }
 
 type UpdateReportRequest struct {
