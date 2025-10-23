@@ -1,9 +1,10 @@
 package router
 
 import (
-    "building-report-backend/pkg/container"
-    
-    "github.com/gofiber/fiber/v2"
+	"building-report-backend/internal/interfaces/http/middleware"
+	"building-report-backend/pkg/container"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func SetupRoutes(app *fiber.App, cont *container.Container) {
@@ -22,6 +23,14 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     authRoutes := api.Group("/auth")
     authRoutes.Post("/register", cont.AuthHandler.Register)
     authRoutes.Post("/login", cont.AuthHandler.Login)
+    users := api.Group("/users")
+    users.Use(middleware.AuthMiddleware(cont.AuthService))
+    
+    users.Get("/", cont.AuthHandler.GetAllUsers)
+    users.Get("/:id", cont.AuthHandler.GetUserByID)
+    users.Post("/", cont.AuthHandler.CreateUser)
+    users.Put("/:id", cont.AuthHandler.UpdateUser)
+    users.Delete("/:id", cont.AuthHandler.DeleteUser)
 
     api.Post("/reports", cont.ReportHandler.CreateReport)
     api.Post("/spatial-planning", cont.SpatialPlanningHandler.CreateReport)
