@@ -442,19 +442,24 @@ type EquipmentTrend struct {
 
 
 type LandIndividualPoint struct {
-    Latitude           float64 `json:"latitude"`
-    Longitude          float64 `json:"longitude"`
-    Village            string  `json:"village"`
-    District           string  `json:"district"`
-    FarmerName         string  `json:"farmer_name"`
-    TotalLandArea      float64 `json:"total_land_area"`
-    FoodLandArea       float64 `json:"food_land_area"`
-    HortiLandArea      float64 `json:"horti_land_area"`
-    PlantationLandArea float64 `json:"plantation_land_area"`
-    WaterAccess        string  `json:"water_access"`
-    HasGoodWaterAccess bool    `json:"has_good_water_access"`
-    PrimaryCommodity   string  `json:"primary_commodity"`
-    VisitDate          string  `json:"visit_date"`
+    Latitude              float64 `json:"latitude"`
+    Longitude             float64 `json:"longitude"`
+    Village               string  `json:"village"`
+    District              string  `json:"district"`
+    FarmerName            string  `json:"farmer_name"`
+    TotalLandArea         float64 `json:"total_land_area"`
+    FoodLandArea          float64 `json:"food_land_area"`
+    HortiLandArea         float64 `json:"horti_land_area"`
+    PlantationLandArea    float64 `json:"plantation_land_area"`
+    RainfedRiceFields     float64 `json:"rainfed_rice_fields"`
+    IrrigatedRiceFields   float64 `json:"irrigated_rice_fields"`
+    TotalRiceFieldArea    float64 `json:"total_rice_field_area"`
+    WaterAccess           string  `json:"water_access"`
+    HasGoodWaterAccess    bool    `json:"has_good_water_access"`
+    PrimaryCommodity      string  `json:"primary_commodity"`
+    VisitDate             string  `json:"visit_date"`
+    DataSource            string  `json:"data_source"` // 'agriculture_report' or 'rice_field'
+    CommodityType         string  `json:"commodity_type"`
 }
 
 

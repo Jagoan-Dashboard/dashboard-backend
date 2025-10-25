@@ -906,26 +906,60 @@ func (uc *AgricultureUseCase) GetLandAndIrrigationStats(ctx context.Context, sta
 	
 	for _, point := range individualPoints {
 		individualPoint := dto.LandIndividualPoint{
-			Latitude:           point["latitude"].(float64),
-			Longitude:          point["longitude"].(float64),
-			Village:            point["village"].(string),
-			District:           point["district"].(string),
-			FarmerName:         point["farmer_name"].(string),
-			TotalLandArea:      point["total_land_area"].(float64),
-			FoodLandArea:       point["food_land_area"].(float64),
-			HortiLandArea:      point["horti_land_area"].(float64),
-			PlantationLandArea: point["plantation_land_area"].(float64),
-			WaterAccess:        point["water_access"].(string),
-			HasGoodWaterAccess: point["has_good_water_access"].(bool),
-			PrimaryCommodity:   point["primary_commodity"].(string),
-			VisitDate:          point["visit_date"].(time.Time).Format("2006-01-02"),
+			Latitude:           convertToFloat64(point["latitude"]),
+			Longitude:          convertToFloat64(point["longitude"]),
+			Village:            convertToString(point["village"]),
+			District:           convertToString(point["district"]),
+			FarmerName:         convertToString(point["farmer_name"]),
+			TotalLandArea:      convertToFloat64(point["total_land_area"]),
+			FoodLandArea:       convertToFloat64(point["food_land_area"]),
+			HortiLandArea:      convertToFloat64(point["horti_land_area"]),
+			PlantationLandArea: convertToFloat64(point["plantation_land_area"]),
+			WaterAccess:        convertToString(point["water_access"]),
+			HasGoodWaterAccess: convertToBool(point["has_good_water_access"]),
+			PrimaryCommodity:   convertToString(point["primary_commodity"]),
+			DataSource:         convertToString(point["data_source"]),
+			CommodityType:      convertToString(point["commodity_type"]),
 		}
+		
+		// Format visit date if it exists
+		if visitDateVal, ok := point["visit_date"]; ok && visitDateVal != nil {
+			var visitDateStr string
+			switch v := visitDateVal.(type) {
+			case time.Time:
+				visitDateStr = v.Format("2006-01-02")
+			case string:
+				visitDateStr = v
+			default:
+				visitDateStr = ""
+			}
+			individualPoint.VisitDate = visitDateStr
+		}
+		
 		response.IndividualPoints = append(response.IndividualPoints, individualPoint)
 	}
 
 	uc.cache.Set(ctx, cacheKey, &response, 1200*time.Second)
 
 	return &response, nil
+}
+
+// Helper function to convert interface{} to bool
+func convertToBool(value interface{}) bool {
+	switch v := value.(type) {
+	case bool:
+		return v
+	case int:
+		return v != 0
+	case int64:
+		return v != 0
+	case float64:
+		return v != 0
+	case string:
+		return v != "" && v != "false" && v != "0"
+	default:
+		return false
+	}
 }
 
 func (uc *AgricultureUseCase) GetCommodityAnalysis(ctx context.Context, startDate, endDate time.Time, commodityName string) (*dto.CommodityAnalysisResponse, error) {

@@ -2333,7 +2333,17 @@ func (r *agricultureRepositoryImpl) GetLandIndividualDistribution(ctx context.Co
 				WHEN plantation_commodity IS NOT NULL AND plantation_commodity != '' THEN plantation_commodity
 				ELSE 'UNKNOWN'
 			END as primary_commodity,
-			visit_date
+			visit_date,
+			'agriculture_report' as data_source,
+			NULL as rainfed_rice_fields,
+			NULL as irrigated_rice_fields,
+			NULL as total_rice_field_area,
+			CASE 
+				WHEN food_commodity IS NOT NULL AND food_commodity != '' THEN 'FOOD'
+				WHEN horti_commodity IS NOT NULL AND horti_commodity != '' THEN 'HORTICULTURE'
+				WHEN plantation_commodity IS NOT NULL AND plantation_commodity != '' THEN 'PLANTATION'
+				ELSE 'UNKNOWN'
+			END as commodity_type
 		FROM agriculture_reports
 		WHERE visit_date::date BETWEEN $1::date AND $2::date
 		AND latitude IS NOT NULL 
@@ -2343,7 +2353,8 @@ func (r *agricultureRepositoryImpl) GetLandIndividualDistribution(ctx context.Co
 			COALESCE(horti_land_area::float8, 0) + 
 			COALESCE(plantation_land_area::float8, 0)
 		) > 0
-		ORDER BY visit_date DESC
+
+		ORDER BY district
 	`
 
 	err := r.db.WithContext(ctx).Raw(query, startDate, endDate).Scan(&results).Error
@@ -2354,9 +2365,12 @@ func (r *agricultureRepositoryImpl) GetLandIndividualDistribution(ctx context.Co
 
 	fmt.Printf("[RESULT] Found %d individual points\n", len(results))
 	if len(results) > 0 {
-		first := results[0]
-		fmt.Printf("[SAMPLE] First point: %s - %.2f ha\n", 
-			first["farmer_name"], first["total_land_area"])
+		for i, result := range results {
+			if i < 3 { // hanya tampilkan 3 pertama
+				fmt.Printf("[SAMPLE %d] District: %s, Data Source: %s, Total Land Area: %.2f ha\n", 
+					i+1, result["district"], result["data_source"], result["total_land_area"])
+			}
+		}
 	}
 	fmt.Printf("========== INDIVIDUAL DISTRIBUTION DEBUG END ==========\n\n")
 
