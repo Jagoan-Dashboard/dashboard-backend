@@ -25,6 +25,7 @@ const (
     RoleSupervisor UserRole = "SUPERVISOR"
     RoleOperator   UserRole = "OPERATOR"
     RoleViewer     UserRole = "VIEWER"
+    RoleSuperAdmin UserRole = "SUPERADMIN"
 )
 
 func (u *User) BeforeCreate() error {
