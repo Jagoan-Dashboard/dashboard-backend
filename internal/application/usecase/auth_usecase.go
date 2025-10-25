@@ -21,6 +21,8 @@ var (
     ErrUnauthorized       = errors.New("unauthorized")
     ErrUserNotFound       = errors.New("user not found")
     ErrInactiveUser       = errors.New("user account is inactive")
+    ErrForbidden          = errors.New("forbidden: insufficient permissions")
+    ErrCannotDeleteSelf   = errors.New("cannot delete your own account")
 )
 
 type AuthUseCase struct {
@@ -42,12 +44,12 @@ func NewAuthUseCase(
 }
 
 func (uc *AuthUseCase) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.AuthResponse, error) {
-    // Validate input
+    
     if err := uc.validateRegistrationInput(req); err != nil {
         return nil, err
     }
 
-    // Check if user already exists
+    
     if err := uc.validateUserNotExists(ctx, req.Username, req.Email); err != nil {
         return nil, err
     }
@@ -62,7 +64,7 @@ func (uc *AuthUseCase) Register(ctx context.Context, req *dto.RegisterRequest) (
         Username: req.Username,
         Email:    req.Email,
         Password: string(password), 
-        Role:     entity.RoleOperator,
+        Role:     entity.RoleUser, 
         IsActive: true,
     }
 
@@ -119,7 +121,7 @@ func (uc *AuthUseCase) generateAuthResponse(ctx context.Context, user *entity.Us
         return nil, err
     }
 
-    // Cache user
+    
     cacheKey := constants.UserCachePrefix + user.ID
     uc.cache.Set(ctx, cacheKey, user, constants.UserCacheDuration)
 
@@ -131,7 +133,6 @@ func (uc *AuthUseCase) generateAuthResponse(ctx context.Context, user *entity.Us
 }
 
 func (uc *AuthUseCase) Login(ctx context.Context, req *dto.LoginRequest) (*dto.AuthResponse, error) {
-
     user, err := uc.userRepo.FindByUsernameOrEmail(ctx, req.Identifier)
     if err != nil {
         return nil, ErrInvalidCredentials
@@ -149,12 +150,12 @@ func (uc *AuthUseCase) Login(ctx context.Context, req *dto.LoginRequest) (*dto.A
 }
 
 func (uc *AuthUseCase) GetUserByID(ctx context.Context, userID string) (*entity.User, error) {
-    // Validate ULID format
+    
     if !utils.IsValidULID(userID) {
         return nil, ErrInvalidCredentials
     }
 
-    // Try to get from cache first
+    
     cacheKey := constants.UserCachePrefix + userID
     var user entity.User
 
@@ -163,14 +164,248 @@ func (uc *AuthUseCase) GetUserByID(ctx context.Context, userID string) (*entity.
         return &user, nil
     }
 
-    // Get from database
+    
     dbUser, err := uc.userRepo.FindByID(ctx, userID)
     if err != nil {
         return nil, ErrUserNotFound
     }
 
-    // Cache the result
+    
     uc.cache.Set(ctx, cacheKey, dbUser, constants.UserCacheDuration)
 
     return dbUser, nil
+}
+
+func (uc *AuthUseCase) GetAllUsers(ctx context.Context, requesterID string) (*dto.UserListResponse, error) {
+    
+    requester, err := uc.GetUserByID(ctx, requesterID)
+    if err != nil {
+        return nil, err
+    }
+
+    if !requester.IsSuperAdmin() {
+        return nil, ErrForbidden
+    }
+
+    
+    users, total, err := uc.userRepo.FindAll(ctx, 0, 0)
+    if err != nil {
+        return nil, err
+    }
+
+    
+    userResponses := make([]*dto.UserResponse, len(users))
+    for i, user := range users {
+        userResponses[i] = &dto.UserResponse{
+            ID:        user.ID,
+            Username:  user.Username,
+            Email:     user.Email,
+            Role:      user.Role,
+            IsActive:  user.IsActive,
+            CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+            UpdatedAt: user.UpdatedAt.Format("2006-01-02 15:04:05"),
+        }
+    }
+
+    return &dto.UserListResponse{
+        Users: userResponses,
+        Total: total,
+    }, nil
+}
+
+
+func (uc *AuthUseCase) GetUserDetailByID(ctx context.Context, requesterID, targetUserID string) (*dto.UserResponse, error) {
+    
+    requester, err := uc.GetUserByID(ctx, requesterID)
+    if err != nil {
+        return nil, err
+    }
+
+    if !requester.IsSuperAdmin() {
+        return nil, ErrForbidden
+    }
+
+    
+    if !utils.IsValidULID(targetUserID) {
+        return nil, ErrInvalidCredentials
+    }
+
+    
+    targetUser, err := uc.GetUserByID(ctx, targetUserID)
+    if err != nil {
+        return nil, ErrUserNotFound
+    }
+
+    return &dto.UserResponse{
+        ID:        targetUser.ID,
+        Username:  targetUser.Username,
+        Email:     targetUser.Email,
+        Role:      targetUser.Role,
+        IsActive:  targetUser.IsActive,
+        CreatedAt: targetUser.CreatedAt.Format("2006-01-02 15:04:05"),
+        UpdatedAt: targetUser.UpdatedAt.Format("2006-01-02 15:04:05"),
+    }, nil
+}
+
+
+func (uc *AuthUseCase) CreateUser(ctx context.Context, requesterID string, req *dto.CreateUserRequest) (*dto.UserResponse, error) {
+    
+    requester, err := uc.GetUserByID(ctx, requesterID)
+    if err != nil {
+        return nil, err
+    }
+
+    if !requester.IsSuperAdmin() {
+        return nil, ErrForbidden
+    }
+
+    
+    if err := validation.ValidateRequired(req.Username, "username"); err != nil {
+        return nil, err
+    }
+
+    if err := validation.ValidateUsername(req.Username); err != nil {
+        return nil, err
+    }
+
+    if err := validation.ValidateRequired(req.Email, "email"); err != nil {
+        return nil, err
+    }
+
+    if err := validation.ValidateEmail(req.Email); err != nil {
+        return nil, err
+    }
+
+    if err := validation.ValidateRequired(req.Password, "password"); err != nil {
+        return nil, err
+    }
+
+    if err := validation.ValidatePassword(req.Password); err != nil {
+        return nil, err
+    }
+
+    
+    if err := uc.validateUserNotExists(ctx, req.Username, req.Email); err != nil {
+        return nil, err
+    }
+
+    
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+    if err != nil {
+        return nil, err
+    }
+
+    
+    newUser := &entity.User{
+        ID:       utils.GenerateULID(),
+        Username: req.Username,
+        Email:    req.Email,
+        Password: string(hashedPassword),
+        Role:     req.Role,
+        IsActive: true,
+    }
+
+    if err := uc.userRepo.Create(ctx, newUser); err != nil {
+        return nil, err
+    }
+
+    
+    cacheKey := constants.UserCachePrefix + newUser.ID
+    uc.cache.Set(ctx, cacheKey, newUser, constants.UserCacheDuration)
+
+    return &dto.UserResponse{
+        ID:        newUser.ID,
+        Username:  newUser.Username,
+        Email:     newUser.Email,
+        Role:      newUser.Role,
+        IsActive:  newUser.IsActive,
+        CreatedAt: newUser.CreatedAt.Format("2006-01-02 15:04:05"),
+        UpdatedAt: newUser.UpdatedAt.Format("2006-01-02 15:04:05"),
+    }, nil
+}
+
+
+func (uc *AuthUseCase) UpdateUserRole(ctx context.Context, requesterID, targetUserID string, req *dto.UpdateUserRequest) (*dto.UserResponse, error) {
+    
+    requester, err := uc.GetUserByID(ctx, requesterID)
+    if err != nil {
+        return nil, err
+    }
+
+    if !requester.IsSuperAdmin() {
+        return nil, ErrForbidden
+    }
+
+    
+    if !utils.IsValidULID(targetUserID) {
+        return nil, ErrInvalidCredentials
+    }
+
+    
+    targetUser, err := uc.GetUserByID(ctx, targetUserID)
+    if err != nil {
+        return nil, ErrUserNotFound
+    }
+
+    
+    targetUser.Role = req.Role
+
+    
+    if err := uc.userRepo.Update(ctx, targetUser); err != nil {
+        return nil, err
+    }
+
+    
+    cacheKey := constants.UserCachePrefix + targetUser.ID
+    uc.cache.Set(ctx, cacheKey, targetUser, constants.UserCacheDuration)
+
+    return &dto.UserResponse{
+        ID:        targetUser.ID,
+        Username:  targetUser.Username,
+        Email:     targetUser.Email,
+        Role:      targetUser.Role,
+        IsActive:  targetUser.IsActive,
+        CreatedAt: targetUser.CreatedAt.Format("2006-01-02 15:04:05"),
+        UpdatedAt: targetUser.UpdatedAt.Format("2006-01-02 15:04:05"),
+    }, nil
+}
+
+
+func (uc *AuthUseCase) DeleteUser(ctx context.Context, requesterID, targetUserID string) error {
+    
+    requester, err := uc.GetUserByID(ctx, requesterID)
+    if err != nil {
+        return err
+    }
+
+    if !requester.IsSuperAdmin() {
+        return ErrForbidden
+    }
+
+    
+    if requesterID == targetUserID {
+        return ErrCannotDeleteSelf
+    }
+
+    
+    if !utils.IsValidULID(targetUserID) {
+        return ErrInvalidCredentials
+    }
+
+    
+    targetUser, err := uc.GetUserByID(ctx, targetUserID)
+    if err != nil {
+        return ErrUserNotFound
+    }
+
+    
+    if err := uc.userRepo.Delete(ctx, targetUser.ID); err != nil {
+        return err
+    }
+
+    
+    cacheKey := constants.UserCachePrefix + targetUser.ID
+    uc.cache.Delete(ctx, cacheKey)
+
+    return nil
 }

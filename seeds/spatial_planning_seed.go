@@ -34,6 +34,7 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Status:              entity.SpatialStatusPending,
 			Notes:               "Perlu tindakan segera karena mengganggu akses jalan warga",
 			// CreatedBy:           firstUser.ID,
+
 			CreatedAt: time.Now().AddDate(0, 0, -10),
 			UpdatedAt: time.Now().AddDate(0, 0, -10),
 		},
@@ -75,6 +76,7 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Status:              entity.SpatialStatusProcessing,
 			Notes:               "Koordinasi dengan Dinas Lingkungan Hidup dan BPBD",
 			// CreatedBy:           firstUser.ID,
+
 			CreatedAt: time.Now().AddDate(0, 0, -15),
 			UpdatedAt: time.Now().AddDate(0, 0, -15),
 		},
@@ -96,6 +98,7 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Status:              entity.SpatialStatusPending,
 			Notes:               "Menunggu hasil survey lapangan dari tim teknis",
 			// CreatedBy:           firstUser.ID,
+
 			CreatedAt: time.Now().AddDate(0, 0, -3),
 			UpdatedAt: time.Now().AddDate(0, 0, -3),
 		},
@@ -117,6 +120,7 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Status:              entity.SpatialStatusResolved,
 			Notes:               "Sudah ditindaklanjuti dengan pemberian teguran tertulis",
 			// CreatedBy:           firstUser.ID,
+
 			CreatedAt: time.Now().AddDate(0, 0, -20),
 			UpdatedAt: time.Now().AddDate(0, 0, -1),
 		},

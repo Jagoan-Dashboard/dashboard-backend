@@ -12,7 +12,7 @@ type User struct {
     Username  string    `json:"username" gorm:"unique;not null;size:50"`
     Email     string    `json:"email" gorm:"unique;not null;size:100"`
     Password  string    `json:"-" gorm:"not null;size:255"`
-    Role      UserRole  `json:"role" gorm:"type:varchar(20);not null;default:'OPERATOR'"`
+    Role      UserRole  `json:"role" gorm:"type:varchar(20);not null;default:'USER'"`
     IsActive  bool      `json:"is_active" gorm:"default:true;not null"`
     CreatedAt time.Time `json:"created_at" gorm:"not null"`
     UpdatedAt time.Time `json:"updated_at" gorm:"not null"`
@@ -21,11 +21,12 @@ type User struct {
 type UserRole string
 
 const (
+    RoleSuperAdmin UserRole = "SUPERADMIN"
+    RoleUser       UserRole = "USER"
     RoleAdmin      UserRole = "ADMIN"
     RoleSupervisor UserRole = "SUPERVISOR"
     RoleOperator   UserRole = "OPERATOR"
     RoleViewer     UserRole = "VIEWER"
-    RoleSuperAdmin UserRole = "SUPERADMIN"
 )
 
 func (u *User) BeforeCreate() error {
@@ -53,4 +54,8 @@ func (u *User) BeforeUpdate() error {
 func (u *User) ComparePassword(password string) bool {
     err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
     return err == nil
+}
+
+func (u *User) IsSuperAdmin() bool {
+    return u.Role == RoleSuperAdmin
 }

@@ -12,7 +12,7 @@ type BinaMargaReport struct {
     ReporterName          string                 `json:"reporter_name" gorm:"not null"`
     InstitutionUnit       InstitutionUnitType    `json:"institution_unit" gorm:"type:varchar(50)"`
     PhoneNumber           string                 `json:"phone_number" gorm:"type:varchar(20)"`
-    ReportDateTime        time.Time              `json:"report_datetime" gorm:"not null"`
+    ReportDateTime        time.Time              `json:"report_datetime" gorm:"column:report_datetime;not null"`
     
     District              string                 `json:"district" gorm:"type:varchar(50)"`
     RoadName              string                 `json:"road_name" gorm:"type:varchar(255)"`
@@ -51,7 +51,7 @@ type BinaMargaReport struct {
     HandlingRecommendation string                `json:"handling_recommendation" gorm:"type:text"`
     EstimatedBudget       float64                `json:"estimated_budget"`
     EstimatedRepairTime   int                    `json:"estimated_repair_time" gorm:"comment:'in days'"`
-    CreatedBy             string                 `json:"created_by" gorm:"type:varchar(26);not null"`
+    // CreatedBy             string                 `json:"created_by" gorm:"type:varchar(26);not null"`
     CreatedAt             time.Time              `json:"created_at"`
     UpdatedAt             time.Time              `json:"updated_at"`
 }
