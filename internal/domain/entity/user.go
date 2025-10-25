@@ -23,6 +23,10 @@ type UserRole string
 const (
     RoleSuperAdmin UserRole = "SUPERADMIN"
     RoleUser       UserRole = "USER"
+    RoleAdmin      UserRole = "ADMIN"
+    RoleSupervisor UserRole = "SUPERVISOR"
+    RoleOperator   UserRole = "OPERATOR"
+    RoleViewer     UserRole = "VIEWER"
 )
 
 func (u *User) BeforeCreate() error {
