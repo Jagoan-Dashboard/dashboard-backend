@@ -3,8 +3,9 @@ package seeds
 import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/pkg/utils"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 func SeedBinaMarga(db *gorm.DB) error {
@@ -79,8 +80,9 @@ func SeedBinaMarga(db *gorm.DB) error {
 			EstimatedBudget:        85000000,
 			EstimatedRepairTime:    10,
 			// CreatedBy:              firstUser.ID,
-			CreatedAt:              time.Now().AddDate(0, 0, -10),
-			UpdatedAt:              time.Now().AddDate(0, 0, -3),
+      
+			CreatedAt: time.Now().AddDate(0, 0, -10),
+			UpdatedAt: time.Now().AddDate(0, 0, -3),
 		},
 		{
 			ID:                     utils.GenerateULID(),
@@ -113,8 +115,9 @@ func SeedBinaMarga(db *gorm.DB) error {
 			EstimatedBudget:        12000000,
 			EstimatedRepairTime:    5,
 			// CreatedBy:              firstUser.ID,
-			CreatedAt:              time.Now().AddDate(0, 0, -3),
-			UpdatedAt:              time.Now().AddDate(0, 0, -3),
+      
+			CreatedAt: time.Now().AddDate(0, 0, -3),
+			UpdatedAt: time.Now().AddDate(0, 0, -3),
 		},
 		{
 			ID:                     utils.GenerateULID(),
@@ -151,8 +154,9 @@ func SeedBinaMarga(db *gorm.DB) error {
 			EstimatedBudget:        450000000,
 			EstimatedRepairTime:    60,
 			// CreatedBy:              firstUser.ID,
-			CreatedAt:              time.Now().AddDate(0, 0, -15),
-			UpdatedAt:              time.Now().AddDate(0, 0, -1),
+
+			CreatedAt: time.Now().AddDate(0, 0, -15),
+			UpdatedAt: time.Now().AddDate(0, 0, -1),
 		},
 		{
 			ID:                     utils.GenerateULID(),
@@ -185,8 +189,9 @@ func SeedBinaMarga(db *gorm.DB) error {
 			EstimatedBudget:        65000000,
 			EstimatedRepairTime:    21,
 			// CreatedBy:              firstUser.ID,
-			CreatedAt:              time.Now().AddDate(0, 0, -1),
-			UpdatedAt:              time.Now().AddDate(0, 0, -1),
+
+			CreatedAt: time.Now().AddDate(0, 0, -1),
+			UpdatedAt: time.Now().AddDate(0, 0, -1),
 		},
 	}
 

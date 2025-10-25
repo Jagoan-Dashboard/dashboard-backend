@@ -12,7 +12,6 @@ type CreateBinaMargaRequest struct {
     PhoneNumber         string    `json:"phone_number" validate:"required"`
     ReportDateTime      time.Time `json:"report_datetime" validate:"required"`
     
-    
     District            string    `json:"district" validate:"required"`
     RoadName            string    `json:"road_name" validate:"required"`
     // RoadType            string    `json:"road_type" validate:"omitempty,oneof=JALAN_NASIONAL JALAN_PROVINSI JALAN_KABUPATEN JALAN_DESA"`
@@ -38,13 +37,13 @@ type CreateBinaMargaRequest struct {
     
     
     TrafficCondition    string    `json:"traffic_condition" validate:"required"` 
-    TrafficImpact       string    `json:"traffic_impact"`
+    TrafficImpact       string    `json:"traffic_impact,omitempty"` 
     DailyTrafficVolume  int       `json:"daily_traffic_volume" validate:"min=0"`
     UrgencyLevel        string    `json:"urgency_level" validate:"required,oneof=DARURAT CEPAT RUTIN"`
     
     
-    CauseOfDamage       string    `json:"cause_of_damage,omitempty"`
-    Notes               string    `json:"notes,omitempty"`
+    CauseOfDamage       string    `json:"cause_of_damage,omitempty"` 
+    Notes               string    `json:"notes,omitempty"` 
 }
 
 func (r *CreateBinaMargaRequest) Validate() error {

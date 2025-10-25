@@ -189,7 +189,8 @@ func (uc *SpatialPlanningUseCase) DeleteReport(ctx context.Context, id string, u
 	}
 
 	// if report.CreatedBy != userID {
-	//     return ErrUnauthorized
+
+	// 	return ErrUnauthorized
 	// }
 
 	for _, photo := range report.Photos {

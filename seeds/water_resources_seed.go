@@ -3,8 +3,9 @@ package seeds
 import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/pkg/utils"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 func SeedWaterResources(db *gorm.DB) error {
@@ -38,8 +39,8 @@ func SeedWaterResources(db *gorm.DB) error {
 			Status:                entity.WaterResourceStatusPending,
 			Notes:                 "Saluran sekunder bocor parah, perlu perbaikan segera untuk musim tanam",
 			// CreatedBy:             firstUser.ID,
-			CreatedAt:             time.Now().AddDate(0, 0, -7),
-			UpdatedAt:             time.Now().AddDate(0, 0, -7),
+			CreatedAt: time.Now().AddDate(0, 0, -7),
+			UpdatedAt: time.Now().AddDate(0, 0, -7),
 		},
 		{
 			ID:                    utils.GenerateULID(),
@@ -64,10 +65,10 @@ func SeedWaterResources(db *gorm.DB) error {
 			Status:                entity.WaterResourceStatusVerified,
 			Notes:                 "Pintu air perlu penggantian komponen mekanis yang sudah karatan",
 			HandlingRecommendation: "Penggantian gear box dan pengecatan ulang struktur baja",
-			EstimatedBudget:       15000000,
+			EstimatedBudget:        15000000,
 			// CreatedBy:             firstUser.ID,
-			CreatedAt:             time.Now().AddDate(0, 0, -12),
-			UpdatedAt:             time.Now().AddDate(0, 0, -5),
+			CreatedAt: time.Now().AddDate(0, 0, -12),
+			UpdatedAt: time.Now().AddDate(0, 0, -5),
 		},
 		{
 			ID:                    utils.GenerateULID(),
@@ -92,10 +93,10 @@ func SeedWaterResources(db *gorm.DB) error {
 			Status:                entity.WaterResourceStatusInProgress,
 			Notes:                 "Struktur beton bendung mengalami kerusakan serius, berisiko runtuh",
 			HandlingRecommendation: "Perbaikan struktural dengan grouting dan penguatan balok",
-			EstimatedBudget:       250000000,
-			// CreatedBy:             firstUser.ID,
-			CreatedAt:             time.Now().AddDate(0, 0, -4),
-			UpdatedAt:             time.Now().AddDate(0, 0, -2),
+			EstimatedBudget:        250000000,
+			// CreatedBy:              firstUser.ID,
+			CreatedAt: time.Now().AddDate(0, 0, -4),
+			UpdatedAt: time.Now().AddDate(0, 0, -2),
 		},
 		{
 			ID:                    utils.GenerateULID(),
@@ -120,10 +121,10 @@ func SeedWaterResources(db *gorm.DB) error {
 			Status:                entity.WaterResourceStatusCompleted,
 			Notes:                 "Pengerukan embung sudah selesai dilaksanakan",
 			HandlingRecommendation: "Pengerukan sedimen secara berkala setiap tahun",
-			EstimatedBudget:       35000000,
-			// CreatedBy:             firstUser.ID,
-			CreatedAt:             time.Now().AddDate(0, 0, -18),
-			UpdatedAt:             time.Now().AddDate(0, 0, -1),
+			EstimatedBudget:        35000000,
+			// CreatedBy:              firstUser.ID,
+			CreatedAt: time.Now().AddDate(0, 0, -18),
+			UpdatedAt: time.Now().AddDate(0, 0, -1),
 		},
 		{
 			ID:                    utils.GenerateULID(),
@@ -148,10 +149,10 @@ func SeedWaterResources(db *gorm.DB) error {
 			Status:                entity.WaterResourceStatusPending,
 			Notes:                 "Saluran tersumbat sampah dan sedimentasi tinggi",
 			HandlingRecommendation: "Pembersihan manual dan normalisasi saluran",
-			EstimatedBudget:       8000000,
-			// CreatedBy:             firstUser.ID,
-			CreatedAt:             time.Now().AddDate(0, 0, -2),
-			UpdatedAt:             time.Now().AddDate(0, 0, -2),
+			EstimatedBudget:        8000000,
+			// CreatedBy:              firstUser.ID,
+			CreatedAt: time.Now().AddDate(0, 0, -2),
+			UpdatedAt: time.Now().AddDate(0, 0, -2),
 		},
 	}
 

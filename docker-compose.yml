@@ -58,13 +58,13 @@ services:
       - no-new-privileges:true
 
   minio:
-    image: quay.io/minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: building-report-minio
     restart: unless-stopped
     networks: [backend]
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     volumes:
       - minio_app_data:/data
@@ -112,8 +112,6 @@ services:
       REDIS_DB: ${REDIS_DB}
 
       MINIO_ENDPOINT: "minio:9000"
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_USE_SSL: ${MINIO_USE_SSL}
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
 

@@ -1,9 +1,8 @@
-
 package entity
 
 import (
-    "time"
-    "building-report-backend/pkg/utils"
+	"building-report-backend/pkg/utils"
+	"time"
 )
 
 type WaterResourcesReport struct {
@@ -37,72 +36,66 @@ type WaterResourcesReport struct {
 }
 
 type WaterResourcesPhoto struct {
-    ID         string    `json:"id" gorm:"type:varchar(26);primary_key"`
-    ReportID   string    `json:"report_id" gorm:"type:varchar(26);not null"`
-    PhotoURL   string    `json:"photo_url" gorm:"not null"`
-    PhotoAngle string    `json:"photo_angle" gorm:"type:varchar(50)"` 
-    Caption    string    `json:"caption" gorm:"type:varchar(255)"`
-    CreatedAt  time.Time `json:"created_at"`
+	ID         string    `json:"id" gorm:"type:varchar(26);primary_key"`
+	ReportID   string    `json:"report_id" gorm:"type:varchar(26);not null"`
+	PhotoURL   string    `json:"photo_url" gorm:"not null"`
+	PhotoAngle string    `json:"photo_angle" gorm:"type:varchar(50)"`
+	Caption    string    `json:"caption" gorm:"type:varchar(255)"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
-
 func (WaterResourcesReport) TableName() string {
-    return "water_resources_reports"
+	return "water_resources_reports"
 }
 
 func (WaterResourcesPhoto) TableName() string {
-    return "water_resources_photos"
+	return "water_resources_photos"
 }
 
-
 func (r *WaterResourcesReport) BeforeCreate() {
-    if r.ID == "" {
-        r.ID = utils.GenerateULID()
-    }
-    r.CreatedAt = time.Now()
-    r.UpdatedAt = time.Now()
-    if r.Status == "" {
-        r.Status = WaterResourceStatusPending
-    }
+	if r.ID == "" {
+		r.ID = utils.GenerateULID()
+	}
+	r.CreatedAt = time.Now()
+	r.UpdatedAt = time.Now()
+	if r.Status == "" {
+		r.Status = WaterResourceStatusPending
+	}
 }
 
 func (r *WaterResourcesReport) BeforeUpdate() {
-    r.UpdatedAt = time.Now()
+	r.UpdatedAt = time.Now()
 }
 
 func (rp *WaterResourcesPhoto) BeforeCreate() {
-    if rp.ID == "" {
-        rp.ID = utils.GenerateULID()
-    }
-    rp.CreatedAt = time.Now()
+	if rp.ID == "" {
+		rp.ID = utils.GenerateULID()
+	}
+	rp.CreatedAt = time.Now()
 }
 
-
 func (r *WaterResourcesReport) CalculatePriority() int {
-    priority := 0
-    
-    
-    if r.UrgencyCategory == UrgencyCategoryMendesak {
-        priority += 100
-    }
-    
-    
-    switch r.DamageLevel {
-    case DamageLevelBerat:
-        priority += 50
-    case DamageLevelSedang:
-        priority += 25
-    case DamageLevelRingan:
-        priority += 10
-    }
-    
-    
-    if r.AffectedRiceFieldArea > 10 {
-        priority += 30
-    }
-    if r.AffectedFarmersCount > 50 {
-        priority += 20
-    }
-    
-    return priority
+	priority := 0
+
+	if r.UrgencyCategory == UrgencyCategoryMendesak {
+		priority += 100
+	}
+
+	switch r.DamageLevel {
+	case DamageLevelBerat:
+		priority += 50
+	case DamageLevelSedang:
+		priority += 25
+	case DamageLevelRingan:
+		priority += 10
+	}
+
+	if r.AffectedRiceFieldArea > 10 {
+		priority += 30
+	}
+	if r.AffectedFarmersCount > 50 {
+		priority += 20
+	}
+
+	return priority
 }

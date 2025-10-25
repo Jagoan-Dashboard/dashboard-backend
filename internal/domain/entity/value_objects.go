@@ -171,20 +171,6 @@ const (
 )
 
 
-type DamageType string
-
-const (
-    DamageRetakBocor           DamageType = "RETAK_BOCOR"
-    DamageLongsorAmbrol        DamageType = "LONGSOR_AMBROL"
-    DamageSedimentasiTinggi    DamageType = "SEDIMENTASI_TINGGI"
-    DamageTersumbatSampah      DamageType = "TERSUMBAT_SAMPAH"
-    DamageStrukturBetonRusak   DamageType = "STRUKTUR_BETON_RUSAK"
-    DamagePintuAirMacet        DamageType = "PINTU_AIR_MACET"
-    DamageTanggulJebol         DamageType = "TANGGUL_JEBOL"
-    DamageLainnya              DamageType = "LAINNYA"
-)
-
-
 type DamageLevel string
 
 const (
@@ -709,4 +695,51 @@ const (
     PestDiseaseCommodityPangan      PestDiseaseCommodityType = "PANGAN"
     PestDiseaseCommodityHortikultura PestDiseaseCommodityType = "HORTIKULTURA"
     PestDiseaseCommodityPerkebunan  PestDiseaseCommodityType = "PERKEBUNAN"
+)
+
+type WaterResourcesInstitutionUnit string
+
+const (
+    WaterInstitutionUPTIrigasi WaterResourcesInstitutionUnit = "UPT_IRIGASI"
+    WaterInstitutionPoktan     WaterResourcesInstitutionUnit = "POKTAN"
+    WaterInstitutionDinasPUPR  WaterResourcesInstitutionUnit = "DINAS_PUPR"
+   
+    WaterInstitutionDinas     WaterResourcesInstitutionUnit = "DINAS"
+    WaterInstitutionDesa      WaterResourcesInstitutionUnit = "DESA"
+    WaterInstitutionKecamatan WaterResourcesInstitutionUnit = "KECAMATAN"
+)
+
+type BinaMargaInstitutionUnit string
+
+const (
+    BinaMargaInstitutionDinasPUPR BinaMargaInstitutionUnit = "DINAS_PUPR"
+    BinaMargaInstitutionKecamatan BinaMargaInstitutionUnit = "KECAMATAN"
+    BinaMargaInstitutionDesa      BinaMargaInstitutionUnit = "DESA"
+    BinaMargaInstitutionUPTJalan  BinaMargaInstitutionUnit = "UPT_JALAN"
+    BinaMargaInstitutionDinas BinaMargaInstitutionUnit = "DINAS"
+)
+
+type SpatialPlanningInstitutionUnit string
+
+const (
+    SpatialInstitutionDinasPUPR SpatialPlanningInstitutionUnit = "DINAS_PUPR"
+    SpatialInstitutionKecamatan SpatialPlanningInstitutionUnit = "KECAMATAN"
+    SpatialInstitutionDesa      SpatialPlanningInstitutionUnit = "DESA"
+    SpatialInstitutionUPTJalan  SpatialPlanningInstitutionUnit = "UPT_JALAN"
+    SpatialInstitutionDinas SpatialPlanningInstitutionUnit = "DINAS"
+)
+
+// Update DamageType - change STRUKTUR_BETON_RUSAK to STRUKTUR_RUSAK
+type DamageType string
+
+const (
+    DamageRetakBocor           DamageType = "RETAK_BOCOR"
+    DamageLongsorAmbrol        DamageType = "LONGSOR_AMBROL"
+    DamageSedimentasiTinggi    DamageType = "SEDIMENTASI_TINGGI"
+    DamageTersumbatSampah      DamageType = "TERSUMBAT_SAMPAH"
+    DamageStrukturRusak        DamageType = "STRUKTUR_RUSAK"  
+    DamageStrukturBetonRusak   DamageType = "STRUKTUR_BETON_RUSAK"  
+    DamagePintuAirMacet        DamageType = "PINTU_AIR_MACET"
+    DamageTanggulJebol         DamageType = "TANGGUL_JEBOL"
+    DamageLainnya              DamageType = "LAINNYA"
 )

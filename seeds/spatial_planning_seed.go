@@ -3,8 +3,9 @@ package seeds
 import (
 	"building-report-backend/internal/domain/entity"
 	"building-report-backend/pkg/utils"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 func SeedSpatialPlanning(db *gorm.DB) error {
@@ -33,8 +34,9 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Status:              entity.SpatialStatusPending,
 			Notes:               "Perlu tindakan segera karena mengganggu akses jalan warga",
 			// CreatedBy:           firstUser.ID,
-			CreatedAt:           time.Now().AddDate(0, 0, -10),
-			UpdatedAt:           time.Now().AddDate(0, 0, -10),
+
+			CreatedAt: time.Now().AddDate(0, 0, -10),
+			UpdatedAt: time.Now().AddDate(0, 0, -10),
 		},
 		{
 			ID:                  utils.GenerateULID(),
@@ -74,8 +76,9 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Status:              entity.SpatialStatusProcessing,
 			Notes:               "Koordinasi dengan Dinas Lingkungan Hidup dan BPBD",
 			// CreatedBy:           firstUser.ID,
-			CreatedAt:           time.Now().AddDate(0, 0, -15),
-			UpdatedAt:           time.Now().AddDate(0, 0, -15),
+
+			CreatedAt: time.Now().AddDate(0, 0, -15),
+			UpdatedAt: time.Now().AddDate(0, 0, -15),
 		},
 		{
 			ID:                  utils.GenerateULID(),
@@ -95,8 +98,9 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Status:              entity.SpatialStatusPending,
 			Notes:               "Menunggu hasil survey lapangan dari tim teknis",
 			// CreatedBy:           firstUser.ID,
-			CreatedAt:           time.Now().AddDate(0, 0, -3),
-			UpdatedAt:           time.Now().AddDate(0, 0, -3),
+
+			CreatedAt: time.Now().AddDate(0, 0, -3),
+			UpdatedAt: time.Now().AddDate(0, 0, -3),
 		},
 		{
 			ID:                  utils.GenerateULID(),
@@ -116,8 +120,9 @@ func SeedSpatialPlanning(db *gorm.DB) error {
 			Status:              entity.SpatialStatusResolved,
 			Notes:               "Sudah ditindaklanjuti dengan pemberian teguran tertulis",
 			// CreatedBy:           firstUser.ID,
-			CreatedAt:           time.Now().AddDate(0, 0, -20),
-			UpdatedAt:           time.Now().AddDate(0, 0, -1),
+
+			CreatedAt: time.Now().AddDate(0, 0, -20),
+			UpdatedAt: time.Now().AddDate(0, 0, -1),
 		},
 	}
 

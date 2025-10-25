@@ -1,8 +1,8 @@
 package entity
 
 import (
-    "time"
-    "building-report-backend/pkg/utils"
+	"building-report-backend/pkg/utils"
+	"time"
 )
 
 type BinaMargaReport struct {
@@ -57,56 +57,51 @@ type BinaMargaReport struct {
 }
 
 type BinaMargaPhoto struct {
-    ID         string    `json:"id" gorm:"type:varchar(26);primary_key"`
-    ReportID   string    `json:"report_id" gorm:"type:varchar(26);not null"`
-    PhotoURL   string    `json:"photo_url" gorm:"not null"`
-    PhotoAngle string    `json:"photo_angle" gorm:"type:varchar(50)"` 
-    Caption    string    `json:"caption" gorm:"type:varchar(255)"`
-    CreatedAt  time.Time `json:"created_at"`
+	ID         string    `json:"id" gorm:"type:varchar(26);primary_key"`
+	ReportID   string    `json:"report_id" gorm:"type:varchar(26);not null"`
+	PhotoURL   string    `json:"photo_url" gorm:"not null"`
+	PhotoAngle string    `json:"photo_angle" gorm:"type:varchar(50)"`
+	Caption    string    `json:"caption" gorm:"type:varchar(255)"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
-
 func (BinaMargaReport) TableName() string {
-    return "bina_marga_reports"
+	return "bina_marga_reports"
 }
 
 func (BinaMargaPhoto) TableName() string {
-    return "bina_marga_photos"
+	return "bina_marga_photos"
 }
 
-
 func (r *BinaMargaReport) BeforeCreate() {
-    if r.ID == "" {
-        r.ID = utils.GenerateULID()
-    }
-    r.CreatedAt = time.Now()
-    r.UpdatedAt = time.Now()
-    if r.Status == "" {
-        r.Status = BinaMargaStatusPending
-    }
+	if r.ID == "" {
+		r.ID = utils.GenerateULID()
+	}
+	r.CreatedAt = time.Now()
+	r.UpdatedAt = time.Now()
+	if r.Status == "" {
+		r.Status = BinaMargaStatusPending
+	}
 
+	if r.DamagedArea == 0 && r.DamagedLength > 0 && r.DamagedWidth > 0 {
+		r.DamagedArea = r.DamagedLength * r.DamagedWidth
+	}
 
-    if r.DamagedArea == 0 && r.DamagedLength > 0 && r.DamagedWidth > 0 {
-        r.DamagedArea = r.DamagedLength * r.DamagedWidth
-    }
-
-
-    if r.TotalDamagedArea == 0 && r.DamagedArea > 0 {
-        r.TotalDamagedArea = r.DamagedArea
-    }
+	if r.TotalDamagedArea == 0 && r.DamagedArea > 0 {
+		r.TotalDamagedArea = r.DamagedArea
+	}
 }
 
 func (r *BinaMargaReport) BeforeUpdate() {
-    r.UpdatedAt = time.Now()
+	r.UpdatedAt = time.Now()
 }
 
 func (rp *BinaMargaPhoto) BeforeCreate() {
-    if rp.ID == "" {
-        rp.ID = utils.GenerateULID()
-    }
-    rp.CreatedAt = time.Now()
+	if rp.ID == "" {
+		rp.ID = utils.GenerateULID()
+	}
+	rp.CreatedAt = time.Now()
 }
-
 
 func (r *BinaMargaReport) CalculatePriority() int {
     priority := 0

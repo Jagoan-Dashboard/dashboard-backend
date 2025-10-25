@@ -41,6 +41,8 @@ func (h *BinaMargaHandler) CreateReport(c *fiber.Ctx) error {
         }
     }
     
+    req.District = c.FormValue("district")
+    
     // Parse road information
     req.District = c.FormValue("district")
     req.RoadName = c.FormValue("road_name")
