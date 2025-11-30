@@ -32,7 +32,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # Final stage
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata netcat-openbsd
 
 # Create a non-root user
 RUN adduser -D -g '' appuser
@@ -50,4 +50,4 @@ USER appuser
 EXPOSE 8080
 
 # Default command to run the API
-ENTRYPOINT ["/app/main"]
+CMD ["/app/main"]

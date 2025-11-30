@@ -2,7 +2,6 @@ networks:
   backend:
     driver: bridge
   dokploy-network:
-    # Jaringan ini harus ada dan Dokploy akan mengelolanya
     external: true
 
 volumes:
@@ -14,7 +13,6 @@ volumes:
 services:
 
   minio:
-    # ... (Konfigurasi minio tetap sama dari jawaban sebelumnya) ...
     image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
     networks: [ backend, dokploy-network ]
@@ -34,7 +32,6 @@ services:
       - no-new-privileges:true
 
   postgres:
-    # ... (Konfigurasi postgres tetap sama dari jawaban sebelumnya) ...
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
@@ -54,7 +51,6 @@ services:
       - no-new-privileges:true
 
   redis:
-    # ... (Konfigurasi redis tetap sama dari jawaban sebelumnya) ...
     image: redis:7-alpine
     restart: unless-stopped
     command: [ "redis-server", "--save", "60", "1", "--loglevel", "warning", "--requirepass", "${REDIS_PASSWORD}" ]
@@ -69,19 +65,46 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  migrations:
+    build: .
+    networks: [ backend ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSL_MODE: ${DB_SSL_MODE}
+    command: >
+      sh -c "
+        echo 'Waiting for PostgreSQL...' &&
+        while ! nc -z postgres 5432; do sleep 1; done &&
+        echo 'Running migrations...' &&
+        goose -dir /app/migrations postgres 'host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=${DB_SSL_MODE}' up &&
+        echo 'Migrations completed!'
+      "
+    restart: "no"
+
   app:
-    # ... (Konfigurasi app tetap sama dari jawaban sebelumnya) ...
     build: .
     restart: unless-stopped
     networks: [ backend, dokploy-network ]
     depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      minio: { condition: service_healthy }
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     env_file: .env
     expose:
       - "8080"
-    # ... (Environment variables di sini) ...
     environment:
       APP_ENV: ${APP_ENV}
       APP_PORT: ${APP_PORT}
@@ -103,12 +126,11 @@ services:
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
-    # Temporary health check disabled for debugging
     healthcheck:
-      test: [ "CMD", "sh", "-c", "echo 'Health check disabled for debugging' && exit 0" ]
-      interval: 30s
-      timeout: 10s
-      retries: 1
+      test: [ "CMD", "nc", "-z", "localhost", "8080" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
       start_period: 30s
     security_opt:
       - no-new-privileges:true
@@ -117,8 +139,6 @@ services:
     image: nginx:1.29.2-alpine-slim
     restart: unless-stopped
     pull_policy: always
-    # Hapus 'ports' eksternal (80:80, 443:443)
-    # Gunakan 'expose' untuk menunjukkan port internal yang akan di-route oleh Traefik
     expose:
       - "80"
     volumes:
@@ -126,40 +146,27 @@ services:
       - ./nginx-prod/sites-available:/etc/nginx/sites-available:ro
       - nginx_logs:/var/log/nginx
     depends_on:
-      app: { condition: service_healthy }
-      minio: { condition: service_healthy }
-    networks: [ backend, dokploy-network ] # WAJIB terhubung ke dokploy-network
-
-    # === START KONFIGURASI DOMAIN DOKPLOY (TRAEFIK LABELS) ===
+      app:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks: [ backend, dokploy-network ]
     labels:
-      # Aktifkan Traefik untuk service ini
       - "traefik.enable=true"
-
-      # Tentukan router utama (Web)
       - "traefik.http.routers.building-report-web.rule=Host(`backend-dashboard.jagoansatudata.com`)"
-      - "traefik.http.routers.building-report-web.entrypoints=websecure" # Menggunakan HTTPS
-      - "traefik.http.routers.building-report-web.tls.certresolver=letsencrypt" # Menggunakan Let's Encrypt Dokploy
-
-      # Tentukan service dan port internal Nginx (80)
+      - "traefik.http.routers.building-report-web.entrypoints=websecure"
+      - "traefik.http.routers.building-report-web.tls.certresolver=letsencrypt"
       - "traefik.http.services.building-report-web.loadbalancer.server.port=80"
-
-      # Opsional: Redirect HTTP ke HTTPS
       - "traefik.http.routers.http-catchall.rule=Host(`backend-dashboard.jagoansatudata.com`)"
       - "traefik.http.routers.http-catchall.entrypoints=web"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-
-      # MinIO S3 Router
       - "traefik.http.routers.minio-s3-web.rule=Host(`s3-backend-dashboard.jagoansatudata.com`)"
       - "traefik.http.routers.minio-s3-web.entrypoints=websecure"
       - "traefik.http.routers.minio-s3-web.tls.certresolver=letsencrypt"
       - "traefik.http.routers.minio-s3-web.service=building-report-web"
-
-      # MinIO S3 HTTP to HTTPS Redirect
       - "traefik.http.routers.minio-s3-http.rule=Host(`s3-backend-dashboard.jagoansatudata.com`)"
       - "traefik.http.routers.minio-s3-http.entrypoints=web"
       - "traefik.http.routers.minio-s3-http.middlewares=redirect-to-https"
-      # === END KONFIGURASI DOMAIN DOKPLOY ===
-
     security_opt:
       - no-new-privileges:true
