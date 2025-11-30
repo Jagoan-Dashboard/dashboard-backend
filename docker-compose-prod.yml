@@ -95,12 +95,13 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_SSL_MODE: ${DB_SSL_MODE}
+    working_dir: /app
     command: >
       sh -c "
         echo 'Waiting for PostgreSQL...' &&
         while ! nc -z postgres 5432; do sleep 1; done &&
         echo 'Running migrations...' &&
-        goose -dir /app/migrations postgres 'host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=${DB_SSL_MODE}' up &&
+        goose -dir ./migrations postgres 'host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=${DB_SSL_MODE}' up &&
         echo 'Migrations completed!'
       "
     restart: "no"
@@ -150,10 +151,10 @@ services:
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
     healthcheck:
       test: [ "CMD", "nc", "-z", "localhost", "8080" ]
-      interval: 10s
+      interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 60s
+      start_period: 90s
     security_opt:
       - no-new-privileges:true
 
@@ -173,22 +174,6 @@ services:
       minio:
         condition: service_healthy
     networks: [ backend, dokploy-network ]
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.building-report-web.rule=Host(`backend-dashboard.jagoansatudata.com`)"
-      - "traefik.http.routers.building-report-web.entrypoints=websecure"
-      - "traefik.http.routers.building-report-web.tls.certresolver=letsencrypt"
-      - "traefik.http.services.building-report-web.loadbalancer.server.port=80"
-      - "traefik.http.routers.http-catchall.rule=Host(`backend-dashboard.jagoansatudata.com`)"
-      - "traefik.http.routers.http-catchall.entrypoints=web"
-      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.routers.minio-s3-web.rule=Host(`s3-backend-dashboard.jagoansatudata.com`)"
-      - "traefik.http.routers.minio-s3-web.entrypoints=websecure"
-      - "traefik.http.routers.minio-s3-web.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.minio-s3-web.service=building-report-web"
-      - "traefik.http.routers.minio-s3-http.rule=Host(`s3-backend-dashboard.jagoansatudata.com`)"
-      - "traefik.http.routers.minio-s3-http.entrypoints=web"
-      - "traefik.http.routers.minio-s3-http.middlewares=redirect-to-https"
+    # HAPUS SEMUA LABELS - Pakai Dokploy UI saja
     security_opt:
       - no-new-privileges:true
