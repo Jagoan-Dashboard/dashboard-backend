@@ -117,10 +117,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
-      minio-init:
-        condition: service_completed_successfully
     env_file: .env
     working_dir: /app
     expose:
