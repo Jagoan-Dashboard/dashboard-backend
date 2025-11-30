@@ -12,8 +12,44 @@ volumes:
 
 services:
 
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_HOST_AUTH_METHOD: md5
+    networks: [ backend, dokploy-network ]
+    volumes:
+      - pg_app_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --save 60 1 --loglevel warning
+    networks: [ backend, dokploy-network ]
+    volumes:
+      - redis_app_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
   minio:
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    image: quay.io/minio/minio:RELEASE.2024-09-07T16-13-09Z
     restart: unless-stopped
     networks: [ backend, dokploy-network ]
     environment:
@@ -37,49 +73,19 @@ services:
       minio:
         condition: service_healthy
     networks: [ backend ]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
     entrypoint: >
       /bin/sh -c "
-      mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-      mc mb myminio/${MINIO_BUCKET_NAME} --ignore-existing;
-      mc anonymous set download myminio/${MINIO_BUCKET_NAME};
+      mc alias set myminio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+      mc mb myminio/$${MINIO_BUCKET_NAME} --ignore-existing;
+      mc anonymous set download myminio/$${MINIO_BUCKET_NAME};
       echo 'MinIO bucket created successfully';
       exit 0;
       "
     restart: "no"
-
-  postgres:
-    image: postgres:15-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_HOST_AUTH_METHOD: md5
-    networks: [ backend, dokploy-network ]
-    volumes:
-      - pg_app_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    security_opt:
-      - no-new-privileges:true
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: [ "redis-server", "--save", "60", "1", "--loglevel", "warning", "--requirepass", "${REDIS_PASSWORD}" ]
-    networks: [ backend, dokploy-network ]
-    volumes:
-      - redis_app_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    security_opt:
-      - no-new-privileges:true
 
   migrations:
     build: .
@@ -87,10 +93,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file: .env
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: "5432"
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
@@ -99,10 +104,10 @@ services:
     command: >
       sh -c "
         echo 'Waiting for PostgreSQL...' &&
-        while ! nc -z postgres 5432; do sleep 1; done &&
+        sleep 2 &&
         echo 'Running migrations...' &&
-        goose -dir ./migrations postgres 'host=postgres port=5432 user=${DB_USER} password=${DB_PASSWORD} dbname=${DB_NAME} sslmode=${DB_SSL_MODE}' up &&
-        echo 'Migrations completed!'
+        goose -dir ./migrations postgres 'host=postgres port=5432 user=$${DB_USER} password=$${DB_PASSWORD} dbname=$${DB_NAME} sslmode=$${DB_SSL_MODE}' up &&
+        echo 'Migrations completed successfully!'
       "
     restart: "no"
 
@@ -117,7 +122,10 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    env_file: .env
+      migrations:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
     working_dir: /app
     expose:
       - "8080"
@@ -126,16 +134,16 @@ services:
       APP_PORT: ${APP_PORT}
       APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS}
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: "5432"
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_SSL_MODE: ${DB_SSL_MODE}
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: "6379"
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       REDIS_DB: ${REDIS_DB}
-      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ENDPOINT: minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
@@ -155,9 +163,8 @@ services:
       - no-new-privileges:true
 
   nginx:
-    image: nginx:1.29.2-alpine-slim
+    image: nginx:1.27-alpine
     restart: unless-stopped
-    pull_policy: always
     expose:
       - "80"
     volumes:
@@ -171,35 +178,34 @@ services:
         condition: service_healthy
     networks: [ backend, dokploy-network ]
     labels:
-      # Aktifkan Traefik
       - "traefik.enable=true"
       
-      # Router untuk API Backend
+      # API Backend Router (HTTPS)
       - "traefik.http.routers.building-report-web.rule=Host(`backend-dashboard.jagoansatudata.com`)"
       - "traefik.http.routers.building-report-web.entrypoints=websecure"
       - "traefik.http.routers.building-report-web.tls.certresolver=letsencrypt"
       - "traefik.http.routers.building-report-web.service=building-report-svc"
       
-      # Service untuk API Backend
-      - "traefik.http.services.building-report-svc.loadbalancer.server.port=80"
-      
-      # HTTP to HTTPS redirect untuk API
+      # API Backend Router (HTTP -> HTTPS Redirect)
       - "traefik.http.routers.building-report-http.rule=Host(`backend-dashboard.jagoansatudata.com`)"
       - "traefik.http.routers.building-report-http.entrypoints=web"
       - "traefik.http.routers.building-report-http.middlewares=redirect-to-https"
       
-      # Router untuk MinIO S3
+      # MinIO S3 Router (HTTPS)
       - "traefik.http.routers.minio-s3-web.rule=Host(`s3-backend-dashboard.jagoansatudata.com`)"
       - "traefik.http.routers.minio-s3-web.entrypoints=websecure"
       - "traefik.http.routers.minio-s3-web.tls.certresolver=letsencrypt"
       - "traefik.http.routers.minio-s3-web.service=building-report-svc"
       
-      # HTTP to HTTPS redirect untuk MinIO
+      # MinIO S3 Router (HTTP -> HTTPS Redirect)
       - "traefik.http.routers.minio-s3-http.rule=Host(`s3-backend-dashboard.jagoansatudata.com`)"
       - "traefik.http.routers.minio-s3-http.entrypoints=web"
       - "traefik.http.routers.minio-s3-http.middlewares=redirect-to-https"
       
-      # Middleware untuk redirect
+      # Service Definition
+      - "traefik.http.services.building-report-svc.loadbalancer.server.port=80"
+      
+      # Middleware
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
     security_opt:
