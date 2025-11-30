@@ -198,10 +198,6 @@ func (uc *AgricultureUseCase) UpdateReport(ctx context.Context, id string, req *
 		return nil, err
 	}
 
-	
-	
-	
-
 	if req.ExtensionOfficer != "" {
 		report.ExtensionOfficer = req.ExtensionOfficer
 	}
@@ -279,10 +275,6 @@ func (uc *AgricultureUseCase) DeleteReport(ctx context.Context, id string, userI
 		return err
 	}
 
-	
-	
-	
-
 	for _, photo := range report.Photos {
 		uc.storage.DeleteFile(ctx, photo.PhotoURL)
 	}
@@ -356,7 +348,6 @@ func (uc *AgricultureUseCase) GetExecutiveSummary(ctx context.Context, commodity
 		})
 	}
 
-	
 	if foodCrops, ok := sectorData["food_crops"].([]map[string]interface{}); ok {
 		for _, item := range foodCrops {
 			response.CommodityBySector.FoodCrops = append(response.CommodityBySector.FoodCrops,
@@ -387,7 +378,6 @@ func (uc *AgricultureUseCase) GetExecutiveSummary(ctx context.Context, commodity
 		}
 	}
 
-	
 	for _, item := range landStatus {
 		response.LandStatusDistrib = append(response.LandStatusDistrib, dto.LandStatusCount{
 			Status:     item["status"].(string),
@@ -396,7 +386,6 @@ func (uc *AgricultureUseCase) GetExecutiveSummary(ctx context.Context, commodity
 		})
 	}
 
-	
 	for _, item := range constraints {
 		response.MainConstraints = append(response.MainConstraints, dto.ConstraintCount{
 			Constraint: item["constraint"].(string),
@@ -405,7 +394,6 @@ func (uc *AgricultureUseCase) GetExecutiveSummary(ctx context.Context, commodity
 		})
 	}
 
-	
 	if hopes, ok := farmerNeeds["hopes"].([]map[string]interface{}); ok {
 		for _, item := range hopes {
 			response.FarmerHopesNeeds.Hopes = append(response.FarmerHopesNeeds.Hopes,
@@ -772,26 +760,22 @@ func (uc *AgricultureUseCase) GetAgriculturalEquipmentStats(ctx context.Context,
 		return &response, nil
 	}
 
-	
 	stats, err := uc.agricultureRepo.GetAgriculturalEquipmentStats(ctx, startDate, endDate)
 	if err != nil {
 		return nil, err
 	}
 
-	
 	individualDistribution, err := uc.agricultureRepo.GetEquipmentIndividualDistribution(ctx, startDate, endDate)
 	if err != nil {
 		return nil, err
 	}
 
-	
 	years := []int{2018, 2019, 2020, 2021, 2022, 2023, 2024}
 	waterPumpTrend, err := uc.agricultureRepo.GetEquipmentTrend(ctx, "water_pump", years)
 	if err != nil {
 		return nil, err
 	}
 
-	
 	response.GrainProcessor = dto.EquipmentCount{
 		Count:         convertToInt64(stats["grain_processor_count"]),
 		GrowthPercent: convertToFloat64(stats["grain_processor_growth"]),
@@ -812,7 +796,6 @@ func (uc *AgricultureUseCase) GetAgriculturalEquipmentStats(ctx context.Context,
 		GrowthPercent: convertToFloat64(stats["water_pump_growth"]),
 	}
 
-	
 	response.IndividualDistribution = []dto.EquipmentIndividualLocation{}
 	for _, item := range individualDistribution {
 		response.IndividualDistribution = append(response.IndividualDistribution, dto.EquipmentIndividualLocation{
@@ -827,7 +810,6 @@ func (uc *AgricultureUseCase) GetAgriculturalEquipmentStats(ctx context.Context,
 		})
 	}
 
-	
 	response.WaterPumpTrend = []dto.EquipmentTrend{}
 	for _, item := range waterPumpTrend {
 		response.WaterPumpTrend = append(response.WaterPumpTrend, dto.EquipmentTrend{
@@ -836,7 +818,6 @@ func (uc *AgricultureUseCase) GetAgriculturalEquipmentStats(ctx context.Context,
 		})
 	}
 
-	
 	uc.cache.Set(ctx, cacheKey, &response, 1200*time.Second)
 
 	return &response, nil
@@ -852,7 +833,6 @@ func (uc *AgricultureUseCase) GetLandAndIrrigationStats(ctx context.Context, sta
 		return &response, nil
 	}
 
-	
 	stats, err := uc.agricultureRepo.GetLandAndIrrigationStats(ctx, startDate, endDate)
 	if err != nil {
 		return nil, err
@@ -863,13 +843,11 @@ func (uc *AgricultureUseCase) GetLandAndIrrigationStats(ctx context.Context, sta
 		return nil, err
 	}
 
-	
 	individualPoints, err := uc.agricultureRepo.GetLandIndividualDistribution(ctx, startDate, endDate)
 	if err != nil {
 		return nil, err
 	}
 
-	
 	response.TotalLandArea = dto.LandAreaCount{
 		Area:          stats["total_land_area"].(float64),
 		GrowthPercent: stats["total_land_growth"].(float64),
@@ -904,24 +882,32 @@ func (uc *AgricultureUseCase) GetLandAndIrrigationStats(ctx context.Context, sta
 		})
 	}
 
-	
 	for _, point := range individualPoints {
-		individualPoint := dto.LandIndividualPoint{
-			Latitude:           point["latitude"].(float64),
-			Longitude:          point["longitude"].(float64),
-			Village:            point["village"].(string),
-			District:           point["district"].(string),
-			FarmerName:         point["farmer_name"].(string),
-			TotalLandArea:      point["total_land_area"].(float64),
-			FoodLandArea:       point["food_land_area"].(float64),
-			HortiLandArea:      point["horti_land_area"].(float64),
-			PlantationLandArea: point["plantation_land_area"].(float64),
-			WaterAccess:        point["water_access"].(string),
-			HasGoodWaterAccess: point["has_good_water_access"].(bool),
-			PrimaryCommodity:   point["primary_commodity"].(string),
-			VisitDate:          point["visit_date"].(time.Time).Format("2006-01-02"),
+		ricePoint := dto.LandIndividualPoint{
+			Latitude:            convertToFloat64(point["latitude"]),
+			Longitude:           convertToFloat64(point["longitude"]),
+			District:            convertToString(point["district"]),
+			RainfedRiceFields:   convertToFloat64(point["rainfed_rice_fields"]),
+			IrrigatedRiceFields: convertToFloat64(point["irrigated_rice_fields"]),
+			TotalRiceFieldArea:  convertToFloat64(point["total_rice_field_area"]),
+			DataSource:          convertToString(point["data_source"]),
 		}
-		response.IndividualPoints = append(response.IndividualPoints, individualPoint)
+
+		// Format date jika perlu
+		if dateVal, ok := point["date"]; ok && dateVal != nil {
+			var dateStr string
+			switch v := dateVal.(type) {
+			case time.Time:
+				dateStr = v.Format("2006-01-02")
+			case string:
+				dateStr = v
+			default:
+				dateStr = ""
+			}
+			ricePoint.Date = dateStr
+		}
+
+		response.IndividualPoints = append(response.IndividualPoints, ricePoint)
 	}
 
 	uc.cache.Set(ctx, cacheKey, &response, 1200*time.Second)
@@ -939,26 +925,22 @@ func (uc *AgricultureUseCase) GetCommodityAnalysis(ctx context.Context, startDat
 		return &response, nil
 	}
 
-	
 	analysis, err := uc.agricultureRepo.GetCommodityAnalysis(ctx, startDate, endDate, commodityName)
 	if err != nil {
 		return nil, err
 	}
 
-	
 	distribution, err := uc.agricultureRepo.GetProductionByDistrict(ctx, startDate, endDate, commodityName)
 	if err != nil {
 		return nil, err
 	}
 
-	
 	years := []int{2018, 2019, 2020, 2021, 2022, 2023, 2024}
 	productivityTrend, err := uc.agricultureRepo.GetProductivityTrend(ctx, commodityName, years)
 	if err != nil {
 		return nil, err
 	}
 
-	
 	response.TotalProduction = analysis["total_production"].(float64)
 	response.ProductionGrowth = analysis["production_growth"].(float64)
 	response.TotalHarvestedArea = analysis["total_harvested_area"].(float64)
@@ -966,7 +948,6 @@ func (uc *AgricultureUseCase) GetCommodityAnalysis(ctx context.Context, startDat
 	response.Productivity = analysis["productivity"].(float64)
 	response.ProductivityGrowth = analysis["productivity_growth"].(float64)
 
-	
 	response.ProductionDistribution = []dto.ProductionLocation{}
 	if len(distribution) > 0 {
 		for _, item := range distribution {
@@ -983,7 +964,6 @@ func (uc *AgricultureUseCase) GetCommodityAnalysis(ctx context.Context, startDat
 		}
 	}
 
-	
 	response.ProductivityTrend = []dto.ProductivityTrend{}
 	if len(productivityTrend) > 0 {
 		for _, item := range productivityTrend {
@@ -996,7 +976,6 @@ func (uc *AgricultureUseCase) GetCommodityAnalysis(ctx context.Context, startDat
 		}
 	}
 
-	
 	uc.cache.Set(ctx, cacheKey, &response, 1800*time.Second)
 
 	return &response, nil

@@ -8,7 +8,7 @@ import (
 
 type CreateSpatialPlanningRequest struct {
     ReporterName        string    `json:"reporter_name" validate:"required"`
-    Institution         string    `json:"institution" validate:"required,oneof=DINAS DESA KECAMATAN"`
+    Institution         string    `json:"institution" validate:"required,oneof=DINAS DESA KECAMATAN DINAS_PUPR UPT_JALAN"`
     PhoneNumber         string    `json:"phone_number" validate:"required"`
     ReportDateTime      time.Time `json:"report_datetime" validate:"required"`
     AreaDescription     string    `json:"area_description" validate:"required"`
@@ -20,7 +20,7 @@ type CreateSpatialPlanningRequest struct {
     Latitude            float64   `json:"latitude" validate:"required,min=-90,max=90"`
     Longitude           float64   `json:"longitude" validate:"required,min=-180,max=180"`
     Address             string    `json:"address" validate:"required"`
-    Notes               string    `json:"notes,omitempty"`
+    Notes               string    `json:"notes,omitempty"` 
 }
 
 func (r *CreateSpatialPlanningRequest) Validate() error {
@@ -125,18 +125,18 @@ type TataRuangEnvironmentalImpactStatistics struct {
 }
 
 type TataRuangOverviewResponse struct {
-    // Baris pertama - Basic statistics
+    
     BasicStats TataRuangBasicStatistics `json:"basic_stats"`
     
-    // Baris kedua - Location and urgency
+    
     LocationDistribution []TataRuangLocationDistribution `json:"location_distribution"`
     UrgencyStatistics    []TataRuangUrgencyStatistics    `json:"urgency_statistics"`
     
-    // Baris ketiga - Violation details  
+    
     ViolationTypeStatistics  []TataRuangViolationTypeStatistics  `json:"violation_type_statistics"`
     ViolationLevelStatistics []TataRuangViolationLevelStatistics `json:"violation_level_statistics"`
     
-    // Additional insights
+    
     AreaCategoryDistribution       []TataRuangAreaCategoryDistribution       `json:"area_category_distribution"`
     EnvironmentalImpactStatistics  []TataRuangEnvironmentalImpactStatistics  `json:"environmental_impact_statistics"`
 }

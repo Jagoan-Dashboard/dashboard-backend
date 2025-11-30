@@ -31,99 +31,106 @@ func NewBinaMargaUseCase(
 	}
 }
 
-func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBinaMargaRequest, photos []*multipart.FileHeader) (*entity.BinaMargaReport, error) {
+func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBinaMargaRequest, photos []*multipart.FileHeader) (*entity.BinaMargaReport, error) {    
+    damagedArea := req.DamagedLength * req.DamagedWidth
+    
+    
+    totalDamagedArea := req.TotalDamagedArea
+    if totalDamagedArea == 0 && damagedArea > 0 {
+        totalDamagedArea = damagedArea
+    }
+    
+    report := &entity.BinaMargaReport{
+        ID:                  utils.GenerateULID(),
+        ReporterName:        req.ReporterName,
+        InstitutionUnit:     entity.InstitutionUnitType(req.InstitutionUnit),
+        PhoneNumber:         req.PhoneNumber,
+        ReportDateTime:      req.ReportDateTime,
+        District:            req.District,
+        RoadName:            req.RoadName,
+        // RoadType:            entity.RoadType(req.RoadType),
+        // RoadClass:           entity.RoadClass(req.RoadClass),
+        SegmentLength:       req.SegmentLength,
+        Latitude:            req.Latitude,
+        Longitude:           req.Longitude,
+        PavementType:        entity.PavementType(req.PavementType),
+        DamageType:          entity.RoadDamageType(req.DamageType),
+        DamageLevel:         entity.RoadDamageLevel(req.DamageLevel),
+        DamagedLength:       req.DamagedLength,
+        DamagedWidth:        req.DamagedWidth,
+        DamagedArea:         damagedArea,
+        TotalDamagedArea:    totalDamagedArea,
+        TrafficCondition:    entity.TrafficCondition(req.TrafficCondition),
+        TrafficImpact:       entity.TrafficImpact(req.TrafficImpact),
+        DailyTrafficVolume:  req.DailyTrafficVolume,
+        UrgencyLevel:        entity.RoadUrgencyLevel(req.UrgencyLevel),
+        CauseOfDamage:       req.CauseOfDamage,
+        Notes:               req.Notes,
+        Status:              entity.BinaMargaStatusPending,
+    }
 
-	damagedArea := req.DamagedLength * req.DamagedWidth
+    
+    if req.BridgeName != "" {
+        report.BridgeName = req.BridgeName
+        report.BridgeSection = req.BridgeSection
+        if req.BridgeStructureType != "" {
+            report.BridgeStructureType = entity.BridgeStructureType(req.BridgeStructureType)
+        }
+        if req.BridgeDamageType != "" {
+            report.BridgeDamageType = entity.BridgeDamageType(req.BridgeDamageType)
+        }
+        if req.BridgeDamageLevel != "" {
+            report.BridgeDamageLevel = entity.BridgeDamageLevel(req.BridgeDamageLevel)
+        }
+    }
 
-	totalDamagedArea := req.TotalDamagedArea
-	if totalDamagedArea == 0 && damagedArea > 0 {
-		totalDamagedArea = damagedArea
-	}
+    
+    report.EstimatedBudget = uc.calculateEstimatedBudget(report)
+    report.EstimatedRepairTime = uc.calculateEstimatedRepairTime(report)
 
-	report := &entity.BinaMargaReport{
-		ID:                 utils.GenerateULID(),
-		ReporterName:       req.ReporterName,
-		InstitutionUnit:    entity.InstitutionUnitType(req.InstitutionUnit),
-		PhoneNumber:        req.PhoneNumber,
-		ReportDateTime:     req.ReportDateTime,
-		RoadName:           req.RoadName,
-		RoadType:           entity.RoadType(req.RoadType),
-		RoadClass:          entity.RoadClass(req.RoadClass),
-		SegmentLength:      req.SegmentLength,
-		Latitude:           req.Latitude,
-		Longitude:          req.Longitude,
-		PavementType:       entity.PavementType(req.PavementType),
-		DamageType:         entity.RoadDamageType(req.DamageType),
-		DamageLevel:        entity.RoadDamageLevel(req.DamageLevel),
-		DamagedLength:      req.DamagedLength,
-		DamagedWidth:       req.DamagedWidth,
-		DamagedArea:        damagedArea,
-		TotalDamagedArea:   totalDamagedArea,
-		TrafficCondition:   entity.TrafficCondition(req.TrafficCondition),
-		TrafficImpact:      entity.TrafficImpact(req.TrafficImpact),
-		DailyTrafficVolume: req.DailyTrafficVolume,
-		UrgencyLevel:       entity.RoadUrgencyLevel(req.UrgencyLevel),
-		CauseOfDamage:      req.CauseOfDamage,
-		Notes:              req.Notes,
-		Status:             entity.BinaMargaStatusPending,
-	}
+    
+    photoAngles := []string{"before", "damage_detail", "traffic_impact", "aerial", "surrounding"}
+    for i, photo := range photos {
+        angle := "general"
+        if i < len(photoAngles) {
+            angle = photoAngles[i]
+        }
 
-	if req.BridgeName != "" {
-		report.BridgeName = req.BridgeName
-		if req.BridgeStructureType != "" {
-			report.BridgeStructureType = entity.BridgeStructureType(req.BridgeStructureType)
-		}
-		if req.BridgeDamageType != "" {
-			report.BridgeDamageType = entity.BridgeDamageType(req.BridgeDamageType)
-		}
-		if req.BridgeDamageLevel != "" {
-			report.BridgeDamageLevel = entity.BridgeDamageLevel(req.BridgeDamageLevel)
-		}
-	}
+        photoURL, err := uc.storage.UploadFile(ctx, photo, "bina-marga")
+        if err != nil {
+            return nil, fmt.Errorf("failed to upload photo: %w", err)
+        }
 
-	report.EstimatedBudget = uc.calculateEstimatedBudget(report)
-	report.EstimatedRepairTime = uc.calculateEstimatedRepairTime(report)
+        caption := fmt.Sprintf("%s view - %s (%s)", angle, report.RoadName, report.DamageType)
+        if report.BridgeName != "" {
+            caption = fmt.Sprintf("%s view - Bridge %s (%s)", angle, report.BridgeName, report.BridgeDamageType)
+        }
+        
+        report.Photos = append(report.Photos, entity.BinaMargaPhoto{
+            ID:         utils.GenerateULID(),
+            PhotoURL:   photoURL,
+            PhotoAngle: angle,
+            Caption:    caption,
+        })
+    }
 
-	photoAngles := []string{"before", "damage_detail", "traffic_impact", "aerial", "surrounding"}
-	for i, photo := range photos {
-		angle := "general"
-		if i < len(photoAngles) {
-			angle = photoAngles[i]
-		}
+    if err := uc.binaMargaRepo.Create(ctx, report); err != nil {
+        return nil, err
+    }
 
-		photoURL, err := uc.storage.UploadFile(ctx, photo, "bina-marga")
-		if err != nil {
-			return nil, fmt.Errorf("failed to upload photo: %w", err)
-		}
+    
+    uc.cache.Delete(ctx, "bina_marga:list")
+    uc.cache.Delete(ctx, "bina_marga:stats")
+    uc.cache.Delete(ctx, "bina_marga:emergency")
 
-		caption := fmt.Sprintf("%s view - %s (%s)", angle, report.RoadName, report.DamageType)
-		if report.BridgeName != "" {
-			caption = fmt.Sprintf("%s view - Bridge %s (%s)", angle, report.BridgeName, report.BridgeDamageType)
-		}
+    
+    if report.UrgencyLevel == entity.RoadUrgencyEmergency || 
+       report.TrafficImpact == entity.TrafficImpactBlocked ||
+       report.TrafficCondition == entity.TrafficConditionBlocked {
+        uc.sendUrgentNotification(ctx, report)
+    }
 
-		report.Photos = append(report.Photos, entity.BinaMargaPhoto{
-			ID:         utils.GenerateULID(),
-			PhotoURL:   photoURL,
-			PhotoAngle: angle,
-			Caption:    caption,
-		})
-	}
-
-	if err := uc.binaMargaRepo.Create(ctx, report); err != nil {
-		return nil, err
-	}
-
-	uc.cache.Delete(ctx, "bina_marga:list")
-	uc.cache.Delete(ctx, "bina_marga:stats")
-	uc.cache.Delete(ctx, "bina_marga:emergency")
-
-	if report.UrgencyLevel == entity.RoadUrgencyEmergency ||
-		report.TrafficImpact == entity.TrafficImpactBlocked ||
-		report.TrafficCondition == entity.TrafficConditionBlocked {
-		uc.sendUrgentNotification(ctx, report)
-	}
-
-	return report, nil
+    return report, nil
 }
 
 func (uc *BinaMargaUseCase) GetReport(ctx context.Context, id string) (*entity.BinaMargaReport, error) {
@@ -174,112 +181,126 @@ func (uc *BinaMargaUseCase) ListByPriority(ctx context.Context, page, limit int)
 }
 
 func (uc *BinaMargaUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateBinaMargaRequest, userID string) (*entity.BinaMargaReport, error) {
-	report, err := uc.binaMargaRepo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
+    report, err := uc.binaMargaRepo.FindByID(ctx, id)
+    if err != nil {
+        return nil, err
+    }
 
-	// if report.CreatedBy != userID {
-	//     return nil, ErrUnauthorized
-	// }
+    
+    // if report.CreatedBy != userID {
+    //     return nil, ErrUnauthorized
+    // }
 
-	if req.RoadName != "" {
-		report.RoadName = req.RoadName
-	}
-	if req.RoadType != "" {
-		report.RoadType = entity.RoadType(req.RoadType)
-	}
-	if req.RoadClass != "" {
-		report.RoadClass = entity.RoadClass(req.RoadClass)
-	}
-	if req.SegmentLength > 0 {
-		report.SegmentLength = req.SegmentLength
-	}
+    if req.District != "" {
+        report.District = req.District
+    }
+    if req.RoadName != "" {
+        report.RoadName = req.RoadName
+    }
+    // if req.RoadType != "" {
+    //     report.RoadType = entity.RoadType(req.RoadType)
+    // }
+    // if req.RoadClass != "" {
+    //     report.RoadClass = entity.RoadClass(req.RoadClass)
+    // }
+    if req.SegmentLength > 0 {
+        report.SegmentLength = req.SegmentLength
+    }
+    
+    
+    if req.PavementType != "" {
+        report.PavementType = entity.PavementType(req.PavementType)
+    }
+    if req.DamageType != "" {
+        report.DamageType = entity.RoadDamageType(req.DamageType)
+    }
+    if req.DamageLevel != "" {
+        report.DamageLevel = entity.RoadDamageLevel(req.DamageLevel)
+    }
+    if req.DamagedLength > 0 {
+        report.DamagedLength = req.DamagedLength
+    }
+    if req.DamagedWidth > 0 {
+        report.DamagedWidth = req.DamagedWidth
+    }
+    if req.TotalDamagedArea > 0 {
+        report.TotalDamagedArea = req.TotalDamagedArea
+    }
+    
+    
+    if req.BridgeName != "" {
+        report.BridgeName = req.BridgeName
+    }
+    if req.BridgeSection != "" {
+        report.BridgeSection = req.BridgeSection
+    }
+    if req.BridgeStructureType != "" {
+        report.BridgeStructureType = entity.BridgeStructureType(req.BridgeStructureType)
+    }
+    if req.BridgeDamageType != "" {
+        report.BridgeDamageType = entity.BridgeDamageType(req.BridgeDamageType)
+    }
+    if req.BridgeDamageLevel != "" {
+        report.BridgeDamageLevel = entity.BridgeDamageLevel(req.BridgeDamageLevel)
+    }
+    
+    
+    if req.TrafficCondition != "" {
+        report.TrafficCondition = entity.TrafficCondition(req.TrafficCondition)
+    }
+    if req.TrafficImpact != "" {
+        report.TrafficImpact = entity.TrafficImpact(req.TrafficImpact)
+    }
+    if req.DailyTrafficVolume > 0 {
+        report.DailyTrafficVolume = req.DailyTrafficVolume
+    }
+    if req.UrgencyLevel != "" {
+        report.UrgencyLevel = entity.RoadUrgencyLevel(req.UrgencyLevel)
+    }
+    
+    
+    if req.CauseOfDamage != "" {
+        report.CauseOfDamage = req.CauseOfDamage
+    }
+    if req.Notes != "" {
+        report.Notes = req.Notes
+    }
+    if req.HandlingRecommendation != "" {
+        report.HandlingRecommendation = req.HandlingRecommendation
+    }
+    if req.EstimatedBudget > 0 {
+        report.EstimatedBudget = req.EstimatedBudget
+    }
+    if req.EstimatedRepairTime > 0 {
+        report.EstimatedRepairTime = req.EstimatedRepairTime
+    }
 
-	if req.PavementType != "" {
-		report.PavementType = entity.PavementType(req.PavementType)
-	}
-	if req.DamageType != "" {
-		report.DamageType = entity.RoadDamageType(req.DamageType)
-	}
-	if req.DamageLevel != "" {
-		report.DamageLevel = entity.RoadDamageLevel(req.DamageLevel)
-	}
-	if req.DamagedLength > 0 {
-		report.DamagedLength = req.DamagedLength
-	}
-	if req.DamagedWidth > 0 {
-		report.DamagedWidth = req.DamagedWidth
-	}
-	if req.TotalDamagedArea > 0 {
-		report.TotalDamagedArea = req.TotalDamagedArea
-	}
+    
+    if req.DamagedLength > 0 || req.DamagedWidth > 0 {
+        report.DamagedArea = report.DamagedLength * report.DamagedWidth
+        if report.TotalDamagedArea == 0 {
+            report.TotalDamagedArea = report.DamagedArea
+        }
+    }
 
-	if req.BridgeName != "" {
-		report.BridgeName = req.BridgeName
-	}
-	if req.BridgeStructureType != "" {
-		report.BridgeStructureType = entity.BridgeStructureType(req.BridgeStructureType)
-	}
-	if req.BridgeDamageType != "" {
-		report.BridgeDamageType = entity.BridgeDamageType(req.BridgeDamageType)
-	}
-	if req.BridgeDamageLevel != "" {
-		report.BridgeDamageLevel = entity.BridgeDamageLevel(req.BridgeDamageLevel)
-	}
+    
+    if req.EstimatedBudget == 0 {
+        report.EstimatedBudget = uc.calculateEstimatedBudget(report)
+    }
+    if req.EstimatedRepairTime == 0 {
+        report.EstimatedRepairTime = uc.calculateEstimatedRepairTime(report)
+    }
 
-	if req.TrafficCondition != "" {
-		report.TrafficCondition = entity.TrafficCondition(req.TrafficCondition)
-	}
-	if req.TrafficImpact != "" {
-		report.TrafficImpact = entity.TrafficImpact(req.TrafficImpact)
-	}
-	if req.DailyTrafficVolume > 0 {
-		report.DailyTrafficVolume = req.DailyTrafficVolume
-	}
-	if req.UrgencyLevel != "" {
-		report.UrgencyLevel = entity.RoadUrgencyLevel(req.UrgencyLevel)
-	}
+    if err := uc.binaMargaRepo.Update(ctx, report); err != nil {
+        return nil, err
+    }
 
-	if req.CauseOfDamage != "" {
-		report.CauseOfDamage = req.CauseOfDamage
-	}
-	if req.Notes != "" {
-		report.Notes = req.Notes
-	}
-	if req.HandlingRecommendation != "" {
-		report.HandlingRecommendation = req.HandlingRecommendation
-	}
-	if req.EstimatedBudget > 0 {
-		report.EstimatedBudget = req.EstimatedBudget
-	}
-	if req.EstimatedRepairTime > 0 {
-		report.EstimatedRepairTime = req.EstimatedRepairTime
-	}
+    
+    uc.cache.Delete(ctx, "bina_marga:"+id)
+    uc.cache.Delete(ctx, "bina_marga:list")
+    uc.cache.Delete(ctx, "bina_marga:stats")
 
-	if req.DamagedLength > 0 || req.DamagedWidth > 0 {
-		report.DamagedArea = report.DamagedLength * report.DamagedWidth
-		if report.TotalDamagedArea == 0 {
-			report.TotalDamagedArea = report.DamagedArea
-		}
-	}
-
-	if req.EstimatedBudget == 0 {
-		report.EstimatedBudget = uc.calculateEstimatedBudget(report)
-	}
-	if req.EstimatedRepairTime == 0 {
-		report.EstimatedRepairTime = uc.calculateEstimatedRepairTime(report)
-	}
-
-	if err := uc.binaMargaRepo.Update(ctx, report); err != nil {
-		return nil, err
-	}
-
-	uc.cache.Delete(ctx, "bina_marga:"+id)
-	uc.cache.Delete(ctx, "bina_marga:list")
-	uc.cache.Delete(ctx, "bina_marga:stats")
-
-	return report, nil
+    return report, nil
 }
 
 func (uc *BinaMargaUseCase) UpdateStatus(ctx context.Context, id string, req *dto.UpdateBinaMargaStatusRequest) error {
@@ -299,10 +320,10 @@ func (uc *BinaMargaUseCase) DeleteReport(ctx context.Context, id string, userID 
 	if err != nil {
 		return err
 	}
-
-	// if report.CreatedBy != userID {
-	// 	return ErrUnauthorized
-	// }
+    
+    // if report.CreatedBy != userID {
+    //     return ErrUnauthorized
+    // }
 
 	for _, photo := range report.Photos {
 		uc.storage.DeleteFile(ctx, photo.PhotoURL)
@@ -320,150 +341,166 @@ func (uc *BinaMargaUseCase) DeleteReport(ctx context.Context, id string, userID 
 }
 
 func (uc *BinaMargaUseCase) calculateEstimatedBudget(report *entity.BinaMargaReport) float64 {
-	baseCost := 2000000.0
-
-	damagedArea := report.TotalDamagedArea
-	if damagedArea == 0 {
-		damagedArea = report.DamagedArea
-	}
-
-	areaCost := damagedArea * baseCost
-
-	levelMultiplier := 1.0
-	switch report.DamageLevel {
-	case entity.RoadDamageLevelModerate:
-		levelMultiplier = 1.5
-	case entity.RoadDamageLevelSevere:
-		levelMultiplier = 2.5
-	}
-
-	classMultiplier := 1.0
-	switch report.RoadClass {
-	case entity.RoadClassArteri:
-		classMultiplier = 2.0
-	case entity.RoadClassKolektor:
-		classMultiplier = 1.5
-	case entity.RoadClassLokal:
-		classMultiplier = 1.2
-	}
-
-	pavementMultiplier := 1.0
-	switch report.PavementType {
-	case entity.PavementBetonRigid:
-		pavementMultiplier = 1.8
-	case entity.PavementAspalFlexible:
-		pavementMultiplier = 1.0
-	case entity.PavementPaving:
-		pavementMultiplier = 1.3
-	case entity.PavementJalanTanah:
-		pavementMultiplier = 0.5
-	}
-
-	typeMultiplier := 1.0
-	switch report.DamageType {
-	case entity.RoadDamageJembatan:
-		typeMultiplier = 3.0
-	case entity.RoadDamageAmblas:
-		typeMultiplier = 2.5
-	case entity.RoadDamageLubang:
-		typeMultiplier = 2.0
-	case entity.RoadDamageRetakBuaya:
-		typeMultiplier = 1.8
-	case entity.RoadDamageDrainase:
-		typeMultiplier = 1.5
-	case entity.RoadDamageGenaganDrainase:
-		typeMultiplier = 1.7
-	}
-
-	bridgeAdditional := 0.0
-	if report.BridgeName != "" {
-		bridgeAdditional = areaCost * 2.0
-		if report.BridgeDamageLevel == entity.BridgeDamageLevelSevere {
-			bridgeAdditional *= 3.0
-		}
-	}
-
-	urgencyAdditional := 0.0
-	if report.UrgencyLevel == entity.RoadUrgencyEmergency {
-		urgencyAdditional = areaCost * 0.5
-	} else if report.UrgencyLevel == entity.RoadUrgencyHigh {
-		urgencyAdditional = areaCost * 0.2
-	}
-
-	totalBudget := (areaCost * levelMultiplier * classMultiplier * pavementMultiplier * typeMultiplier) + bridgeAdditional + urgencyAdditional
-
-	return totalBudget
+    baseCost := 2000000.0 
+    
+    
+    damagedArea := report.TotalDamagedArea
+    if damagedArea == 0 {
+        damagedArea = report.DamagedArea
+    }
+    
+    areaCost := damagedArea * baseCost
+    
+    
+    levelMultiplier := 1.0
+    switch report.DamageLevel {
+    case entity.RoadDamageLevelModerate:
+        levelMultiplier = 1.5
+    case entity.RoadDamageLevelSevere:
+        levelMultiplier = 2.5
+    }
+    
+    
+    // classMultiplier := 1.0
+    // switch report.RoadClass {
+    // case entity.RoadClassArteri:
+    //     classMultiplier = 2.0
+    // case entity.RoadClassKolektor:
+    //     classMultiplier = 1.5
+    // case entity.RoadClassLokal:
+    //     classMultiplier = 1.2
+    // }
+    
+    
+    pavementMultiplier := 1.0
+    switch report.PavementType {
+    case entity.PavementBetonRigid:
+        pavementMultiplier = 1.8
+    case entity.PavementAspalFlexible:
+        pavementMultiplier = 1.0
+    case entity.PavementPaving:
+        pavementMultiplier = 1.3
+    case entity.PavementJalanTanah:
+        pavementMultiplier = 0.5
+    }
+    
+    
+    typeMultiplier := 1.0
+    switch report.DamageType {
+    case entity.RoadDamageJembatan:
+        typeMultiplier = 3.0
+    case entity.RoadDamageAmblas:
+        typeMultiplier = 2.5
+    case entity.RoadDamageLubang:
+        typeMultiplier = 2.0
+    case entity.RoadDamageRetakBuaya:
+        typeMultiplier = 1.8
+    case entity.RoadDamageDrainase:
+        typeMultiplier = 1.5
+    case entity.RoadDamageGenaganDrainase:
+        typeMultiplier = 1.7
+    }
+    
+    
+    bridgeAdditional := 0.0
+    if report.BridgeName != "" {
+        bridgeAdditional = areaCost * 2.0 
+        if report.BridgeDamageLevel == entity.BridgeDamageLevelSevere {
+            bridgeAdditional *= 3.0
+        }
+    }
+    
+    
+    urgencyAdditional := 0.0
+    if report.UrgencyLevel == entity.RoadUrgencyEmergency {
+        urgencyAdditional = areaCost * 0.5 
+    } else if report.UrgencyLevel == entity.RoadUrgencyHigh {
+        urgencyAdditional = areaCost * 0.2 
+    }
+    
+    // totalBudget := (areaCost * levelMultiplier * classMultiplier * pavementMultiplier * typeMultiplier) + bridgeAdditional + urgencyAdditional
+    totalBudget := (areaCost * levelMultiplier * pavementMultiplier * typeMultiplier) + bridgeAdditional + urgencyAdditional
+    
+    return totalBudget
 }
 
 func (uc *BinaMargaUseCase) calculateEstimatedRepairTime(report *entity.BinaMargaReport) int {
-	baseTimePerSqm := 0.1
-
-	damagedArea := report.TotalDamagedArea
-	if damagedArea == 0 {
-		damagedArea = report.DamagedArea
-	}
-
-	baseTime := damagedArea * baseTimePerSqm
-
-	levelMultiplier := 1.0
-	switch report.DamageLevel {
-	case entity.RoadDamageLevelModerate:
-		levelMultiplier = 1.5
-	case entity.RoadDamageLevelSevere:
-		levelMultiplier = 2.5
-	}
-
-	typeMultiplier := 1.0
-	switch report.DamageType {
-	case entity.RoadDamageJembatan:
-		typeMultiplier = 4.0
-	case entity.RoadDamageAmblas:
-		typeMultiplier = 3.0
-	case entity.RoadDamageDrainase, entity.RoadDamageGenaganDrainase:
-		typeMultiplier = 2.0
-	case entity.RoadDamageRetakBuaya:
-		typeMultiplier = 1.8
-	case entity.RoadDamageLubang:
-		typeMultiplier = 1.5
-	}
-
-	pavementMultiplier := 1.0
-	switch report.PavementType {
-	case entity.PavementBetonRigid:
-		pavementMultiplier = 2.0
-	case entity.PavementAspalFlexible:
-		pavementMultiplier = 1.0
-	case entity.PavementPaving:
-		pavementMultiplier = 1.2
-	case entity.PavementJalanTanah:
-		pavementMultiplier = 0.3
-	}
-
-	classMultiplier := 1.0
-	switch report.RoadClass {
-	case entity.RoadClassArteri:
-		classMultiplier = 1.5
-	case entity.RoadClassKolektor:
-		classMultiplier = 1.2
-	}
-
-	bridgeAdditional := 0.0
-	if report.BridgeName != "" {
-		bridgeAdditional = baseTime * 1.5
-		if report.BridgeDamageLevel == entity.BridgeDamageLevelSevere {
-			bridgeAdditional *= 2.0
-		}
-	}
-
-	totalTime := (baseTime * levelMultiplier * typeMultiplier * pavementMultiplier * classMultiplier) + bridgeAdditional
-
-	if totalTime < 1 {
-		totalTime = 1
-	} else if totalTime > 365 {
-		totalTime = 365
-	}
-
-	return int(totalTime)
+    baseTimePerSqm := 0.1 
+    
+    
+    damagedArea := report.TotalDamagedArea
+    if damagedArea == 0 {
+        damagedArea = report.DamagedArea
+    }
+    
+    baseTime := damagedArea * baseTimePerSqm
+    
+    
+    levelMultiplier := 1.0
+    switch report.DamageLevel {
+    case entity.RoadDamageLevelModerate:
+        levelMultiplier = 1.5
+    case entity.RoadDamageLevelSevere:
+        levelMultiplier = 2.5
+    }
+    
+    
+    typeMultiplier := 1.0
+    switch report.DamageType {
+    case entity.RoadDamageJembatan:
+        typeMultiplier = 4.0
+    case entity.RoadDamageAmblas:
+        typeMultiplier = 3.0
+    case entity.RoadDamageDrainase, entity.RoadDamageGenaganDrainase:
+        typeMultiplier = 2.0
+    case entity.RoadDamageRetakBuaya:
+        typeMultiplier = 1.8
+    case entity.RoadDamageLubang:
+        typeMultiplier = 1.5
+    }
+    
+    
+    pavementMultiplier := 1.0
+    switch report.PavementType {
+    case entity.PavementBetonRigid:
+        pavementMultiplier = 2.0
+    case entity.PavementAspalFlexible:
+        pavementMultiplier = 1.0
+    case entity.PavementPaving:
+        pavementMultiplier = 1.2
+    case entity.PavementJalanTanah:
+        pavementMultiplier = 0.3
+    }
+    
+    
+    // classMultiplier := 1.0
+    // switch report.RoadClass {
+    // case entity.RoadClassArteri:
+    //     classMultiplier = 1.5
+    // case entity.RoadClassKolektor:
+    //     classMultiplier = 1.2
+    // }
+    
+    
+    bridgeAdditional := 0.0
+    if report.BridgeName != "" {
+        bridgeAdditional = baseTime * 1.5
+        if report.BridgeDamageLevel == entity.BridgeDamageLevelSevere {
+            bridgeAdditional *= 2.0
+        }
+    }
+    
+    // totalTime := (baseTime * levelMultiplier * typeMultiplier * pavementMultiplier * classMultiplier) + bridgeAdditional
+    totalTime := (baseTime * levelMultiplier * typeMultiplier * pavementMultiplier) + bridgeAdditional
+    
+    
+    if totalTime < 1 {
+        totalTime = 1
+    } else if totalTime > 365 {
+        totalTime = 365
+    }
+    
+    return int(totalTime)
 }
 
 func (uc *BinaMargaUseCase) sendUrgentNotification(ctx context.Context, report *entity.BinaMargaReport) {
@@ -483,91 +520,91 @@ func (uc *BinaMargaUseCase) sendUrgentNotification(ctx context.Context, report *
 }
 
 func (uc *BinaMargaUseCase) GetDashboard(ctx context.Context, roadType string, startDate, endDate time.Time) (*dto.BinaMargaDashboardResponse, error) {
-	avgSeg, avgArea, avgTraffic, total, err := uc.binaMargaRepo.GetKPIs(ctx, roadType, startDate, endDate)
-	if err != nil {
-		return nil, err
-	}
+    avgSeg, avgArea, avgTraffic, total, err := uc.binaMargaRepo.GetKPIs(ctx, roadType, startDate, endDate)
+    if err != nil {
+        return nil, err
+    }
 
-	// Priority (urgency_level)
-	priorityRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "urgency_level", roadType, startDate, endDate, false, false)
-	if err != nil {
-		return nil, err
-	}
+    // Priority (urgency_level)
+    priorityRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "urgency_level", roadType, startDate, endDate, false, false)
+    if err != nil {
+        return nil, err
+    }
 
-	// Level distribusi
-	roadLevelRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "damage_level", roadType, startDate, endDate, false, true) // onlyRoad
-	if err != nil {
-		return nil, err
-	}
-	bridgeLevelRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "bridge_damage_level", roadType, startDate, endDate, true, false) // onlyBridge
-	if err != nil {
-		return nil, err
-	}
+    // Level distribusi
+    roadLevelRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "damage_level", roadType, startDate, endDate, false, true) // onlyRoad
+    if err != nil {
+        return nil, err
+    }
+    bridgeLevelRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "bridge_damage_level", roadType, startDate, endDate, true, false) // onlyBridge
+    if err != nil {
+        return nil, err
+    }
 
-	// Top types
-	roadTypeRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "damage_type", roadType, startDate, endDate, false, true)
-	if err != nil {
-		return nil, err
-	}
-	bridgeTypeRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "bridge_damage_type", roadType, startDate, endDate, true, false)
-	if err != nil {
-		return nil, err
-	}
+    // Top types
+    roadTypeRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "damage_type", roadType, startDate, endDate, false, true)
+    if err != nil {
+        return nil, err
+    }
+    bridgeTypeRows, err := uc.binaMargaRepo.GroupCountBy(ctx, "bridge_damage_type", roadType, startDate, endDate, true, false)
+    if err != nil {
+        return nil, err
+    }
 
-	// Map points
-	pts, err := uc.binaMargaRepo.GetMapPoints(ctx, roadType, startDate, endDate)
-	if err != nil {
-		return nil, err
-	}
+    // Map points
+    pts, err := uc.binaMargaRepo.GetMapPoints(ctx, roadType, startDate, endDate)
+    if err != nil {
+        return nil, err
+    }
 
-	// Build DTO
-	res := &dto.BinaMargaDashboardResponse{}
-	res.KPIs.AvgSegmentLengthM = avgSeg
-	res.KPIs.AvgDamageAreaM2 = avgArea
-	res.KPIs.AvgDailyTrafficVolume = avgTraffic
-	res.KPIs.TotalReports = total
+    // Build DTO
+    res := &dto.BinaMargaDashboardResponse{}
+    res.KPIs.AvgSegmentLengthM = avgSeg
+    res.KPIs.AvgDamageAreaM2 = avgArea
+    res.KPIs.AvgDailyTrafficVolume = avgTraffic
+    res.KPIs.TotalReports = total
 
-	res.PriorityDistribution = make([]dto.KeyCount, len(priorityRows))
-	for i, r0 := range priorityRows {
-		res.PriorityDistribution[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
-	}
+    res.PriorityDistribution = make([]dto.KeyCount, len(priorityRows))
+    for i, r0 := range priorityRows {
+        res.PriorityDistribution[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
+    }
 
-	res.RoadDamageLevelDistribution = make([]dto.KeyCount, len(roadLevelRows))
-	for i, r0 := range roadLevelRows {
-		res.RoadDamageLevelDistribution[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
-	}
+    res.RoadDamageLevelDistribution = make([]dto.KeyCount, len(roadLevelRows))
+    for i, r0 := range roadLevelRows {
+        res.RoadDamageLevelDistribution[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
+    }
 
-	res.BridgeDamageLevelDistribution = make([]dto.KeyCount, len(bridgeLevelRows))
-	for i, r0 := range bridgeLevelRows {
-		res.BridgeDamageLevelDistribution[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
-	}
+    res.BridgeDamageLevelDistribution = make([]dto.KeyCount, len(bridgeLevelRows))
+    for i, r0 := range bridgeLevelRows {
+        res.BridgeDamageLevelDistribution[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
+    }
 
-	res.TopRoadDamageTypes = make([]dto.KeyCount, len(roadTypeRows))
-	for i, r0 := range roadTypeRows {
-		res.TopRoadDamageTypes[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
-	}
+    res.TopRoadDamageTypes = make([]dto.KeyCount, len(roadTypeRows))
+    for i, r0 := range roadTypeRows {
+        res.TopRoadDamageTypes[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
+    }
 
-	res.TopBridgeDamageTypes = make([]dto.KeyCount, len(bridgeTypeRows))
-	for i, r0 := range bridgeTypeRows {
-		res.TopBridgeDamageTypes[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
-	}
+    res.TopBridgeDamageTypes = make([]dto.KeyCount, len(bridgeTypeRows))
+    for i, r0 := range bridgeTypeRows {
+        res.TopBridgeDamageTypes[i] = dto.KeyCount{Key: r0.Key, Count: r0.Count}
+    }
 
-	res.MapPoints = make([]dto.BinaMargaMapPoint, len(pts))
-	for i, p := range pts {
-		res.MapPoints[i] = dto.BinaMargaMapPoint{
-			Latitude:          p.Latitude,
-			Longitude:         p.Longitude,
-			RoadName:          p.RoadName,
-			RoadType:          p.RoadType,
-			DamageType:        p.DamageType,
-			DamageLevel:       p.DamageLevel,
-			BridgeName:        deref(p.BridgeName),
-			BridgeDamageType:  deref(p.BridgeDamageType),
-			BridgeDamageLevel: deref(p.BridgeDamageLevel),
-			UrgencyLevel:      p.UrgencyLevel,
-		}
-	}
-	return res, nil
+    res.MapPoints = make([]dto.BinaMargaMapPoint, len(pts))
+    for i, p := range pts {
+        res.MapPoints[i] = dto.BinaMargaMapPoint{
+            Latitude:          p.Latitude,
+            Longitude:         p.Longitude,
+            RoadName:          p.RoadName,
+            // RoadType:          p.RoadType,
+            DamageType:        p.DamageType,
+            DamageLevel:       p.DamageLevel,
+            BridgeName:        deref(p.BridgeName),
+            BridgeDamageType:  deref(p.BridgeDamageType),
+            BridgeDamageLevel: deref(p.BridgeDamageLevel),
+            UrgencyLevel:      p.UrgencyLevel,
+        }
+    }
+    return res, nil
 }
 
 func deref(s *string) string {

@@ -14,7 +14,7 @@ CREATE TABLE spatial_planning_reports (
     urgency_level VARCHAR(20) NOT NULL,
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
-    address TEXT,
+    full_address TEXT,
     status VARCHAR(50) DEFAULT 'PENDING',
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

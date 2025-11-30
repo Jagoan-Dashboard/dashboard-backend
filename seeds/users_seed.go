@@ -8,15 +8,28 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
 func SeedUsers(db *gorm.DB) error {
-	
+
 	var count int64
 	db.Model(&entity.User{}).Count(&count)
 	if count > 0 {
-		return nil 
+		return nil
 	}
 
 	users := []entity.User{
+		// superadmin
+		{
+			ID:        utils.GenerateULID(),
+			Username:  "jagoanlabs",
+			Email:     "jagoanlabs@gmail.com",
+			Password:  hashPassword("password"),
+			Role:      entity.RoleSuperAdmin,
+			IsActive:  true,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		// admin
 		{
 			ID:        utils.GenerateULID(),
 			Username:  "admin",
@@ -27,46 +40,40 @@ func SeedUsers(db *gorm.DB) error {
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
+		// supervisor
 		{
 			ID:        utils.GenerateULID(),
 			Username:  "supervisor",
 			Email:     "supervisor@ngawikab.go.id",
-			Password:  hashPassword("Super123!"),
+			Password:  hashPassword("Supervisor123!"),
 			Role:      entity.RoleSupervisor,
 			IsActive:  true,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
+		// operator
 		{
 			ID:        utils.GenerateULID(),
 			Username:  "operator_pertanian",
 			Email:     "pertanian@ngawikab.go.id",
-			Password:  hashPassword("Oper123!"),
+			Password:  hashPassword("Operator123!"),
 			Role:      entity.RoleOperator,
 			IsActive:  true,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
+		// operator infrastruktur
 		{
 			ID:        utils.GenerateULID(),
-			Username:  "operator_pu",
-			Email:     "pu@ngawikab.go.id",
-			Password:  hashPassword("Oper123!"),
+			Username:  "operator_infrastruktur",
+			Email:     "infrastruktur@ngawikab.go.id",
+			Password:  hashPassword("Operator123!"),
 			Role:      entity.RoleOperator,
 			IsActive:  true,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
-		{
-			ID:        utils.GenerateULID(),
-			Username:  "operator_tataruang",
-			Email:     "tataruang@ngawikab.go.id",
-			Password:  hashPassword("Oper123!"),
-			Role:      entity.RoleOperator,
-			IsActive:  true,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
+		// viewer
 		{
 			ID:        utils.GenerateULID(),
 			Username:  "viewer",
@@ -80,7 +87,7 @@ func SeedUsers(db *gorm.DB) error {
 	}
 
 	for _, user := range users {
-		
+
 		if err := db.Session(&gorm.Session{SkipHooks: true}).Create(&user).Error; err != nil {
 			return err
 		}

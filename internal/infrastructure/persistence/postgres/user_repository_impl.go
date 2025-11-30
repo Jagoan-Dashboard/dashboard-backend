@@ -1,4 +1,3 @@
-
 package postgres
 
 import (
@@ -72,8 +71,19 @@ func (r *userRepositoryImpl) FindAll(ctx context.Context, limit, offset int) ([]
     var total int64
 
     query := r.db.WithContext(ctx).Model(&entity.User{})
-    query.Count(&total)
+    
+    // Count total
+    if err := query.Count(&total).Error; err != nil {
+        return nil, 0, err
+    }
 
-    err := query.Limit(limit).Offset(offset).Find(&users).Error
+    // Get users with optional pagination
+    findQuery := r.db.WithContext(ctx).Model(&entity.User{})
+    
+    if limit > 0 {
+        findQuery = findQuery.Limit(limit).Offset(offset)
+    }
+    
+    err := findQuery.Order("created_at DESC").Find(&users).Error
     return users, total, err
 }

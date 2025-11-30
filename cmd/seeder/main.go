@@ -65,10 +65,15 @@ func main() {
 			log.Fatal("Failed to seed agriculture:", err)
 		}
 		fmt.Println("✓ Agriculture seeded successfully")
+	case "rice_fields":
+		if err := seeds.SeedRiceFields(db); err != nil {
+			log.Fatal("Failed to seed rice fields:", err)
+		}
+		fmt.Println("✓ Rice Fields seeded successfully")
 
 	case "all":
 		log.Println("Seeding all tables...")
-		
+
 		if err := seeds.SeedUsers(db); err != nil {
 			log.Fatal("Failed to seed users:", err)
 		}
@@ -98,6 +103,11 @@ func main() {
 			log.Fatal("Failed to seed agriculture:", err)
 		}
 		fmt.Println("✓ Agriculture seeded successfully")
+
+		if err := seeds.SeedRiceFields(db); err != nil {
+			log.Fatal("Failed to seed rice fields:", err)
+		}
+		fmt.Println("✓ Rice Fields seeded successfully")
 
 		fmt.Println("\n✓ All tables seeded successfully!")
 

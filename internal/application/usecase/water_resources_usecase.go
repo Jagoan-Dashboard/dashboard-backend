@@ -32,63 +32,69 @@ func NewWaterResourcesUseCase(
 }
 
 func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.CreateWaterResourcesRequest, photos []*multipart.FileHeader) (*entity.WaterResourcesReport, error) {
-	report := &entity.WaterResourcesReport{
-		ID:                    utils.GenerateULID(),
-		ReporterName:          req.ReporterName,
-		InstitutionUnit:       entity.InstitutionUnitType(req.InstitutionUnit),
-		PhoneNumber:           req.PhoneNumber,
-		ReportDateTime:        req.ReportDateTime,
-		IrrigationAreaName:    req.IrrigationAreaName,
-		IrrigationType:        entity.IrrigationType(req.IrrigationType),
-		Latitude:              req.Latitude,
-		Longitude:             req.Longitude,
-		DamageType:            entity.DamageType(req.DamageType),
-		DamageLevel:           entity.DamageLevel(req.DamageLevel),
-		EstimatedLength:       req.EstimatedLength,
-		EstimatedWidth:        req.EstimatedWidth,
-		EstimatedVolume:       req.EstimatedVolume,
-		AffectedRiceFieldArea: req.AffectedRiceFieldArea,
-		AffectedFarmersCount:  req.AffectedFarmersCount,
-		UrgencyCategory:       entity.UrgencyCategory(req.UrgencyCategory),
-		Notes:                 req.Notes,
-		Status:                entity.WaterResourceStatusPending,
-	}
+    report := &entity.WaterResourcesReport{
+        ID:                    utils.GenerateULID(),
+        ReporterName:          req.ReporterName,
+        InstitutionUnit:       entity.InstitutionUnitType(req.InstitutionUnit),
+        PhoneNumber:           req.PhoneNumber,
+        ReportDateTime:        req.ReportDateTime,
+        IrrigationAreaName:    req.IrrigationAreaName,
+        IrrigationType:        entity.IrrigationType(req.IrrigationType),
+        Latitude:              req.Latitude,
+        Longitude:             req.Longitude,
+        DamageType:            entity.DamageType(req.DamageType),
+        DamageLevel:           entity.DamageLevel(req.DamageLevel),
+        EstimatedLength:       req.EstimatedLength,
+        EstimatedWidth:        req.EstimatedWidth,
+        EstimatedDepth:        req.EstimatedDepth,
+        EstimatedArea:         req.EstimatedArea,
+        EstimatedVolume:       req.EstimatedVolume,
+        AffectedRiceFieldArea: req.AffectedRiceFieldArea,
+        AffectedFarmersCount:  req.AffectedFarmersCount,
+        UrgencyCategory:       entity.UrgencyCategory(req.UrgencyCategory),
+        Notes:                 req.Notes,
+        Status:                entity.WaterResourceStatusPending,
+    }
 
-	report.EstimatedBudget = uc.calculateEstimatedBudget(report)
+    
+    report.EstimatedBudget = uc.calculateEstimatedBudget(report)
 
-	photoAngles := []string{"front", "side", "damage_detail", "aerial"}
-	for i, photo := range photos {
-		if i >= len(photoAngles) {
-			break
-		}
+    
+    photoAngles := []string{"front", "side", "damage_detail", "aerial"}
+    for i, photo := range photos {
+        if i >= len(photoAngles) {
+            break
+        }
 
-		photoURL, err := uc.storage.UploadFile(ctx, photo, "water-resources")
-		if err != nil {
-			return nil, fmt.Errorf("failed to upload photo: %w", err)
-		}
+        photoURL, err := uc.storage.UploadFile(ctx, photo, "water-resources")
+        if err != nil {
+            return nil, fmt.Errorf("failed to upload photo: %w", err)
+        }
 
-		caption := fmt.Sprintf("%s view - %s", photoAngles[i], report.IrrigationAreaName)
-		report.Photos = append(report.Photos, entity.WaterResourcesPhoto{
-			ID:         utils.GenerateULID(),
-			PhotoURL:   photoURL,
-			PhotoAngle: photoAngles[i],
-			Caption:    caption,
-		})
-	}
+        caption := fmt.Sprintf("%s view - %s", photoAngles[i], report.IrrigationAreaName)
+        report.Photos = append(report.Photos, entity.WaterResourcesPhoto{
+            ID:         utils.GenerateULID(),
+            PhotoURL:   photoURL,
+            PhotoAngle: photoAngles[i],
+            Caption:    caption,
+        })
+    }
 
-	if err := uc.waterRepo.Create(ctx, report); err != nil {
-		return nil, err
-	}
+    if err := uc.waterRepo.Create(ctx, report); err != nil {
+        return nil, err
+    }
 
-	uc.cache.Delete(ctx, "water:list")
-	uc.cache.Delete(ctx, "water:stats")
-	uc.cache.Delete(ctx, "water:urgent")
+    
+    uc.cache.Delete(ctx, "water:list")
+    uc.cache.Delete(ctx, "water:stats")
+    uc.cache.Delete(ctx, "water:urgent")
 
-	if report.UrgencyCategory == entity.UrgencyCategoryMendesak {
-		uc.sendUrgentNotification(ctx, report)
-	}
+    
+    if report.UrgencyCategory == entity.UrgencyCategoryMendesak {
+        uc.sendUrgentNotification(ctx, report)
+    }
 
-	return report, nil
+    return report, nil
 }
 
 func (uc *WaterResourcesUseCase) GetReport(ctx context.Context, id string) (*entity.WaterResourcesReport, error) {
@@ -139,68 +145,72 @@ func (uc *WaterResourcesUseCase) ListByPriority(ctx context.Context, page, limit
 }
 
 func (uc *WaterResourcesUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateWaterResourcesRequest, userID string) (*entity.WaterResourcesReport, error) {
-	report, err := uc.waterRepo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
+    report, err := uc.waterRepo.FindByID(ctx, id)
+    if err != nil {
+        return nil, err
+    }
 
-	// if report.CreatedBy != userID {
-	//     return nil, ErrUnauthorized
-	// }
+    
+    // if report.CreatedBy != userID {
+    //     return nil, ErrUnauthorized
+    // }
 
-	if req.IrrigationAreaName != "" {
-		report.IrrigationAreaName = req.IrrigationAreaName
-	}
-	if req.IrrigationType != "" {
-		report.IrrigationType = entity.IrrigationType(req.IrrigationType)
-	}
-	if req.DamageType != "" {
-		report.DamageType = entity.DamageType(req.DamageType)
-	}
-	if req.DamageLevel != "" {
-		report.DamageLevel = entity.DamageLevel(req.DamageLevel)
-	}
-	if req.EstimatedLength > 0 {
-		report.EstimatedLength = req.EstimatedLength
-	}
-	if req.EstimatedWidth > 0 {
-		report.EstimatedWidth = req.EstimatedWidth
-	}
-	if req.EstimatedVolume > 0 {
-		report.EstimatedVolume = req.EstimatedVolume
-	}
-	if req.AffectedRiceFieldArea > 0 {
-		report.AffectedRiceFieldArea = req.AffectedRiceFieldArea
-	}
-	if req.AffectedFarmersCount > 0 {
-		report.AffectedFarmersCount = req.AffectedFarmersCount
-	}
-	if req.UrgencyCategory != "" {
-		report.UrgencyCategory = entity.UrgencyCategory(req.UrgencyCategory)
-	}
-	if req.Notes != "" {
-		report.Notes = req.Notes
-	}
-	if req.HandlingRecommendation != "" {
-		report.HandlingRecommendation = req.HandlingRecommendation
-	}
-	if req.EstimatedBudget > 0 {
-		report.EstimatedBudget = req.EstimatedBudget
-	}
+    
+    if req.IrrigationAreaName != "" {
+        report.IrrigationAreaName = req.IrrigationAreaName
+    }
+    if req.IrrigationType != "" {
+        report.IrrigationType = entity.IrrigationType(req.IrrigationType)
+    }
+    if req.DamageType != "" {
+        report.DamageType = entity.DamageType(req.DamageType)
+    }
+    if req.DamageLevel != "" {
+        report.DamageLevel = entity.DamageLevel(req.DamageLevel)
+    }
+    if req.EstimatedLength > 0 {
+        report.EstimatedLength = req.EstimatedLength
+    }
+    if req.EstimatedWidth > 0 {
+        report.EstimatedWidth = req.EstimatedWidth
+    }
+    if req.EstimatedVolume > 0 {
+        report.EstimatedVolume = req.EstimatedVolume
+    }
+    if req.AffectedRiceFieldArea > 0 {
+        report.AffectedRiceFieldArea = req.AffectedRiceFieldArea
+    }
+    if req.AffectedFarmersCount > 0 {
+        report.AffectedFarmersCount = req.AffectedFarmersCount
+    }
+    if req.UrgencyCategory != "" {
+        report.UrgencyCategory = entity.UrgencyCategory(req.UrgencyCategory)
+    }
+    if req.Notes != "" {
+        report.Notes = req.Notes
+    }
+    if req.HandlingRecommendation != "" {
+        report.HandlingRecommendation = req.HandlingRecommendation
+    }
+    if req.EstimatedBudget > 0 {
+        report.EstimatedBudget = req.EstimatedBudget
+    }
 
-	if req.EstimatedBudget == 0 {
-		report.EstimatedBudget = uc.calculateEstimatedBudget(report)
-	}
+    
+    if req.EstimatedBudget == 0 {
+        report.EstimatedBudget = uc.calculateEstimatedBudget(report)
+    }
 
-	if err := uc.waterRepo.Update(ctx, report); err != nil {
-		return nil, err
-	}
+    if err := uc.waterRepo.Update(ctx, report); err != nil {
+        return nil, err
+    }
 
-	uc.cache.Delete(ctx, "water:"+id)
-	uc.cache.Delete(ctx, "water:list")
-	uc.cache.Delete(ctx, "water:stats")
+    
+    uc.cache.Delete(ctx, "water:"+id)
+    uc.cache.Delete(ctx, "water:list")
+    uc.cache.Delete(ctx, "water:stats")
 
-	return report, nil
+    return report, nil
 }
 
 func (uc *WaterResourcesUseCase) UpdateStatus(ctx context.Context, id string, req *dto.UpdateWaterStatusRequest) error {
@@ -220,6 +230,7 @@ func (uc *WaterResourcesUseCase) DeleteReport(ctx context.Context, id string, us
 	if err != nil {
 		return err
 	}
+
 
 	// if report.CreatedBy != userID {
 	// 	return ErrUnauthorized
@@ -274,6 +285,7 @@ func (uc *WaterResourcesUseCase) calculateEstimatedBudget(report *entity.WaterRe
 	return totalBudget
 }
 
+// func (uc *WaterResourcesUseCase) sendUrgentNotification(ctx context.Context, report *entity.WaterResourcesReport) {
 func (uc *WaterResourcesUseCase) sendUrgentNotification(ctx context.Context, report *entity.WaterResourcesReport) {
 
 	fmt.Printf("URGENT: New water resource damage report at %s affecting %d farmers\n",

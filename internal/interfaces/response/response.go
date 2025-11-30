@@ -85,6 +85,10 @@ func ValidationError(c *fiber.Ctx, err error) error {
             validationErrors = append(validationErrors, formatValidationError(e))
         }
     }
+    // If it's not a validator.ValidationErrors but err is non-nil, include the message
+    if len(validationErrors) == 0 && err != nil {
+        validationErrors = append(validationErrors, err.Error())
+    }
     
     return c.Status(fiber.StatusBadRequest).JSON(Response{
         Success: false,
