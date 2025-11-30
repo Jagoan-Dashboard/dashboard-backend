@@ -150,7 +150,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
     healthcheck:
-      test: [ "CMD", "nc", "-z", "localhost", "8080" ]
+      test: [ "CMD", "sh", "-c", "nc -z localhost 8080 || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -174,6 +174,37 @@ services:
       minio:
         condition: service_healthy
     networks: [ backend, dokploy-network ]
-    # HAPUS SEMUA LABELS - Pakai Dokploy UI saja
+    labels:
+      # Aktifkan Traefik
+      - "traefik.enable=true"
+      
+      # Router untuk API Backend
+      - "traefik.http.routers.building-report-web.rule=Host(`backend-dashboard.jagoansatudata.com`)"
+      - "traefik.http.routers.building-report-web.entrypoints=websecure"
+      - "traefik.http.routers.building-report-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.building-report-web.service=building-report-svc"
+      
+      # Service untuk API Backend
+      - "traefik.http.services.building-report-svc.loadbalancer.server.port=80"
+      
+      # HTTP to HTTPS redirect untuk API
+      - "traefik.http.routers.building-report-http.rule=Host(`backend-dashboard.jagoansatudata.com`)"
+      - "traefik.http.routers.building-report-http.entrypoints=web"
+      - "traefik.http.routers.building-report-http.middlewares=redirect-to-https"
+      
+      # Router untuk MinIO S3
+      - "traefik.http.routers.minio-s3-web.rule=Host(`s3-backend-dashboard.jagoansatudata.com`)"
+      - "traefik.http.routers.minio-s3-web.entrypoints=websecure"
+      - "traefik.http.routers.minio-s3-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.minio-s3-web.service=building-report-svc"
+      
+      # HTTP to HTTPS redirect untuk MinIO
+      - "traefik.http.routers.minio-s3-http.rule=Host(`s3-backend-dashboard.jagoansatudata.com`)"
+      - "traefik.http.routers.minio-s3-http.entrypoints=web"
+      - "traefik.http.routers.minio-s3-http.middlewares=redirect-to-https"
+      
+      # Middleware untuk redirect
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
     security_opt:
       - no-new-privileges:true
