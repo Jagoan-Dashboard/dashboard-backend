@@ -9,8 +9,7 @@ ALTER COLUMN building_type DROP NOT NULL,
 ALTER COLUMN report_status DROP NOT NULL,
 ALTER COLUMN funding_source DROP NOT NULL,
 ALTER COLUMN created_at DROP NOT NULL,
-ALTER COLUMN updated_at DROP NOT NULL,
-ALTER COLUMN created_by DROP NOT NULL;
+ALTER COLUMN updated_at DROP NOT NULL;
 
 -- +goose Down
 ALTER TABLE reports 
@@ -23,5 +22,4 @@ ALTER COLUMN building_type SET NOT NULL,
 ALTER COLUMN report_status SET NOT NULL,
 ALTER COLUMN funding_source SET NOT NULL,
 ALTER COLUMN created_at SET NOT NULL,
-ALTER COLUMN updated_at SET NOT NULL,
-ALTER COLUMN created_by SET NOT NULL;
+ALTER COLUMN updated_at SET NOT NULL;

@@ -1,0 +1,20 @@
+-- +goose Up
+ALTER TABLE agriculture_reports 
+ALTER COLUMN extension_officer DROP NOT NULL,
+ALTER COLUMN visit_date DROP NOT NULL,
+ALTER COLUMN farmer_name DROP NOT NULL,
+ALTER COLUMN village DROP NOT NULL,
+ALTER COLUMN district DROP NOT NULL,
+ALTER COLUMN created_at DROP NOT NULL,
+ALTER COLUMN updated_at DROP NOT NULL;
+
+-- +goose Down
+ALTER TABLE agriculture_reports 
+ALTER COLUMN extension_officer SET NOT NULL,
+ALTER COLUMN visit_date SET NOT NULL,
+ALTER COLUMN farmer_name SET NOT NULL,
+ALTER COLUMN village SET NOT NULL,
+ALTER COLUMN district SET NOT NULL,
+ALTER COLUMN created_at SET NOT NULL,
+ALTER COLUMN updated_at SET NOT NULL,
+ALTER COLUMN created_by SET NOT NULL;
