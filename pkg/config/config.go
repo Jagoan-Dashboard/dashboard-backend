@@ -80,8 +80,8 @@
             },
             Minio: MinioConfig{
                 Endpoint:   getEnv("MINIO_ENDPOINT", "localhost:9000"),
-                AccessKey:  getEnv("MINIO_ACCESS_KEY", "minioadmin"),
-                SecretKey:  getEnv("MINIO_SECRET_KEY", "minioadmin"),
+                AccessKey:  getEnvWithoutDefault("MINIO_ACCESS_KEY"),
+                SecretKey:  getEnvWithoutDefault("MINIO_SECRET_KEY"),
                 UseSSL:     getEnvAsBool("MINIO_USE_SSL", false),
                 BucketName: getEnv("MINIO_BUCKET_NAME", "reports"),
                 PublicURL:  getEnv("MINIO_PUBLIC_URL", "http://localhost:9000"),
@@ -98,6 +98,10 @@
             return value
         }
         return defaultValue
+    }
+
+    func getEnvWithoutDefault(key string) string{
+        return os.Getenv(key)
     }
 
     func getEnvAsInt(key string, defaultValue int) int {
