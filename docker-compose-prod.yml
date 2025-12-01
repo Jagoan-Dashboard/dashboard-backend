@@ -53,8 +53,8 @@ services:
     restart: unless-stopped
     networks: [ backend, dokploy-network ]
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: MinI0_Str0ng_P@ss_2024
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     command: server /data --console-address ":9001"
     volumes:
       - minio_app_data:/data
