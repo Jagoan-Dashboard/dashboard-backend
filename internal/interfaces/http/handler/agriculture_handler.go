@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"building-report-backend/internal/application/dto"
@@ -12,11 +14,402 @@ import (
 	"building-report-backend/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/xuri/excelize/v2"
 )
 
 type AgricultureHandler struct {
     agricultureUseCase *usecase.AgricultureUseCase
 }
+
+func (h *AgricultureHandler) ExportAlatPertanian(c *fiber.Ctx) error {
+	// Parse query parameters
+	district := c.Query("district", "")
+	if district != "" {
+		district = utils.NormalizeLocation(district)
+	}
+
+	equipmentType := strings.ToUpper(c.Query("equipment_type", ""))
+	if equipmentType != "" && equipmentType != "PENGOLAH_GABAH" && equipmentType != "PERONTOK" && equipmentType != "MESIN" && equipmentType != "POMPA_AIR" {
+		return response.BadRequest(c, "Invalid equipment_type. Must be one of: PENGOLAH_GABAH, PERONTOK, MESIN, POMPA_AIR", nil)
+	}
+
+	// Parse date range
+	var startDate, endDate time.Time
+	var err error
+
+	startDateStr := c.Query("start_date", "")
+	if startDateStr != "" {
+		startDate, err = time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return response.BadRequest(c, "Invalid start_date format, use YYYY-MM-DD", err)
+		}
+	}
+
+	endDateStr := c.Query("end_date", "")
+	if endDateStr != "" {
+		endDate, err = time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			return response.BadRequest(c, "Invalid end_date format, use YYYY-MM-DD", err)
+		}
+	}
+
+	// Generate Excel file
+	excelData, err := h.exportAlatPertanianToExcel(c.Context(), district, equipmentType, startDate, endDate)
+	if err != nil {
+		return response.InternalError(c, "Failed to export data", err)
+	}
+
+	// Generate filename
+	filename := h.generateAlatPertanianFilename(district, equipmentType, startDate, endDate)
+
+	// Set response headers
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	c.Set("Content-Length", fmt.Sprintf("%d", len(excelData)))
+
+	return c.Send(excelData)
+}
+
+func (h *AgricultureHandler) exportAlatPertanianToExcel(ctx context.Context, district, equipmentType string, startDate, endDate time.Time) ([]byte, error) {
+	// Prepare filters
+	filters := make(map[string]interface{})
+
+	if district != "" {
+		filters["district"] = district
+	}
+
+	if !startDate.IsZero() {
+		filters["start_date"] = startDate.Format("2006-01-02")
+	}
+
+	if !endDate.IsZero() {
+		filters["end_date"] = endDate.Format("2006-01-02")
+	}
+
+	// Fetch all reports
+	reports,  err := h.agricultureUseCase.ListReports(ctx, 1, 10000, filters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch reports: %w", err)
+	}
+
+	// Aggregate data per district per year
+	type EquipmentKey struct {
+		District string
+		Year     int
+	}
+
+	type EquipmentCount struct {
+		Latitude           float64
+		Longitude          float64
+		PengolahGabah      int
+		PerontokMultiguna  int
+		MesinPertanian     int
+		PompaAir           int
+	}
+
+	equipmentMap := make(map[EquipmentKey]*EquipmentCount)
+
+	for _, report := range reports.Reports {
+		year := report.VisitDate.Year()
+		key := EquipmentKey{
+			District: report.District,
+			Year:     year,
+		}
+
+		if _, exists := equipmentMap[key]; !exists {
+			equipmentMap[key] = &EquipmentCount{
+				Latitude:  report.Latitude,
+				Longitude: report.Longitude,
+			}
+		}
+
+		// Map technology to equipment type
+		technologies := []string{
+			string(report.FoodTechnology),
+			string(report.HortiTechnology),
+			string(report.PlantationTechnology),
+		}
+
+		for _, tech := range technologies {
+			if tech == "" || tech == "TIDAK_ADA" {
+				continue
+			}
+
+			techUpper := strings.ToUpper(tech)
+
+			// Mapping real dari technology field
+			switch {
+			case strings.Contains(techUpper, "PENGOLAH_GABAH"), strings.Contains(techUpper, "PENGOLAH GABAH"):
+				equipmentMap[key].PengolahGabah++
+			case strings.Contains(techUpper, "PERONTOK"):
+				equipmentMap[key].PerontokMultiguna++
+			case strings.Contains(techUpper, "POMPA_AIR"), strings.Contains(techUpper, "POMPA AIR"), strings.Contains(techUpper, "POMPA"):
+				equipmentMap[key].PompaAir++
+			case strings.Contains(techUpper, "MESIN"), strings.Contains(techUpper, "ALAT"), 
+				 strings.Contains(techUpper, "TRAKTOR"), strings.Contains(techUpper, "CULTIVATOR"):
+				equipmentMap[key].MesinPertanian++
+			default:
+				// Technology lain yang tidak masuk kategori spesifik → masuk ke Mesin/Peralatan
+				if tech != "" {
+					equipmentMap[key].MesinPertanian++
+				}
+			}
+		}
+	}
+
+	// Transform to export data
+	type ExportData struct {
+		Kecamatan          string
+		Koordinat          string
+		Tahun              int
+		PengolahGabah      int
+		PerontokMultiguna  int
+		MesinPertanian     int
+		PompaAir           int
+	}
+
+	var exportData []ExportData
+
+	for key, count := range equipmentMap {
+		// Filter by equipment type if specified
+		if equipmentType != "" {
+			switch equipmentType {
+			case "PENGOLAH_GABAH":
+				if count.PengolahGabah == 0 {
+					continue
+				}
+			case "PERONTOK":
+				if count.PerontokMultiguna == 0 {
+					continue
+				}
+			case "MESIN":
+				if count.MesinPertanian == 0 {
+					continue
+				}
+			case "POMPA_AIR":
+				if count.PompaAir == 0 {
+					continue
+				}
+			}
+		}
+
+		exportData = append(exportData, ExportData{
+			Kecamatan:         key.District,
+			Koordinat:         fmt.Sprintf("%.6f, %.6f", count.Latitude, count.Longitude),
+			Tahun:             key.Year,
+			PengolahGabah:     count.PengolahGabah,
+			PerontokMultiguna: count.PerontokMultiguna,
+			MesinPertanian:    count.MesinPertanian,
+			PompaAir:          count.PompaAir,
+		})
+	}
+
+	// Sort by district and year
+	// Simple bubble sort for demonstration
+	for i := 0; i < len(exportData)-1; i++ {
+		for j := 0; j < len(exportData)-i-1; j++ {
+			if exportData[j].Kecamatan > exportData[j+1].Kecamatan ||
+				(exportData[j].Kecamatan == exportData[j+1].Kecamatan && exportData[j].Tahun > exportData[j+1].Tahun) {
+				exportData[j], exportData[j+1] = exportData[j+1], exportData[j]
+			}
+		}
+	}
+
+	// Create Excel file
+	f := excelize.NewFile()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Printf("Error closing file: %v\n", err)
+		}
+	}()
+
+	sheetName := "alat_pertanian"
+	index, err := f.NewSheet(sheetName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sheet: %w", err)
+	}
+
+	f.SetActiveSheet(index)
+	f.DeleteSheet("Sheet1")
+
+	// Write headers
+	headers := []string{
+		"Kecamatan",
+		"Koordinat Lokasi",
+		"Tahun",
+		"Jumlah Alat Pengolah Gabah",
+		"Jumlah Alat Perontok Multiguna",
+		"Jumlah Mesin/Peralatan Pertanian",
+		"Jumlah Pompa Air",
+	}
+
+	// Header style
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold:   true,
+			Size:   11,
+			Color:  "FFFFFF",
+			Family: "Calibri",
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"4472C4"},
+			Pattern: 1,
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+			WrapText:   true,
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+		},
+	})
+
+	for i, header := range headers {
+		cell := fmt.Sprintf("%s1", string(rune('A'+i)))
+		f.SetCellValue(sheetName, cell, header)
+		f.SetCellStyle(sheetName, cell, cell, headerStyle)
+	}
+
+	// Column widths
+	f.SetColWidth(sheetName, "A", "A", 20) // Kecamatan
+	f.SetColWidth(sheetName, "B", "B", 25) // Koordinat
+	f.SetColWidth(sheetName, "C", "C", 10) // Tahun
+	f.SetColWidth(sheetName, "D", "D", 25) // Pengolah Gabah
+	f.SetColWidth(sheetName, "E", "E", 28) // Perontok Multiguna
+	f.SetColWidth(sheetName, "F", "F", 30) // Mesin Pertanian
+	f.SetColWidth(sheetName, "G", "G", 18) // Pompa Air
+
+	f.SetRowHeight(sheetName, 1, 30)
+
+	// Data style
+	dataStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Size:   10,
+			Family: "Calibri",
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "D3D3D3", Style: 1},
+			{Type: "right", Color: "D3D3D3", Style: 1},
+			{Type: "top", Color: "D3D3D3", Style: 1},
+			{Type: "bottom", Color: "D3D3D3", Style: 1},
+		},
+	})
+
+	numberStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Size:   10,
+			Family: "Calibri",
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "right",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "D3D3D3", Style: 1},
+			{Type: "right", Color: "D3D3D3", Style: 1},
+			{Type: "top", Color: "D3D3D3", Style: 1},
+			{Type: "bottom", Color: "D3D3D3", Style: 1},
+		},
+		NumFmt: 1, // 0 format for integers
+	})
+
+	// Write data
+	for i, row := range exportData {
+		rowNum := i + 2
+
+		// Column A: Kecamatan
+		cellA := fmt.Sprintf("A%d", rowNum)
+		f.SetCellValue(sheetName, cellA, row.Kecamatan)
+		f.SetCellStyle(sheetName, cellA, cellA, dataStyle)
+
+		// Column B: Koordinat
+		cellB := fmt.Sprintf("B%d", rowNum)
+		f.SetCellValue(sheetName, cellB, row.Koordinat)
+		f.SetCellStyle(sheetName, cellB, cellB, dataStyle)
+
+		// Column C: Tahun
+		cellC := fmt.Sprintf("C%d", rowNum)
+		f.SetCellValue(sheetName, cellC, row.Tahun)
+		f.SetCellStyle(sheetName, cellC, cellC, dataStyle)
+
+		// Column D: Pengolah Gabah
+		cellD := fmt.Sprintf("D%d", rowNum)
+		f.SetCellValue(sheetName, cellD, row.PengolahGabah)
+		f.SetCellStyle(sheetName, cellD, cellD, numberStyle)
+
+		// Column E: Perontok Multiguna
+		cellE := fmt.Sprintf("E%d", rowNum)
+		f.SetCellValue(sheetName, cellE, row.PerontokMultiguna)
+		f.SetCellStyle(sheetName, cellE, cellE, numberStyle)
+
+		// Column F: Mesin Pertanian
+		cellF := fmt.Sprintf("F%d", rowNum)
+		f.SetCellValue(sheetName, cellF, row.MesinPertanian)
+		f.SetCellStyle(sheetName, cellF, cellF, numberStyle)
+
+		// Column G: Pompa Air
+		cellG := fmt.Sprintf("G%d", rowNum)
+		f.SetCellValue(sheetName, cellG, row.PompaAir)
+		f.SetCellStyle(sheetName, cellG, cellG, numberStyle)
+	}
+
+	// Freeze header row
+	f.SetPanes(sheetName, &excelize.Panes{
+		Freeze:      true,
+		Split:       false,
+		XSplit:      0,
+		YSplit:      1,
+		TopLeftCell: "A2",
+		ActivePane:  "bottomLeft",
+	})
+
+	// Add autofilter
+	if len(exportData) > 0 {
+		lastRow := len(exportData) + 1
+		f.AutoFilter(sheetName, fmt.Sprintf("A1:G%d", lastRow), nil)
+	}
+
+	// Save to buffer
+	buffer, err := f.WriteToBuffer()
+	if err != nil {
+		return nil, fmt.Errorf("failed to write to buffer: %w", err)
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func (h *AgricultureHandler) generateAlatPertanianFilename(district, equipmentType string, startDate, endDate time.Time) string {
+	timestamp := time.Now().Format("20060102_150405")
+
+	var parts []string
+	parts = append(parts, "export_alat_pertanian")
+
+	if equipmentType != "" {
+		parts = append(parts, strings.ToLower(strings.ReplaceAll(equipmentType, "_", "")))
+	}
+
+	if district != "" {
+		parts = append(parts, strings.ToLower(strings.ReplaceAll(district, " ", "_")))
+	}
+
+	if !startDate.IsZero() && !endDate.IsZero() {
+		parts = append(parts, fmt.Sprintf("%s_to_%s", startDate.Format("20060102"), endDate.Format("20060102")))
+	}
+
+	parts = append(parts, timestamp)
+
+	return strings.Join(parts, "_") + ".xlsx"
+}
+
 
 func NewAgricultureHandler(agricultureUseCase *usecase.AgricultureUseCase) *AgricultureHandler {
     return &AgricultureHandler{
@@ -447,4 +840,352 @@ func normalizeFilters(filters map[string]interface{}) {
         }
         
     }
+}
+
+func (h *AgricultureHandler) ExportKomoditas(c *fiber.Ctx) error {
+	// Parse query parameters
+	commodityName := c.Query("commodity_name", "")
+	if commodityName != "" {
+		commodityName = utils.NormalizeEnum(commodityName)
+	}
+
+	commodityType := strings.ToUpper(c.Query("commodity_type", ""))
+	if commodityType != "" && commodityType != "PANGAN" && commodityType != "HORTIKULTURA" && commodityType != "PERKEBUNAN" {
+		return response.BadRequest(c, "Invalid commodity_type. Must be one of: PANGAN, HORTIKULTURA, PERKEBUNAN", nil)
+	}
+
+	district := c.Query("district", "")
+	if district != "" {
+		district = utils.NormalizeLocation(district)
+	}
+
+	// Parse date range
+	var startDate, endDate time.Time
+	var err error
+
+	startDateStr := c.Query("start_date", "")
+	if startDateStr != "" {
+		startDate, err = time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return response.BadRequest(c, "Invalid start_date format, use YYYY-MM-DD", err)
+		}
+	}
+
+	endDateStr := c.Query("end_date", "")
+	if endDateStr != "" {
+		endDate, err = time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			return response.BadRequest(c, "Invalid end_date format, use YYYY-MM-DD", err)
+		}
+	}
+
+	// Generate Excel file
+	excelData, err := h.exportKomoditasToExcel(c.Context(), commodityName, commodityType, district, startDate, endDate)
+	if err != nil {
+		return response.InternalError(c, "Failed to export data", err)
+	}
+
+	// Generate filename
+	filename := h.generateExportFilename(commodityName, commodityType, district, startDate, endDate)
+
+	// Set response headers
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	c.Set("Content-Length", fmt.Sprintf("%d", len(excelData)))
+
+	return c.Send(excelData)
+}
+
+func (h *AgricultureHandler) exportKomoditasToExcel(ctx context.Context, commodityName, commodityType, district string, startDate, endDate time.Time) ([]byte, error) {
+	// Prepare filters
+	filters := make(map[string]interface{})
+
+	if district != "" {
+		filters["district"] = district
+	}
+
+	if !startDate.IsZero() {
+		filters["start_date"] = startDate.Format("2006-01-02")
+	}
+
+	if !endDate.IsZero() {
+		filters["end_date"] = endDate.Format("2006-01-02")
+	}
+
+	// Fetch all reports
+	reports,  err := h.agricultureUseCase.ListReports(ctx, 1, 10000, filters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch reports: %w", err)
+	}
+
+	// Transform to export data
+	type ExportData struct {
+		Komoditas      string
+		Kecamatan      string
+		Koordinat      string
+		Tahun          int
+		Produksi       float64
+		JumlahProduksi float64
+		LuasPanen      float64
+		Produktivitas  float64
+	}
+
+	var exportData []ExportData
+
+	for _, report := range reports.Reports {
+		// Process Food Crops
+		if report.FoodCommodity != "" {
+			if commodityType == "" || commodityType == "PANGAN" {
+				if commodityName == "" || string(report.FoodCommodity) == commodityName {
+					produksi := report.FoodLandArea * 5.0
+					exportData = append(exportData, ExportData{
+						Komoditas:      string(report.FoodCommodity),
+						Kecamatan:      report.District,
+						Koordinat:      fmt.Sprintf("%.6f, %.6f", report.Latitude, report.Longitude),
+						Tahun:          report.VisitDate.Year(),
+						Produksi:       produksi,
+						JumlahProduksi: produksi,
+						LuasPanen:      report.FoodLandArea,
+						Produktivitas:  5.0,
+					})
+				}
+			}
+		}
+
+		// Process Horticulture
+		if report.HortiCommodity != "" {
+			if commodityType == "" || commodityType == "HORTIKULTURA" {
+				commodityNameVal := string(report.HortiCommodity)
+				if report.HortiSubCommodity != "" {
+					commodityNameVal = report.HortiSubCommodity
+				}
+
+				if commodityName == "" || commodityNameVal == commodityName {
+					produksi := report.HortiLandArea * 10.0
+					exportData = append(exportData, ExportData{
+						Komoditas:      commodityNameVal,
+						Kecamatan:      report.District,
+						Koordinat:      fmt.Sprintf("%.6f, %.6f", report.Latitude, report.Longitude),
+						Tahun:          report.VisitDate.Year(),
+						Produksi:       produksi,
+						JumlahProduksi: produksi,
+						LuasPanen:      report.HortiLandArea,
+						Produktivitas:  10.0,
+					})
+				}
+			}
+		}
+
+		// Process Plantation
+		if report.PlantationCommodity != "" {
+			if commodityType == "" || commodityType == "PERKEBUNAN" {
+				if commodityName == "" || string(report.PlantationCommodity) == commodityName {
+					produksi := report.PlantationLandArea * 2.0
+					exportData = append(exportData, ExportData{
+						Komoditas:      string(report.PlantationCommodity),
+						Kecamatan:      report.District,
+						Koordinat:      fmt.Sprintf("%.6f, %.6f", report.Latitude, report.Longitude),
+						Tahun:          report.VisitDate.Year(),
+						Produksi:       produksi,
+						JumlahProduksi: produksi,
+						LuasPanen:      report.PlantationLandArea,
+						Produktivitas:  2.0,
+					})
+				}
+			}
+		}
+	}
+
+	// Create Excel file
+	f := excelize.NewFile()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Printf("Error closing file: %v\n", err)
+		}
+	}()
+
+	sheetName := "komoditas"
+	index, err := f.NewSheet(sheetName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sheet: %w", err)
+	}
+
+	f.SetActiveSheet(index)
+	f.DeleteSheet("Sheet1")
+
+	// Write headers
+	headers := []string{
+		"Komoditas",
+		"Kecamatan",
+		"Koordinat Lokasi",
+		"Tahun",
+		"Produksi (ton)",
+		"Jumlah Produksi (Ton/Ha)",
+		"Luas Panen (ha)",
+		"Produktivitas (Ton/Ha)",
+	}
+
+	// Header style
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold:   true,
+			Size:   11,
+			Color:  "FFFFFF",
+			Family: "Calibri",
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"4472C4"},
+			Pattern: 1,
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+			WrapText:   true,
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+		},
+	})
+
+	for i, header := range headers {
+		cell := fmt.Sprintf("%s1", string(rune('A'+i)))
+		f.SetCellValue(sheetName, cell, header)
+		f.SetCellStyle(sheetName, cell, cell, headerStyle)
+	}
+
+	// Column widths
+	f.SetColWidth(sheetName, "A", "A", 20)
+	f.SetColWidth(sheetName, "B", "B", 15)
+	f.SetColWidth(sheetName, "C", "C", 25)
+	f.SetColWidth(sheetName, "D", "D", 10)
+	f.SetColWidth(sheetName, "E", "E", 15)
+	f.SetColWidth(sheetName, "F", "F", 20)
+	f.SetColWidth(sheetName, "G", "G", 15)
+	f.SetColWidth(sheetName, "H", "H", 20)
+
+	f.SetRowHeight(sheetName, 1, 25)
+
+	// Data style
+	dataStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Size:   10,
+			Family: "Calibri",
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "D3D3D3", Style: 1},
+			{Type: "right", Color: "D3D3D3", Style: 1},
+			{Type: "top", Color: "D3D3D3", Style: 1},
+			{Type: "bottom", Color: "D3D3D3", Style: 1},
+		},
+	})
+
+	numberStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Size:   10,
+			Family: "Calibri",
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "right",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "D3D3D3", Style: 1},
+			{Type: "right", Color: "D3D3D3", Style: 1},
+			{Type: "top", Color: "D3D3D3", Style: 1},
+			{Type: "bottom", Color: "D3D3D3", Style: 1},
+		},
+		CustomNumFmt: stringPtr("#,##0.00"),
+	})
+
+	// Write data
+	for i, row := range exportData {
+		rowNum := i + 2
+
+		f.SetCellValue(sheetName, fmt.Sprintf("A%d", rowNum), row.Komoditas)
+		f.SetCellStyle(sheetName, fmt.Sprintf("A%d", rowNum), fmt.Sprintf("A%d", rowNum), dataStyle)
+
+		f.SetCellValue(sheetName, fmt.Sprintf("B%d", rowNum), row.Kecamatan)
+		f.SetCellStyle(sheetName, fmt.Sprintf("B%d", rowNum), fmt.Sprintf("B%d", rowNum), dataStyle)
+
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", rowNum), row.Koordinat)
+		f.SetCellStyle(sheetName, fmt.Sprintf("C%d", rowNum), fmt.Sprintf("C%d", rowNum), dataStyle)
+
+		f.SetCellValue(sheetName, fmt.Sprintf("D%d", rowNum), row.Tahun)
+		f.SetCellStyle(sheetName, fmt.Sprintf("D%d", rowNum), fmt.Sprintf("D%d", rowNum), dataStyle)
+
+		f.SetCellValue(sheetName, fmt.Sprintf("E%d", rowNum), row.Produksi)
+		f.SetCellStyle(sheetName, fmt.Sprintf("E%d", rowNum), fmt.Sprintf("E%d", rowNum), numberStyle)
+
+		f.SetCellValue(sheetName, fmt.Sprintf("F%d", rowNum), row.JumlahProduksi)
+		f.SetCellStyle(sheetName, fmt.Sprintf("F%d", rowNum), fmt.Sprintf("F%d", rowNum), numberStyle)
+
+		f.SetCellValue(sheetName, fmt.Sprintf("G%d", rowNum), row.LuasPanen)
+		f.SetCellStyle(sheetName, fmt.Sprintf("G%d", rowNum), fmt.Sprintf("G%d", rowNum), numberStyle)
+
+		f.SetCellValue(sheetName, fmt.Sprintf("H%d", rowNum), row.Produktivitas)
+		f.SetCellStyle(sheetName, fmt.Sprintf("H%d", rowNum), fmt.Sprintf("H%d", rowNum), numberStyle)
+	}
+
+	// Freeze header row
+	f.SetPanes(sheetName, &excelize.Panes{
+		Freeze:      true,
+		Split:       false,
+		XSplit:      0,
+		YSplit:      1,
+		TopLeftCell: "A2",
+		ActivePane:  "bottomLeft",
+	})
+
+	// Add autofilter
+	if len(exportData) > 0 {
+		lastRow := len(exportData) + 1
+		f.AutoFilter(sheetName, fmt.Sprintf("A1:H%d", lastRow), nil)
+	}
+
+	// Save to buffer
+	buffer, err := f.WriteToBuffer()
+	if err != nil {
+		return nil, fmt.Errorf("failed to write to buffer: %w", err)
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func (h *AgricultureHandler) generateExportFilename(commodityName, commodityType, district string, startDate, endDate time.Time) string {
+	timestamp := time.Now().Format("20060102_150405")
+	
+	var parts []string
+	parts = append(parts, "export_komoditas")
+	
+	if commodityType != "" {
+		parts = append(parts, strings.ToLower(commodityType))
+	}
+	
+	if commodityName != "" {
+		parts = append(parts, strings.ToLower(strings.ReplaceAll(commodityName, " ", "_")))
+	}
+	
+	if district != "" {
+		parts = append(parts, strings.ToLower(strings.ReplaceAll(district, " ", "_")))
+	}
+	
+	if !startDate.IsZero() && !endDate.IsZero() {
+		parts = append(parts, fmt.Sprintf("%s_to_%s", startDate.Format("20060102"), endDate.Format("20060102")))
+	}
+	
+	parts = append(parts, timestamp)
+	
+	return strings.Join(parts, "_") + ".xlsx"
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
