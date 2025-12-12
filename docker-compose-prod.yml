@@ -7,7 +7,6 @@ networks:
 volumes:
   pg_app_data: {}
   redis_app_data: {}
-  minio_app_data: {}
   nginx_logs: {}
 
 services:
@@ -48,40 +47,6 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  minio:
-    image: minio/minio:latest
-    restart: unless-stopped
-    networks: [ backend, dokploy-network ]
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_app_data:/data
-    healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-    security_opt:
-      - no-new-privileges:true
-  
-  minio-init:
-    image: minio/mc:latest
-    depends_on:
-      minio:
-        condition: service_healthy
-    networks: [ backend ]
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        mc alias set myminio http://minio:9000 minioadmin MinI0_Str0ng_P@ss_2024
-        mc mb myminio/jagoanbe --ignore-existing
-        mc anonymous set download myminio/jagoanbe
-        echo 'MinIO bucket created successfully'
-    restart: "no"
-
   migrations:
     build: .
     networks: [ backend ]
@@ -113,35 +78,43 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
-        condition: service_healthy
       migrations:
-        condition: service_completed_successfully
-      minio-init:
         condition: service_completed_successfully
     working_dir: /app
     expose:
       - "8080"
     environment:
+      # app general
       APP_ENV: ${APP_ENV}
       APP_PORT: ${APP_PORT}
       APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS}
+
+      # database
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_SSL_MODE: ${DB_SSL_MODE}
+
+      # redis
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       REDIS_DB: ${REDIS_DB}
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: MinI0_Str0ng_P@ss_2024
-      MINIO_USE_SSL: ${MINIO_USE_SSL}
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
-      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
+
+      # Garage S3
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://garage-s3-garagewithui-d5bc77-84-247-151-112.traefik.me}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-GK35159f1fdb7005e44d50de78}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-6178cca7a047a284f4da5c242b337b3db0dce0a4255c24f86b0d40395dcff25e}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-dashboard-ngawi}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://garage-s3-garagewithui-d5bc77-84-247-151-112.traefik.me}
+      MINIO_REGION: ${MINIO_REGION:-garage}
+      MINIO_FORCE_PATH_STYLE: ${MINIO_FORCE_PATH_STYLE:-true}
+      
+
+      # auth
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
     healthcheck:
@@ -152,13 +125,13 @@ services:
       start_period: 90s
     security_opt:
       - no-new-privileges:true
-  
+
   pgadmin:
     image: dpage/pgadmin4:7
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: "admin@example.com"
-      PGADMIN_DEFAULT_PASSWORD: "strong_pgadmin_password"
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-strong_pgadmin_password}
     networks:
       - backend
     ports:
@@ -175,8 +148,6 @@ services:
     depends_on:
       app:
         condition: service_healthy
-      minio:
-        condition: service_healthy
     networks: [ backend, dokploy-network ]
     labels:
       - "traefik.enable=true"
@@ -187,13 +158,6 @@ services:
       - "traefik.http.routers.building-report-http.rule=Host(`backend-dashboard.jagoansatudata.com`)"
       - "traefik.http.routers.building-report-http.entrypoints=web"
       - "traefik.http.routers.building-report-http.middlewares=redirect-to-https"
-      - "traefik.http.routers.minio-s3-web.rule=Host(`s3-backend-dashboard.jagoansatudata.com`)"
-      - "traefik.http.routers.minio-s3-web.entrypoints=websecure"
-      - "traefik.http.routers.minio-s3-web.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.minio-s3-web.service=building-report-svc"
-      - "traefik.http.routers.minio-s3-http.rule=Host(`s3-backend-dashboard.jagoansatudata.com`)"
-      - "traefik.http.routers.minio-s3-http.entrypoints=web"
-      - "traefik.http.routers.minio-s3-http.middlewares=redirect-to-https"
       - "traefik.http.services.building-report-svc.loadbalancer.server.port=80"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
