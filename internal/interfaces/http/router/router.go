@@ -71,6 +71,8 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
 
     agricultureRoutes := api.Group("/agriculture")
     
+    agricultureRoutes.Get("/export/komoditas", cont.AgricultureHandler.ExportKomoditas)
+    agricultureRoutes.Get("/export/alat-pertanian", cont.AgricultureHandler.ExportAlatPertanian)
     agricultureRoutes.Get("/executive/dashboard", cont.AgricultureHandler.GetExecutiveDashboard)
     agricultureRoutes.Get("/commodity/analysis", cont.AgricultureHandler.GetCommodityAnalysis)
     agricultureRoutes.Get("/food-crop/stats", cont.AgricultureHandler.GetFoodCropStats)
