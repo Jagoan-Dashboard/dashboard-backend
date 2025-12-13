@@ -118,13 +118,11 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
     healthcheck:
-      test: [ "CMD", "sh", "-c", "nc -z localhost 8080 || exit 1" ]
+      test: [ "CMD-SHELL", "nc -z localhost ${APP_PORT} || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 90s
-    security_opt:
-      - no-new-privileges:true
 
   pgadmin:
     image: dpage/pgadmin4:7
