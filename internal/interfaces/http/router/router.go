@@ -86,6 +86,22 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     agricultureRoutes.Put("/:id", cont.AgricultureHandler.UpdateReport)
     agricultureRoutes.Delete("/:id", cont.AgricultureHandler.DeleteReport)
 
+    agricultureRoutes.Post("/import/komoditas", cont.AgricultureHandler.ImportKomoditas)
+    agricultureRoutes.Post("/import/alat-pertanian", cont.AgricultureHandler.ImportAlatPertanian)
+
+    riceFieldRoutes := api.Group("/rice-fields")
+    riceFieldRoutes.Post("/", cont.RiceFieldHandler.Create)
+	riceFieldRoutes.Get("/", cont.RiceFieldHandler.GetAll)
+	riceFieldRoutes.Get("/:id", cont.RiceFieldHandler.GetByID)
+	riceFieldRoutes.Put("/:id", cont.RiceFieldHandler.Update)
+	riceFieldRoutes.Delete("/:id", cont.RiceFieldHandler.Delete)
+	
+	riceFieldRoutes.Get("/stats", cont.RiceFieldHandler.GetStatistics)
+	riceFieldRoutes.Get("/analysis", cont.RiceFieldHandler.GetAnalysis)
+	
+	riceFieldRoutes.Get("/export/lahan-engairan", cont.RiceFieldHandler.ExportRiceFields)
+	riceFieldRoutes.Post("/import/lahan-pengairan", cont.RiceFieldHandler.ImportRiceFields)
+
     executiveRoutes := api.Group("/executive")
     economyRoutes := executiveRoutes.Group("/economy")
     economyRoutes.Get("/overview", cont.ExecutiveHandler.GetEkonomiOverview)

@@ -21,6 +21,656 @@ type AgricultureHandler struct {
     agricultureUseCase *usecase.AgricultureUseCase
 }
 
+
+// ImportKomoditasResult represents the result of commodity import
+type ImportKomoditasResult struct {
+	TotalRows    int                `json:"total_rows"`
+	SuccessCount int                `json:"success_count"`
+	FailedCount  int                `json:"failed_count"`
+	SkippedCount int                `json:"skipped_count"`
+	FailedRows   []ImportFailedRow  `json:"failed_rows,omitempty"`
+	SkippedRows  []ImportSkippedRow `json:"skipped_rows,omitempty"`
+}
+
+// ImportFailedRow represents a failed import row
+
+
+// ImportKomoditas handles the import of commodity data from Excel
+func (h *AgricultureHandler) ImportKomoditas(c *fiber.Ctx) error {
+	// Get uploaded file
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return response.BadRequest(c, "No file uploaded", err)
+	}
+
+	// Validate file extension
+	if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".xlsx") {
+		return response.BadRequest(c, "Only .xlsx files are allowed", nil)
+	}
+
+	// Validate file size (max 10MB)
+	if fileHeader.Size > 10*1024*1024 {
+		return response.BadRequest(c, "File size too large (max 10MB)", nil)
+	}
+
+	// Open uploaded file
+	file, err := fileHeader.Open()
+	if err != nil {
+		return response.InternalError(c, "Failed to open uploaded file", err)
+	}
+	defer file.Close()
+
+	// Read Excel file
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return response.BadRequest(c, "Failed to read Excel file. Make sure it's a valid .xlsx file", err)
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Printf("Error closing Excel file: %v\n", err)
+		}
+	}()
+
+	// Process import
+	result, err := h.processKomoditasImport(c.Context(), f)
+	if err != nil {
+		return response.InternalError(c, "Failed to process import", err)
+	}
+
+	// Return result
+	message := fmt.Sprintf("Import completed. Success: %d, Failed: %d, Skipped: %d",
+		result.SuccessCount, result.FailedCount, result.SkippedCount)
+
+	return response.Success(c, message, result)
+}
+
+func (h *AgricultureHandler) processKomoditasImport(ctx context.Context, f *excelize.File) (*ImportKomoditasResult, error) {
+	result := &ImportKomoditasResult{
+		FailedRows:  []ImportFailedRow{},
+		SkippedRows: []ImportSkippedRow{},
+	}
+
+	// Get sheet name (should be "komoditas")
+	sheetName := "komoditas"
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rows from sheet 'komoditas': %w", err)
+	}
+
+	if len(rows) < 2 {
+		return nil, fmt.Errorf("file is empty or has no data rows")
+	}
+
+	// Validate headers
+	expectedHeaders := []string{
+		"Komoditas",
+		"Kecamatan",
+		"Koordinat Lokasi",
+		"Tahun",
+		"Produksi (ton)",
+		"Jumlah Produksi (Ton/Ha)",
+		"Luas Panen (ha)",
+		"Produktivitas (Ton/Ha)",
+	}
+
+	headers := rows[0]
+	if len(headers) < len(expectedHeaders) {
+		return nil, fmt.Errorf("invalid template: missing columns")
+	}
+
+	for i, expected := range expectedHeaders {
+		if i >= len(headers) || strings.TrimSpace(headers[i]) != expected {
+			return nil, fmt.Errorf("invalid template: column %d should be '%s' but got '%s'", i+1, expected, headers[i])
+		}
+	}
+
+	// Process data rows (skip header)
+	result.TotalRows = len(rows) - 1
+
+	for rowIdx := 1; rowIdx < len(rows); rowIdx++ {
+		row := rows[rowIdx]
+		rowNumber := rowIdx + 1
+
+		// Skip empty rows
+		if h.isEmptyRow(row) {
+			result.SkippedRows = append(result.SkippedRows, ImportSkippedRow{
+				RowNumber: rowNumber,
+				Reason:    "Empty row",
+			})
+			result.SkippedCount++
+			continue
+		}
+
+		// Parse row data
+		importData, errs := h.parseKomoditasRow(row, rowNumber)
+		if len(errs) > 0 {
+			result.FailedRows = append(result.FailedRows, ImportFailedRow{
+				RowNumber: rowNumber,
+				Data:      h.rowToString(row),
+				Errors:    errs,
+			})
+			result.FailedCount++
+			continue
+		}
+
+		// Create agriculture report
+		req := h.komoditasImportToCreateRequest(importData)
+
+		// Normalize data
+		req.Normalize()
+
+		// Validate
+		if err := req.Validate(); err != nil {
+			result.FailedRows = append(result.FailedRows, ImportFailedRow{
+				RowNumber: rowNumber,
+				Data:      h.rowToString(row),
+				Errors:    []string{fmt.Sprintf("Validation error: %v", err)},
+			})
+			result.FailedCount++
+			continue
+		}
+
+		// Create report (without photos for import)
+		_, err := h.agricultureUseCase.CreateReport(ctx, req, nil)
+		if err != nil {
+			result.FailedRows = append(result.FailedRows, ImportFailedRow{
+				RowNumber: rowNumber,
+				Data:      h.rowToString(row),
+				Errors:    []string{fmt.Sprintf("Failed to create report: %v", err)},
+			})
+			result.FailedCount++
+			continue
+		}
+
+		result.SuccessCount++
+	}
+
+	return result, nil
+}
+
+type KomoditasImportData struct {
+	Komoditas     string
+	Kecamatan     string
+	Latitude      float64
+	Longitude     float64
+	Tahun         int
+	LuasPanen     float64
+	CommodityType string // PANGAN, HORTIKULTURA, PERKEBUNAN
+}
+
+func (h *AgricultureHandler) parseKomoditasRow(row []string, rowNumber int) (*KomoditasImportData, []string) {
+	var errs []string
+	data := &KomoditasImportData{}
+
+	// Column A: Komoditas
+	if len(row) > 0 {
+		data.Komoditas = strings.TrimSpace(row[0])
+		if data.Komoditas == "" {
+			errs = append(errs, "Komoditas is required")
+		}
+	} else {
+		errs = append(errs, "Komoditas is required")
+	}
+
+	// Column B: Kecamatan
+	if len(row) > 1 {
+		data.Kecamatan = strings.TrimSpace(row[1])
+		if data.Kecamatan == "" {
+			errs = append(errs, "Kecamatan is required")
+		}
+	} else {
+		errs = append(errs, "Kecamatan is required")
+	}
+
+	// Column C: Koordinat Lokasi (format: "lat, lng")
+	if len(row) > 2 {
+		koordinat := strings.TrimSpace(row[2])
+		parts := strings.Split(koordinat, ",")
+		if len(parts) == 2 {
+			lat, err1 := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+			lng, err2 := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+			if err1 != nil || err2 != nil {
+				errs = append(errs, "Invalid coordinate format. Use: latitude, longitude")
+			} else {
+				data.Latitude = lat
+				data.Longitude = lng
+			}
+		} else {
+			errs = append(errs, "Invalid coordinate format. Use: latitude, longitude")
+		}
+	}
+
+	// Column D: Tahun
+	if len(row) > 3 {
+		tahunStr := strings.TrimSpace(row[3])
+		if tahunStr != "" {
+			tahun, err := strconv.Atoi(tahunStr)
+			if err != nil {
+				errs = append(errs, "Invalid year format")
+			} else {
+				data.Tahun = tahun
+			}
+		}
+	}
+
+	// Column G: Luas Panen (ha)
+	if len(row) > 6 {
+		luasPanenStr := strings.TrimSpace(row[6])
+		luasPanenStr = strings.ReplaceAll(luasPanenStr, ",", "")
+		if luasPanenStr != "" {
+			luasPanen, err := strconv.ParseFloat(luasPanenStr, 64)
+			if err != nil {
+				errs = append(errs, "Invalid luas panen format")
+			} else {
+				data.LuasPanen = luasPanen
+			}
+		}
+	}
+
+	// Determine commodity type based on commodity name
+	if data.Komoditas != "" {
+		data.CommodityType = h.determineCommodityType(data.Komoditas)
+	}
+
+	return data, errs
+}
+
+func (h *AgricultureHandler) determineCommodityType(komoditas string) string {
+	komoditasUpper := strings.ToUpper(komoditas)
+
+	// Food crops
+	foodCrops := []string{
+		"PADI_SAWAH", "PADI_LADANG", "JAGUNG", "KEDELAI", "KACANG_TANAH",
+		"UBI_KAYU", "UBI_JALAR", "PADI", "KACANG",
+	}
+	for _, crop := range foodCrops {
+		if strings.Contains(komoditasUpper, crop) {
+			return "PANGAN"
+		}
+	}
+
+	// Plantation crops
+	plantationCrops := []string{
+		"KOPI", "KAKAO", "KELAPA", "SAWIT", "CENGKEH", "TEBU", "KARET",
+		"TEMBAKAU", "VANILI", "LADA", "PALA",
+	}
+	for _, crop := range plantationCrops {
+		if strings.Contains(komoditasUpper, crop) {
+			return "PERKEBUNAN"
+		}
+	}
+
+	// Default to horticulture
+	return "HORTIKULTURA"
+}
+
+func (h *AgricultureHandler) komoditasImportToCreateRequest(data *KomoditasImportData) *dto.CreateAgricultureRequest {
+	req := &dto.CreateAgricultureRequest{
+		ExtensionOfficer: "Import System",
+		FarmerName:       "Import - " + data.Komoditas,
+		Village:          data.Kecamatan,
+		District:         data.Kecamatan,
+		Latitude:         data.Latitude,
+		Longitude:        data.Longitude,
+		VisitDate:        time.Date(data.Tahun, 1, 1, 0, 0, 0, 0, time.UTC),
+		WeatherCondition: "CERAH",
+		WeatherImpact:    "TIDAK_ADA",
+		MainConstraint:   "LAINNYA",
+		FarmerHope:       "LAINNYA",
+		TrainingNeeded:   "LAINNYA",
+		UrgentNeeds:      "LAINNYA",
+		WaterAccess:      "MUDAH_TERSEDIA",
+	}
+
+	// Set commodity based on type
+	switch data.CommodityType {
+	case "PANGAN":
+		req.FoodCommodity = data.Komoditas
+		req.FoodLandArea = data.LuasPanen
+		req.FoodLandStatus = "MILIK_SENDIRI"
+		req.FoodGrowthPhase = "PANEN_PENUH"
+		req.FoodTechnology = "TIDAK_ADA"
+
+	case "PERKEBUNAN":
+		req.PlantationCommodity = data.Komoditas
+		req.PlantationLandArea = data.LuasPanen
+		req.PlantationLandStatus = "MILIK_SENDIRI"
+		req.PlantationGrowthPhase = "TANAMAN_MENGHASILKAN_TM"
+		req.PlantationTechnology = "TIDAK_ADA"
+
+	case "HORTIKULTURA":
+		req.HortiCommodity = "SAYURAN"
+		req.HortiSubCommodity = data.Komoditas
+		req.HortiLandArea = data.LuasPanen
+		req.HortiLandStatus = "MILIK_SENDIRI"
+		req.HortiGrowthPhase = "PANEN"
+		req.HortiTechnology = "TIDAK_ADA"
+	}
+
+	return req
+}
+
+// ImportAlatPertanian handles the import of agricultural equipment data from Excel
+func (h *AgricultureHandler) ImportAlatPertanian(c *fiber.Ctx) error {
+	// Get uploaded file
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return response.BadRequest(c, "No file uploaded", err)
+	}
+
+	// Validate file extension
+	if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".xlsx") {
+		return response.BadRequest(c, "Only .xlsx files are allowed", nil)
+	}
+
+	// Validate file size (max 10MB)
+	if fileHeader.Size > 10*1024*1024 {
+		return response.BadRequest(c, "File size too large (max 10MB)", nil)
+	}
+
+	// Open uploaded file
+	file, err := fileHeader.Open()
+	if err != nil {
+		return response.InternalError(c, "Failed to open uploaded file", err)
+	}
+	defer file.Close()
+
+	// Read Excel file
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return response.BadRequest(c, "Failed to read Excel file. Make sure it's a valid .xlsx file", err)
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Printf("Error closing Excel file: %v\n", err)
+		}
+	}()
+
+	// Process import
+	result, err := h.processAlatPertanianImport(c.Context(), f)
+	if err != nil {
+		return response.InternalError(c, "Failed to process import", err)
+	}
+
+	// Return result
+	message := fmt.Sprintf("Import completed. Success: %d, Failed: %d, Skipped: %d",
+		result.SuccessCount, result.FailedCount, result.SkippedCount)
+
+	return response.Success(c, message, result)
+}
+
+func (h *AgricultureHandler) processAlatPertanianImport(ctx context.Context, f *excelize.File) (*ImportKomoditasResult, error) {
+	result := &ImportKomoditasResult{
+		FailedRows:  []ImportFailedRow{},
+		SkippedRows: []ImportSkippedRow{},
+	}
+
+	// Get sheet name (should be "alat_pertanian")
+	sheetName := "alat_pertanian"
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rows from sheet 'alat_pertanian': %w", err)
+	}
+
+	if len(rows) < 2 {
+		return nil, fmt.Errorf("file is empty or has no data rows")
+	}
+
+	// Validate headers
+	expectedHeaders := []string{
+		"Kecamatan",
+		"Koordinat Lokasi",
+		"Tahun",
+		"Jumlah Alat Pengolah Gabah",
+		"Jumlah Alat Perontok Multiguna",
+		"Jumlah Mesin/Peralatan Pertanian",
+		"Jumlah Pompa Air",
+	}
+
+	headers := rows[0]
+	if len(headers) < len(expectedHeaders) {
+		return nil, fmt.Errorf("invalid template: missing columns")
+	}
+
+	for i, expected := range expectedHeaders {
+		if i >= len(headers) || strings.TrimSpace(headers[i]) != expected {
+			return nil, fmt.Errorf("invalid template: column %d should be '%s' but got '%s'", i+1, expected, headers[i])
+		}
+	}
+
+	// Process data rows (skip header)
+	result.TotalRows = len(rows) - 1
+
+	for rowIdx := 1; rowIdx < len(rows); rowIdx++ {
+		row := rows[rowIdx]
+		rowNumber := rowIdx + 1
+
+		// Skip empty rows
+		if h.isEmptyRow(row) {
+			result.SkippedRows = append(result.SkippedRows, ImportSkippedRow{
+				RowNumber: rowNumber,
+				Reason:    "Empty row",
+			})
+			result.SkippedCount++
+			continue
+		}
+
+		// Parse row data
+		importData, errs := h.parseAlatPertanianRow(row, rowNumber)
+		if len(errs) > 0 {
+			result.FailedRows = append(result.FailedRows, ImportFailedRow{
+				RowNumber: rowNumber,
+				Data:      h.rowToString(row),
+				Errors:    errs,
+			})
+			result.FailedCount++
+			continue
+		}
+
+		// Create multiple reports based on equipment counts
+		createdCount := 0
+		var lastErr error
+
+		// Create reports for each equipment type
+		equipmentTypes := []struct {
+			Count      int
+			Technology string
+			Commodity  string
+		}{
+			{importData.PengolahGabah, "PENGOLAH_GABAH", "PADI_SAWAH"},
+			{importData.PerontokMultiguna, "PERONTOK_MULTIGUNA", "PADI_SAWAH"},
+			{importData.MesinPertanian, "MESIN_PERTANIAN", "JAGUNG"},
+			{importData.PompaAir, "POMPA_AIR", "PADI_SAWAH"},
+		}
+
+		for _, eq := range equipmentTypes {
+			if eq.Count > 0 {
+				req := h.alatPertanianImportToCreateRequest(importData, eq.Technology, eq.Commodity)
+				req.Normalize()
+
+				if err := req.Validate(); err != nil {
+					lastErr = err
+					continue
+				}
+
+				_, err := h.agricultureUseCase.CreateReport(ctx, req, nil)
+				if err != nil {
+					lastErr = err
+					continue
+				}
+
+				createdCount++
+			}
+		}
+
+		if createdCount == 0 {
+			result.FailedRows = append(result.FailedRows, ImportFailedRow{
+				RowNumber: rowNumber,
+				Data:      h.rowToString(row),
+				Errors:    []string{fmt.Sprintf("Failed to create any report: %v", lastErr)},
+			})
+			result.FailedCount++
+		} else {
+			result.SuccessCount++
+		}
+	}
+
+	return result, nil
+}
+
+type AlatPertanianImportData struct {
+	Kecamatan         string
+	Latitude          float64
+	Longitude         float64
+	Tahun             int
+	PengolahGabah     int
+	PerontokMultiguna int
+	MesinPertanian    int
+	PompaAir          int
+}
+
+func (h *AgricultureHandler) parseAlatPertanianRow(row []string, rowNumber int) (*AlatPertanianImportData, []string) {
+	var errs []string
+	data := &AlatPertanianImportData{}
+
+	// Column A: Kecamatan
+	if len(row) > 0 {
+		data.Kecamatan = strings.TrimSpace(row[0])
+		if data.Kecamatan == "" {
+			errs = append(errs, "Kecamatan is required")
+		}
+	} else {
+		errs = append(errs, "Kecamatan is required")
+	}
+
+	// Column B: Koordinat Lokasi
+	if len(row) > 1 {
+		koordinat := strings.TrimSpace(row[1])
+		parts := strings.Split(koordinat, ",")
+		if len(parts) == 2 {
+			lat, err1 := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+			lng, err2 := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+			if err1 != nil || err2 != nil {
+				errs = append(errs, "Invalid coordinate format. Use: latitude, longitude")
+			} else {
+				data.Latitude = lat
+				data.Longitude = lng
+			}
+		} else {
+			errs = append(errs, "Invalid coordinate format. Use: latitude, longitude")
+		}
+	}
+
+	// Column C: Tahun
+	if len(row) > 2 {
+		tahunStr := strings.TrimSpace(row[2])
+		if tahunStr != "" {
+			tahun, err := strconv.Atoi(tahunStr)
+			if err != nil {
+				errs = append(errs, "Invalid year format")
+			} else {
+				data.Tahun = tahun
+			}
+		}
+	}
+
+	// Column D: Pengolah Gabah
+	if len(row) > 3 {
+		countStr := strings.TrimSpace(row[3])
+		if countStr != "" {
+			count, err := strconv.Atoi(countStr)
+			if err != nil {
+				errs = append(errs, "Invalid pengolah gabah count")
+			} else {
+				data.PengolahGabah = count
+			}
+		}
+	}
+
+	// Column E: Perontok Multiguna
+	if len(row) > 4 {
+		countStr := strings.TrimSpace(row[4])
+		if countStr != "" {
+			count, err := strconv.Atoi(countStr)
+			if err != nil {
+				errs = append(errs, "Invalid perontok multiguna count")
+			} else {
+				data.PerontokMultiguna = count
+			}
+		}
+	}
+
+	// Column F: Mesin Pertanian
+	if len(row) > 5 {
+		countStr := strings.TrimSpace(row[5])
+		if countStr != "" {
+			count, err := strconv.Atoi(countStr)
+			if err != nil {
+				errs = append(errs, "Invalid mesin pertanian count")
+			} else {
+				data.MesinPertanian = count
+			}
+		}
+	}
+
+	// Column G: Pompa Air
+	if len(row) > 6 {
+		countStr := strings.TrimSpace(row[6])
+		if countStr != "" {
+			count, err := strconv.Atoi(countStr)
+			if err != nil {
+				errs = append(errs, "Invalid pompa air count")
+			} else {
+				data.PompaAir = count
+			}
+		}
+	}
+
+	return data, errs
+}
+
+func (h *AgricultureHandler) alatPertanianImportToCreateRequest(data *AlatPertanianImportData, technology, commodity string) *dto.CreateAgricultureRequest {
+	req := &dto.CreateAgricultureRequest{
+		ExtensionOfficer: "Import System",
+		FarmerName:       fmt.Sprintf("Import - %s Equipment", technology),
+		Village:          data.Kecamatan,
+		District:         data.Kecamatan,
+		Latitude:         data.Latitude,
+		Longitude:        data.Longitude,
+		VisitDate:        time.Date(data.Tahun, 1, 1, 0, 0, 0, 0, time.UTC),
+		WeatherCondition: "CERAH",
+		WeatherImpact:    "TIDAK_ADA",
+		MainConstraint:   "LAINNYA",
+		FarmerHope:       "LAINNYA",
+		TrainingNeeded:   "LAINNYA",
+		UrgentNeeds:      "LAINNYA",
+		WaterAccess:      "MUDAH_TERSEDIA",
+	}
+
+	// Set food commodity with technology
+	req.FoodCommodity = commodity
+	req.FoodLandArea = 1.0
+	req.FoodLandStatus = "MILIK_SENDIRI"
+	req.FoodGrowthPhase = "PANEN_PENUH"
+	req.FoodTechnology = technology
+
+	return req
+}
+
+// Helper functions
+func (h *AgricultureHandler) isEmptyRow(row []string) bool {
+	for _, cell := range row {
+		if strings.TrimSpace(cell) != "" {
+			return false
+		}
+	}
+	return true
+}
+
+func (h *AgricultureHandler) rowToString(row []string) string {
+	return strings.Join(row, " | ")
+}
+
 func (h *AgricultureHandler) ExportAlatPertanian(c *fiber.Ctx) error {
 	// Parse query parameters
 	district := c.Query("district", "")
