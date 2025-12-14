@@ -31,8 +31,8 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "5432:5432"
-      
+      - "5440:5432"
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped
