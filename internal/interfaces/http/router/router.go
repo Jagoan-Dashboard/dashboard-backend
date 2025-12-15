@@ -70,11 +70,11 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     binaMargaRoutes.Get("/overview", cont.BinaMargaHandler.GetBinaMargaOverview)
 
     agricultureRoutes := api.Group("/agriculture")
-    agricultureRoutes.Post("/import/komoditas", cont.AgricultureHandler.ImportKomoditas)
-    agricultureRoutes.Post("/import/alat-pertanian", cont.AgricultureHandler.ImportAlatPertanian)
+    agricultureRoutes.Post("/komoditas/import", cont.AgricultureHandler.ImportKomoditas)
+    agricultureRoutes.Post("/alat-pertanian/import", cont.AgricultureHandler.ImportAlatPertanian)
 
-    agricultureRoutes.Get("/export/komoditas", cont.AgricultureHandler.ExportKomoditas)
-    agricultureRoutes.Get("/export/alat-pertanian", cont.AgricultureHandler.ExportAlatPertanian)
+    agricultureRoutes.Get("/komoditas/export", cont.AgricultureHandler.ExportKomoditas)
+    agricultureRoutes.Get("/alat-pertanian/export", cont.AgricultureHandler.ExportAlatPertanian)
     agricultureRoutes.Get("/executive/dashboard", cont.AgricultureHandler.GetExecutiveDashboard)
     agricultureRoutes.Get("/commodity/analysis", cont.AgricultureHandler.GetCommodityAnalysis)
     agricultureRoutes.Get("/food-crop/stats", cont.AgricultureHandler.GetFoodCropStats)
@@ -90,8 +90,8 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     agricultureRoutes.Delete("/:id", cont.AgricultureHandler.DeleteReport)
 
     riceFieldRoutes := api.Group("/rice-fields")
-	riceFieldRoutes.Post("/import/lahan-pengairan", cont.RiceFieldHandler.ImportRiceFields)
-    riceFieldRoutes.Get("/export/lahan-engairan", cont.RiceFieldHandler.ExportRiceFields)
+	riceFieldRoutes.Post("/lahan-pengairan/import", cont.RiceFieldHandler.ImportRiceFields)
+    riceFieldRoutes.Get("/lahan-engairan/export", cont.RiceFieldHandler.ExportRiceFields)
     riceFieldRoutes.Post("/", cont.RiceFieldHandler.Create)
 	riceFieldRoutes.Get("/", cont.RiceFieldHandler.GetAll)
 	riceFieldRoutes.Get("/:id", cont.RiceFieldHandler.GetByID)
