@@ -95,7 +95,7 @@ services:
       APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS}
 
       # database
-      DB_HOST: postgres
+      DB_HOST: ${DB_HOST}
       DB_PORT: "5432"
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
