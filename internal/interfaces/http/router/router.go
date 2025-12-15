@@ -70,9 +70,11 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     binaMargaRoutes.Get("/overview", cont.BinaMargaHandler.GetBinaMargaOverview)
 
     agricultureRoutes := api.Group("/agriculture")
-    
-    agricultureRoutes.Get("/export/komoditas", cont.AgricultureHandler.ExportKomoditas)
-    agricultureRoutes.Get("/export/alat-pertanian", cont.AgricultureHandler.ExportAlatPertanian)
+    agricultureRoutes.Post("/komoditas/import", cont.AgricultureHandler.ImportKomoditas)
+    agricultureRoutes.Post("/alat-pertanian/import", cont.AgricultureHandler.ImportAlatPertanian)
+
+    agricultureRoutes.Get("/komoditas/export", cont.AgricultureHandler.ExportKomoditas)
+    agricultureRoutes.Get("/alat-pertanian/export", cont.AgricultureHandler.ExportAlatPertanian)
     agricultureRoutes.Get("/executive/dashboard", cont.AgricultureHandler.GetExecutiveDashboard)
     agricultureRoutes.Get("/commodity/analysis", cont.AgricultureHandler.GetCommodityAnalysis)
     agricultureRoutes.Get("/food-crop/stats", cont.AgricultureHandler.GetFoodCropStats)
@@ -82,9 +84,22 @@ func SetupRoutes(app *fiber.App, cont *container.Container) {
     agricultureRoutes.Get("/land-irrigation/stats", cont.AgricultureHandler.GetLandAndIrrigationStats)
 
     agricultureRoutes.Get("/", cont.AgricultureHandler.ListReports)
+    
     agricultureRoutes.Get("/:id", cont.AgricultureHandler.GetReport)
     agricultureRoutes.Put("/:id", cont.AgricultureHandler.UpdateReport)
     agricultureRoutes.Delete("/:id", cont.AgricultureHandler.DeleteReport)
+
+    riceFieldRoutes := api.Group("/rice-fields")
+	riceFieldRoutes.Post("/lahan-pengairan/import", cont.RiceFieldHandler.ImportRiceFields)
+    riceFieldRoutes.Get("/lahan-engairan/export", cont.RiceFieldHandler.ExportRiceFields)
+    riceFieldRoutes.Post("/", cont.RiceFieldHandler.Create)
+	riceFieldRoutes.Get("/", cont.RiceFieldHandler.GetAll)
+	riceFieldRoutes.Get("/:id", cont.RiceFieldHandler.GetByID)
+	riceFieldRoutes.Put("/:id", cont.RiceFieldHandler.Update)
+	riceFieldRoutes.Delete("/:id", cont.RiceFieldHandler.Delete)
+	
+	riceFieldRoutes.Get("/stats", cont.RiceFieldHandler.GetStatistics)
+	riceFieldRoutes.Get("/analysis", cont.RiceFieldHandler.GetAnalysis)
 
     executiveRoutes := api.Group("/executive")
     economyRoutes := executiveRoutes.Group("/economy")

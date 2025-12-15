@@ -1,4 +1,3 @@
-
 package container
 
 import (
@@ -9,8 +8,8 @@ import (
 	"building-report-backend/internal/infrastructure/storage"
 	"building-report-backend/internal/interfaces/http/handler"
 	"building-report-backend/pkg/config"
-    "github.com/redis/go-redis/v9"
-    redisPkg "building-report-backend/internal/infrastructure/persistence/redis"
+	"github.com/redis/go-redis/v9"
+	redisPkg "building-report-backend/internal/infrastructure/persistence/redis"
 	
 	"github.com/minio/minio-go/v7"
 	
@@ -18,121 +17,134 @@ import (
 )
 
 type Container struct {
-    Config         *config.Config
-    DB             *gorm.DB
-    Redis          *redis.Client
-    MinioClient    *minio.Client
-     
-    UserRepo               repository.UserRepository
-    ReportRepo             repository.ReportRepository
-    CacheRepo              repository.CacheRepository
-    SpatialPlanningRepo    repository.SpatialPlanningRepository
-    WaterResourcesRepo     repository.WaterResourcesRepository
-    BinaMargaRepo          repository.BinaMargaRepository
-    AgricultureRepo        repository.AgricultureRepository
-    ExecutiveRepo          repository.ExecutiveRepository
+	Config         *config.Config
+	DB             *gorm.DB
+	Redis          *redis.Client
+	MinioClient    *minio.Client
+	 
+	UserRepo               repository.UserRepository
+	ReportRepo             repository.ReportRepository
+	CacheRepo              repository.CacheRepository
+	SpatialPlanningRepo    repository.SpatialPlanningRepository
+	WaterResourcesRepo     repository.WaterResourcesRepository
+	BinaMargaRepo          repository.BinaMargaRepository
+	AgricultureRepo        repository.AgricultureRepository
+	ExecutiveRepo          repository.ExecutiveRepository
+	RiceFieldRepo          repository.RiceFieldRepository  // NEW
 
-    StorageService         storage.StorageService
-    AuthService            auth.JWTService
-     
-    AuthUseCase            *usecase.AuthUseCase
-    ReportUseCase          *usecase.ReportUseCase
-    SpatialPlanningUseCase *usecase.SpatialPlanningUseCase
-    WaterResourcesUseCase  *usecase.WaterResourcesUseCase
-    BinaMargaUseCase       *usecase.BinaMargaUseCase
-    AgricultureUseCase       *usecase.AgricultureUseCase
-    ExecutiveUseCase      *usecase.ExecutiveUseCase
-     
-    AuthHandler            *handler.AuthHandler
-    ReportHandler          *handler.ReportHandler
-    SpatialPlanningHandler *handler.SpatialPlanningHandler
-    WaterResourcesHandler  *handler.WaterResourcesHandler
-    BinaMargaHandler       *handler.BinaMargaHandler
-    AgricultureHandler       *handler.AgricultureHandler
-    ExecutiveHandler       *handler.ExecutiveHandler
+	StorageService         storage.StorageService
+	AuthService            auth.JWTService
+	 
+	AuthUseCase            *usecase.AuthUseCase
+	ReportUseCase          *usecase.ReportUseCase
+	SpatialPlanningUseCase *usecase.SpatialPlanningUseCase
+	WaterResourcesUseCase  *usecase.WaterResourcesUseCase
+	BinaMargaUseCase       *usecase.BinaMargaUseCase
+	AgricultureUseCase     *usecase.AgricultureUseCase
+	ExecutiveUseCase       *usecase.ExecutiveUseCase
+	RiceFieldUseCase       *usecase.RiceFieldUseCase       // NEW
+	 
+	AuthHandler            *handler.AuthHandler
+	ReportHandler          *handler.ReportHandler
+	SpatialPlanningHandler *handler.SpatialPlanningHandler
+	WaterResourcesHandler  *handler.WaterResourcesHandler
+	BinaMargaHandler       *handler.BinaMargaHandler
+	AgricultureHandler     *handler.AgricultureHandler
+	ExecutiveHandler       *handler.ExecutiveHandler
+	RiceFieldHandler       *handler.RiceFieldHandler       // NEW
 }
 
 func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, minioClient *minio.Client) *Container {
-    container := &Container{
-        Config:      cfg,
-        DB:          db,
-        Redis:       redisClient,
-        MinioClient: minioClient,
-    }
+	container := &Container{
+		Config:      cfg,
+		DB:          db,
+		Redis:       redisClient,
+		MinioClient: minioClient,
+	}
  
-    container.UserRepo = postgres.NewUserRepository(db)
-    container.ReportRepo = postgres.NewReportRepository(db)
-    container.CacheRepo = redisPkg.NewCacheRepository(redisClient)
-    container.SpatialPlanningRepo = postgres.NewSpatialPlanningRepository(db)
-    container.WaterResourcesRepo = postgres.NewWaterResourcesRepository(db)
-    container.BinaMargaRepo = postgres.NewBinaMargaRepository(db)
-    container.AgricultureRepo = postgres.NewAgricultureRepository(db)
-    container.ExecutiveRepo = postgres.NewExecutiveRepository(db)
+	// Initialize Repositories
+	container.UserRepo = postgres.NewUserRepository(db)
+	container.ReportRepo = postgres.NewReportRepository(db)
+	container.CacheRepo = redisPkg.NewCacheRepository(redisClient)
+	container.SpatialPlanningRepo = postgres.NewSpatialPlanningRepository(db)
+	container.WaterResourcesRepo = postgres.NewWaterResourcesRepository(db)
+	container.BinaMargaRepo = postgres.NewBinaMargaRepository(db)
+	container.AgricultureRepo = postgres.NewAgricultureRepository(db)
+	container.ExecutiveRepo = postgres.NewExecutiveRepository(db)
+	container.RiceFieldRepo = postgres.NewRiceFieldRepository(db)  // NEW
  
-    container.StorageService = storage.NewMinioStorage(
-        minioClient,
-        cfg.Minio.BucketName,
-        cfg.Minio.PublicURL,
-    )
-    container.AuthService = auth.NewJWTService(cfg.JWT.Secret, cfg.JWT.ExpiryHours)
+	// Initialize Services
+	container.StorageService = storage.NewMinioStorage(
+		minioClient,
+		cfg.Minio.BucketName,
+		cfg.Minio.PublicURL,
+	)
+	container.AuthService = auth.NewJWTService(cfg.JWT.Secret, cfg.JWT.ExpiryHours)
  
-    container.AuthUseCase = usecase.NewAuthUseCase(
-        container.UserRepo,
-        container.AuthService,
-        container.CacheRepo,
-    )
-    container.ReportUseCase = usecase.NewReportUseCase(
-        container.ReportRepo,
-        container.StorageService,
-        container.CacheRepo,
-    )
-    container.SpatialPlanningUseCase = usecase.NewSpatialPlanningUseCase(
-        container.SpatialPlanningRepo,
-        container.StorageService,
-        container.CacheRepo,
-    )
-    container.WaterResourcesUseCase = usecase.NewWaterResourcesUseCase(
-        container.WaterResourcesRepo,
-        container.StorageService,
-        container.CacheRepo,
-    )
-    container.BinaMargaUseCase = usecase.NewBinaMargaUseCase(
-        container.BinaMargaRepo,
-        container.StorageService,
-        container.CacheRepo,
-    )
-     container.AgricultureUseCase = usecase.NewAgricultureUseCase(
-        container.AgricultureRepo,
-        container.StorageService,
-        container.CacheRepo,
-    )
-    container.ExecutiveUseCase = usecase.NewExecutiveUseCase(
-        container.ExecutiveRepo,
-    )
-    
-    container.AuthHandler = handler.NewAuthHandler(
-        container.AuthUseCase,
-    )
-    container.ReportHandler = handler.NewReportHandler(
-        container.ReportUseCase,
-    )
-    container.SpatialPlanningHandler = handler.NewSpatialPlanningHandler(
-        container.SpatialPlanningUseCase,
-    )
-    container.WaterResourcesHandler = handler.NewWaterResourcesHandler(
-        container.WaterResourcesUseCase,
-    )
-    container.BinaMargaHandler = handler.NewBinaMargaHandler(
-        container.BinaMargaUseCase,
-    )
-    container.AgricultureHandler = handler.NewAgricultureHandler(
-        container.AgricultureUseCase,
-    )
-    container.ExecutiveHandler = handler.NewExecutiveHandler(
-        container.ExecutiveUseCase,
-    )
+	// Initialize Use Cases
+	container.AuthUseCase = usecase.NewAuthUseCase(
+		container.UserRepo,
+		container.AuthService,
+		container.CacheRepo,
+	)
+	container.ReportUseCase = usecase.NewReportUseCase(
+		container.ReportRepo,
+		container.StorageService,
+		container.CacheRepo,
+	)
+	container.SpatialPlanningUseCase = usecase.NewSpatialPlanningUseCase(
+		container.SpatialPlanningRepo,
+		container.StorageService,
+		container.CacheRepo,
+	)
+	container.WaterResourcesUseCase = usecase.NewWaterResourcesUseCase(
+		container.WaterResourcesRepo,
+		container.StorageService,
+		container.CacheRepo,
+	)
+	container.BinaMargaUseCase = usecase.NewBinaMargaUseCase(
+		container.BinaMargaRepo,
+		container.StorageService,
+		container.CacheRepo,
+	)
+	container.AgricultureUseCase = usecase.NewAgricultureUseCase(
+		container.AgricultureRepo,
+		container.StorageService,
+		container.CacheRepo,
+	)
+	container.ExecutiveUseCase = usecase.NewExecutiveUseCase(
+		container.ExecutiveRepo,
+	)
+	container.RiceFieldUseCase = usecase.NewRiceFieldUseCase(  // NEW
+		container.RiceFieldRepo,
+		container.CacheRepo,
+	)
+	
+	// Initialize Handlers
+	container.AuthHandler = handler.NewAuthHandler(
+		container.AuthUseCase,
+	)
+	container.ReportHandler = handler.NewReportHandler(
+		container.ReportUseCase,
+	)
+	container.SpatialPlanningHandler = handler.NewSpatialPlanningHandler(
+		container.SpatialPlanningUseCase,
+	)
+	container.WaterResourcesHandler = handler.NewWaterResourcesHandler(
+		container.WaterResourcesUseCase,
+	)
+	container.BinaMargaHandler = handler.NewBinaMargaHandler(
+		container.BinaMargaUseCase,
+	)
+	container.AgricultureHandler = handler.NewAgricultureHandler(
+		container.AgricultureUseCase,
+	)
+	container.ExecutiveHandler = handler.NewExecutiveHandler(
+		container.ExecutiveUseCase,
+	)
+	container.RiceFieldHandler = handler.NewRiceFieldHandler(  // NEW
+		container.RiceFieldUseCase,
+	)
 
-
-    return container
-
+	return container
 }
