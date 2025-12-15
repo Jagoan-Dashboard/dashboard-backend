@@ -19,7 +19,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_HOST_AUTH_METHOD: md5
-    networks: backend
+    networks: 
+      - backend
     volumes:
       - pg_app_data:/var/lib/postgresql/data
     healthcheck:
