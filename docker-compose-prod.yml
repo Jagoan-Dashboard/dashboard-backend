@@ -20,7 +20,9 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_HOST_AUTH_METHOD: md5
     networks: 
-      - backend
+      backend:
+        aliases:
+        - postgres-backend
     volumes:
       - pg_app_data:/var/lib/postgresql/data
     healthcheck:
@@ -75,8 +77,7 @@ services:
   app:
     build: .
     restart: unless-stopped
-    networks: 
-      - backend
+    networks: [ backend, dokploy-network ]
     depends_on:
       postgres:
         condition: service_healthy
