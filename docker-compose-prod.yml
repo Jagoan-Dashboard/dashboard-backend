@@ -75,7 +75,8 @@ services:
   app:
     build: .
     restart: unless-stopped
-    networks: [ backend, dokploy-network ]
+    networks: 
+      - backend
     depends_on:
       postgres:
         condition: service_healthy
