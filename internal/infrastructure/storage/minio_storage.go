@@ -16,52 +16,61 @@ import (
 
 type StorageService interface {
     UploadFile(ctx context.Context, file *multipart.FileHeader, folder string) (string, error)
-    DeleteFile(ctx context.Context, fileURL string) error
-    GetFileURL(ctx context.Context, objectName string) (string, error)
+    DeleteFile(ctx context.Context, objectKey string) error
+    GetPresignedURL(ctx context.Context, objectKey string, expiry time.Duration) (string, error)
 }
 
 type minioStorage struct {
     client     *minio.Client
     bucketName string
-    publicURL  string
 }
 
-func NewMinioStorage(client *minio.Client, bucketName, publicURL string) StorageService {
+func NewMinioStorage(client *minio.Client, bucketName string) StorageService {
     return &minioStorage{
         client:     client,
         bucketName: bucketName,
-        publicURL:  publicURL,
     }
 }
 
-func (s *minioStorage) UploadFile(ctx context.Context, file *multipart.FileHeader, folder string) (string, error) {
+func (s *minioStorage) UploadFile(
+    ctx context.Context,
+    file *multipart.FileHeader,
+    folder string,
+) (string, error) {
+
     src, err := file.Open()
     if err != nil {
         return "", err
     }
     defer src.Close()
 
-    
     ext := path.Ext(file.Filename)
-    objectName := fmt.Sprintf("%s/%s%s", folder, uuid.New().String(), ext)
+    objectKey := fmt.Sprintf("%s/%s%s", folder, uuid.New().String(), ext)
 
-    
-    _, err = s.client.PutObject(ctx, s.bucketName, objectName, src, file.Size, minio.PutObjectOptions{
-        ContentType: file.Header.Get("Content-Type"),
-    })
+    _, err = s.client.PutObject(
+        ctx,
+        s.bucketName,
+        objectKey,
+        src,
+        file.Size,
+        minio.PutObjectOptions{
+            ContentType: file.Header.Get("Content-Type"),
+        },
+    )
     if err != nil {
         return "", err
     }
 
-    
-    return fmt.Sprintf("%s/%s/%s", s.publicURL, s.bucketName, objectName), nil
+    return objectKey, nil
 }
 
-func (s *minioStorage) DeleteFile(ctx context.Context, fileURL string) error {
-    
-    objectName := extractObjectName(fileURL)
-    
-    return s.client.RemoveObject(ctx, s.bucketName, objectName, minio.RemoveObjectOptions{})
+func (s *minioStorage) DeleteFile(ctx context.Context, objectKey string) error {
+    return s.client.RemoveObject(
+        ctx,
+        s.bucketName,
+        objectKey,
+        minio.RemoveObjectOptions{},
+    )
 }
 
 func (s *minioStorage) GetFileURL(ctx context.Context, objectName string) (string, error) {
@@ -87,4 +96,24 @@ func extractObjectName(fileURL string) string {
     }
     
     return ""
+}
+
+func (s *minioStorage) GetPresignedURL(
+    ctx context.Context,
+    objectKey string,
+    expiry time.Duration,
+) (string, error) {
+
+    presignedURL, err := s.client.PresignedGetObject(
+        ctx,
+        s.bucketName,
+        objectKey,
+        expiry,
+        nil,
+    )
+    if err != nil {
+        return "", err
+    }
+
+    return presignedURL.String(), nil
 }
