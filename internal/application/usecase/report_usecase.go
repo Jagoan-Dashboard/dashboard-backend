@@ -96,6 +96,12 @@ func (uc *ReportUseCase) GetReport(ctx context.Context, id string) (*entity.Repo
         return nil, err
     }
 
+    for i := range report.Photos {
+        if report.Photos[i].PhotoURL != "" {
+            report.Photos[i].PhotoURL = uc.storage.GetPublicURL(report.Photos[i].PhotoURL)
+        }
+    }
+
     uc.cache.Set(ctx, cacheKey, report, 3600)
 
     return report, nil
@@ -106,6 +112,14 @@ func (uc *ReportUseCase) ListReports(ctx context.Context, page, limit int, filte
     reports, total, err := uc.reportRepo.FindAll(ctx, limit, offset, filters)
     if err != nil {
         return nil, err
+    }
+
+    for i := range reports {
+        for j := range reports[i].Photos {
+            if reports[i].Photos[j].PhotoURL != "" {
+                reports[i].Photos[j].PhotoURL = uc.storage.GetPublicURL(reports[i].Photos[j].PhotoURL)
+            }
+        }
     }
 
     return &dto.PaginatedReportsResponse{

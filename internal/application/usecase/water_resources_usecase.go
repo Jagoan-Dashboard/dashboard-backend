@@ -105,6 +105,12 @@ func (uc *WaterResourcesUseCase) GetReport(ctx context.Context, id string) (*ent
         return nil, err
     }
 
+	for i := range report.Photos {
+        if report.Photos[i].PhotoURL != "" {
+            report.Photos[i].PhotoURL = uc.storage.GetPublicURL(report.Photos[i].PhotoURL)
+        }
+    }
+
     uc.cache.Set(ctx, cacheKey, report, 3600)
 
     return report, nil
@@ -116,6 +122,14 @@ func (uc *WaterResourcesUseCase) ListReports(ctx context.Context, page, limit in
     reports, total, err := uc.waterRepo.FindAll(ctx, limit, offset, filters)
     if err != nil {
         return nil, err
+    }
+
+	for i := range reports {
+        for j := range reports[i].Photos {
+            if reports[i].Photos[j].PhotoURL != "" {
+                reports[i].Photos[j].PhotoURL = uc.storage.GetPublicURL(reports[i].Photos[j].PhotoURL)
+            }
+        }
     }
 
     return &dto.PaginatedWaterResourcesResponse{
@@ -133,6 +147,14 @@ func (uc *WaterResourcesUseCase) ListByPriority(ctx context.Context, page, limit
     reports, total, err := uc.waterRepo.FindByPriority(ctx, limit, offset)
     if err != nil {
         return nil, err
+    }
+
+	for i := range reports {
+        for j := range reports[i].Photos {
+            if reports[i].Photos[j].PhotoURL != "" {
+                reports[i].Photos[j].PhotoURL = uc.storage.GetPublicURL(reports[i].Photos[j].PhotoURL)
+            }
+        }
     }
 
     return &dto.PaginatedWaterResourcesResponse{
