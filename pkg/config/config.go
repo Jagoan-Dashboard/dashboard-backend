@@ -83,7 +83,7 @@
                 AccessKey:  getEnvWithoutDefault("MINIO_ACCESS_KEY"),
                 SecretKey:  getEnvWithoutDefault("MINIO_SECRET_KEY"),
                 UseSSL:     getEnvAsBool("MINIO_USE_SSL", false),
-                BucketName: getEnv("MINIO_BUCKET_NAME", "reports"),
+                BucketName: getEnvWithoutDefault("MINIO_BUCKET_NAME"),
                 PublicURL:  getEnv("MINIO_PUBLIC_URL", "http://localhost:9000"),
             },
             JWT: JWTConfig{
