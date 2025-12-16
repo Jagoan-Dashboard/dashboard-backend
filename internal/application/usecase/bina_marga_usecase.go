@@ -133,51 +133,98 @@ func (uc *BinaMargaUseCase) CreateReport(ctx context.Context, req *dto.CreateBin
     return report, nil
 }
 
+
 func (uc *BinaMargaUseCase) GetReport(ctx context.Context, id string) (*entity.BinaMargaReport, error) {
-	cacheKey := "bina_marga:" + id
+    cacheKey := "bina_marga:" + id
 
-	report, err := uc.binaMargaRepo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
+    report, err := uc.binaMargaRepo.FindByID(ctx, id)
+    if err != nil {
+        return nil, err
+    }
 
-	uc.cache.Set(ctx, cacheKey, report, 3600)
+    for i := range report.Photos {
+        if report.Photos[i].PhotoURL != "" {
+            presignedURL, err := uc.storage.GetPresignedURL(
+                ctx,
+                report.Photos[i].PhotoURL,
+                24*time.Hour,
+            )
+            if err != nil {
+                return nil, err
+            }
+            report.Photos[i].PhotoURL = presignedURL
+        }
+    }
 
-	return report, nil
+    uc.cache.Set(ctx, cacheKey, report, 3600)
+
+    return report, nil
 }
 
 func (uc *BinaMargaUseCase) ListReports(ctx context.Context, page, limit int, filters map[string]interface{}) (*dto.PaginatedBinaMargaResponse, error) {
-	offset := (page - 1) * limit
+    offset := (page - 1) * limit
 
-	reports, total, err := uc.binaMargaRepo.FindAll(ctx, limit, offset, filters)
-	if err != nil {
-		return nil, err
-	}
+    reports, total, err := uc.binaMargaRepo.FindAll(ctx, limit, offset, filters)
+    if err != nil {
+        return nil, err
+    }
 
-	return &dto.PaginatedBinaMargaResponse{
-		Reports:    reports,
-		Total:      total,
-		Page:       page,
-		PerPage:    limit,
-		TotalPages: (total + int64(limit) - 1) / int64(limit),
-	}, nil
+    for i := range reports {
+        for j := range reports[i].Photos {
+            if reports[i].Photos[j].PhotoURL != "" {
+                presignedURL, err := uc.storage.GetPresignedURL(
+                    ctx,
+                    reports[i].Photos[j].PhotoURL,
+                    24*time.Hour,
+                )
+                if err != nil {
+                    return nil, err
+                }
+                reports[i].Photos[j].PhotoURL = presignedURL
+            }
+        }
+    }
+
+    return &dto.PaginatedBinaMargaResponse{
+        Reports:    reports,
+        Total:      total,
+        Page:       page,
+        PerPage:    limit,
+        TotalPages: (total + int64(limit) - 1) / int64(limit),
+    }, nil
 }
 
 func (uc *BinaMargaUseCase) ListByPriority(ctx context.Context, page, limit int) (*dto.PaginatedBinaMargaResponse, error) {
-	offset := (page - 1) * limit
+    offset := (page - 1) * limit
 
-	reports, total, err := uc.binaMargaRepo.FindByPriority(ctx, limit, offset)
-	if err != nil {
-		return nil, err
-	}
+    reports, total, err := uc.binaMargaRepo.FindByPriority(ctx, limit, offset)
+    if err != nil {
+        return nil, err
+    }
 
-	return &dto.PaginatedBinaMargaResponse{
-		Reports:    reports,
-		Total:      total,
-		Page:       page,
-		PerPage:    limit,
-		TotalPages: (total + int64(limit) - 1) / int64(limit),
-	}, nil
+    for i := range reports {
+        for j := range reports[i].Photos {
+            if reports[i].Photos[j].PhotoURL != "" {
+                presignedURL, err := uc.storage.GetPresignedURL(
+                    ctx,
+                    reports[i].Photos[j].PhotoURL,
+                    24*time.Hour,
+                )
+                if err != nil {
+                    return nil, err
+                }
+                reports[i].Photos[j].PhotoURL = presignedURL
+            }
+        }
+    }
+
+    return &dto.PaginatedBinaMargaResponse{
+        Reports:    reports,
+        Total:      total,
+        Page:       page,
+        PerPage:    limit,
+        TotalPages: (total + int64(limit) - 1) / int64(limit),
+    }, nil
 }
 
 func (uc *BinaMargaUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateBinaMargaRequest, userID string) (*entity.BinaMargaReport, error) {

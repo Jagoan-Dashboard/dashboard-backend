@@ -76,33 +76,63 @@ func (uc *SpatialPlanningUseCase) CreateReport(ctx context.Context, req *dto.Cre
 }
 
 func (uc *SpatialPlanningUseCase) GetReport(ctx context.Context, id string) (*entity.SpatialPlanningReport, error) {
-	cacheKey := "spatial:" + id
+    cacheKey := "spatial:" + id
 
-	report, err := uc.spatialRepo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
+    report, err := uc.spatialRepo.FindByID(ctx, id)
+    if err != nil {
+        return nil, err
+    }
 
-	uc.cache.Set(ctx, cacheKey, report, 3600)
+    for i := range report.Photos {
+        if report.Photos[i].PhotoURL != "" {
+            presignedURL, err := uc.storage.GetPresignedURL(
+                ctx,
+                report.Photos[i].PhotoURL,
+                24*time.Hour,
+            )
+            if err != nil {
+                return nil, err
+            }
+            report.Photos[i].PhotoURL = presignedURL
+        }
+    }
 
-	return report, nil
+    uc.cache.Set(ctx, cacheKey, report, 3600)
+
+    return report, nil
 }
 
 func (uc *SpatialPlanningUseCase) ListReports(ctx context.Context, page, limit int, filters map[string]interface{}) (*dto.PaginatedSpatialReportsResponse, error) {
-	offset := (page - 1) * limit
+    offset := (page - 1) * limit
 
-	reports, total, err := uc.spatialRepo.FindAll(ctx, limit, offset, filters)
-	if err != nil {
-		return nil, err
-	}
+    reports, total, err := uc.spatialRepo.FindAll(ctx, limit, offset, filters)
+    if err != nil {
+        return nil, err
+    }
 
-	return &dto.PaginatedSpatialReportsResponse{
-		Reports:    reports,
-		Total:      total,
-		Page:       page,
-		PerPage:    limit,
-		TotalPages: (total + int64(limit) - 1) / int64(limit),
-	}, nil
+    for i := range reports {
+        for j := range reports[i].Photos {
+            if reports[i].Photos[j].PhotoURL != "" {
+                presignedURL, err := uc.storage.GetPresignedURL(
+                    ctx,
+                    reports[i].Photos[j].PhotoURL,
+                    24*time.Hour,
+                )
+                if err != nil {
+                    return nil, err
+                }
+                reports[i].Photos[j].PhotoURL = presignedURL
+            }
+        }
+    }
+
+    return &dto.PaginatedSpatialReportsResponse{
+        Reports:    reports,
+        Total:      total,
+        Page:       page,
+        PerPage:    limit,
+        TotalPages: (total + int64(limit) - 1) / int64(limit),
+    }, nil
 }
 
 func (uc *SpatialPlanningUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateSpatialPlanningRequest, userID string) (*entity.SpatialPlanningReport, error) {

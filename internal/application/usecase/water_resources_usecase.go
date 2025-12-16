@@ -98,50 +98,96 @@ func (uc *WaterResourcesUseCase) CreateReport(ctx context.Context, req *dto.Crea
 }
 
 func (uc *WaterResourcesUseCase) GetReport(ctx context.Context, id string) (*entity.WaterResourcesReport, error) {
-	cacheKey := "water:" + id
+    cacheKey := "water:" + id
 
-	report, err := uc.waterRepo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
+    report, err := uc.waterRepo.FindByID(ctx, id)
+    if err != nil {
+        return nil, err
+    }
 
-	uc.cache.Set(ctx, cacheKey, report, 3600)
+    for i := range report.Photos {
+        if report.Photos[i].PhotoURL != "" {
+            presignedURL, err := uc.storage.GetPresignedURL(
+                ctx,
+                report.Photos[i].PhotoURL,
+                24*time.Hour,
+            )
+            if err != nil {
+                return nil, err
+            }
+            report.Photos[i].PhotoURL = presignedURL
+        }
+    }
 
-	return report, nil
+    uc.cache.Set(ctx, cacheKey, report, 3600)
+
+    return report, nil
 }
 
 func (uc *WaterResourcesUseCase) ListReports(ctx context.Context, page, limit int, filters map[string]interface{}) (*dto.PaginatedWaterResourcesResponse, error) {
-	offset := (page - 1) * limit
+    offset := (page - 1) * limit
 
-	reports, total, err := uc.waterRepo.FindAll(ctx, limit, offset, filters)
-	if err != nil {
-		return nil, err
-	}
+    reports, total, err := uc.waterRepo.FindAll(ctx, limit, offset, filters)
+    if err != nil {
+        return nil, err
+    }
 
-	return &dto.PaginatedWaterResourcesResponse{
-		Reports:    reports,
-		Total:      total,
-		Page:       page,
-		PerPage:    limit,
-		TotalPages: (total + int64(limit) - 1) / int64(limit),
-	}, nil
+    for i := range reports {
+        for j := range reports[i].Photos {
+            if reports[i].Photos[j].PhotoURL != "" {
+                presignedURL, err := uc.storage.GetPresignedURL(
+                    ctx,
+                    reports[i].Photos[j].PhotoURL,
+                    24*time.Hour,
+                )
+                if err != nil {
+                    return nil, err
+                }
+                reports[i].Photos[j].PhotoURL = presignedURL
+            }
+        }
+    }
+
+    return &dto.PaginatedWaterResourcesResponse{
+        Reports:    reports,
+        Total:      total,
+        Page:       page,
+        PerPage:    limit,
+        TotalPages: (total + int64(limit) - 1) / int64(limit),
+    }, nil
 }
 
 func (uc *WaterResourcesUseCase) ListByPriority(ctx context.Context, page, limit int) (*dto.PaginatedWaterResourcesResponse, error) {
-	offset := (page - 1) * limit
+    offset := (page - 1) * limit
 
-	reports, total, err := uc.waterRepo.FindByPriority(ctx, limit, offset)
-	if err != nil {
-		return nil, err
-	}
+    reports, total, err := uc.waterRepo.FindByPriority(ctx, limit, offset)
+    if err != nil {
+        return nil, err
+    }
 
-	return &dto.PaginatedWaterResourcesResponse{
-		Reports:    reports,
-		Total:      total,
-		Page:       page,
-		PerPage:    limit,
-		TotalPages: (total + int64(limit) - 1) / int64(limit),
-	}, nil
+    for i := range reports {
+        for j := range reports[i].Photos {
+            if reports[i].Photos[j].PhotoURL != "" {
+                presignedURL, err := uc.storage.GetPresignedURL(
+                    ctx,
+                    reports[i].Photos[j].PhotoURL,
+                    24*time.Hour,
+                )
+                if err != nil {
+                    return nil, err
+                }
+                reports[i].Photos[j].PhotoURL = presignedURL
+            }
+        }
+    }
+
+    return &dto.PaginatedWaterResourcesResponse{
+        Reports:    reports,
+        Total:      total,
+        Page:       page,
+        PerPage:    limit,
+        TotalPages: (total + int64(limit) - 1) / int64(limit),
+    }, nil
 }
 
 func (uc *WaterResourcesUseCase) UpdateReport(ctx context.Context, id string, req *dto.UpdateWaterResourcesRequest, userID string) (*entity.WaterResourcesReport, error) {
