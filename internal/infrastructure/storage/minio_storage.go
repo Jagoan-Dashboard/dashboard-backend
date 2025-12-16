@@ -71,5 +71,5 @@ func (s *minioStorage) DeleteFile(ctx context.Context, objectKey string) error {
 }
 
 func (s *minioStorage) GetPublicURL(objectKey string) string {
-    return fmt.Sprintf("%s/%s/%s", s.publicURL, s.bucketName, objectKey)
+    return fmt.Sprintf("%s/%s", s.publicURL, objectKey)
 }
