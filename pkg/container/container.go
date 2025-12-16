@@ -77,6 +77,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mi
 	container.StorageService = storage.NewMinioStorage(
 		minioClient,
 		cfg.Minio.BucketName,
+		cfg.Minio.PublicURL,
 	)
 	container.AuthService = auth.NewJWTService(cfg.JWT.Secret, cfg.JWT.ExpiryHours)
  

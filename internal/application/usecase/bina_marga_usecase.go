@@ -142,20 +142,6 @@ func (uc *BinaMargaUseCase) GetReport(ctx context.Context, id string) (*entity.B
         return nil, err
     }
 
-    for i := range report.Photos {
-        if report.Photos[i].PhotoURL != "" {
-            presignedURL, err := uc.storage.GetPresignedURL(
-                ctx,
-                report.Photos[i].PhotoURL,
-                24*time.Hour,
-            )
-            if err != nil {
-                return nil, err
-            }
-            report.Photos[i].PhotoURL = presignedURL
-        }
-    }
-
     uc.cache.Set(ctx, cacheKey, report, 3600)
 
     return report, nil
@@ -167,22 +153,6 @@ func (uc *BinaMargaUseCase) ListReports(ctx context.Context, page, limit int, fi
     reports, total, err := uc.binaMargaRepo.FindAll(ctx, limit, offset, filters)
     if err != nil {
         return nil, err
-    }
-
-    for i := range reports {
-        for j := range reports[i].Photos {
-            if reports[i].Photos[j].PhotoURL != "" {
-                presignedURL, err := uc.storage.GetPresignedURL(
-                    ctx,
-                    reports[i].Photos[j].PhotoURL,
-                    24*time.Hour,
-                )
-                if err != nil {
-                    return nil, err
-                }
-                reports[i].Photos[j].PhotoURL = presignedURL
-            }
-        }
     }
 
     return &dto.PaginatedBinaMargaResponse{
@@ -200,22 +170,6 @@ func (uc *BinaMargaUseCase) ListByPriority(ctx context.Context, page, limit int)
     reports, total, err := uc.binaMargaRepo.FindByPriority(ctx, limit, offset)
     if err != nil {
         return nil, err
-    }
-
-    for i := range reports {
-        for j := range reports[i].Photos {
-            if reports[i].Photos[j].PhotoURL != "" {
-                presignedURL, err := uc.storage.GetPresignedURL(
-                    ctx,
-                    reports[i].Photos[j].PhotoURL,
-                    24*time.Hour,
-                )
-                if err != nil {
-                    return nil, err
-                }
-                reports[i].Photos[j].PhotoURL = presignedURL
-            }
-        }
     }
 
     return &dto.PaginatedBinaMargaResponse{
