@@ -133,35 +133,10 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-
-      PGADMIN_CONFIG_SERVER_MODE: "True"
-      PGADMIN_CONFIG_PREFERRED_URL_SCHEME: "https"
-      PGADMIN_CONFIG_SESSION_COOKIE_SECURE: "True"
-      PGADMIN_CONFIG_SESSION_COOKIE_SAMESITE: "None"
-
     networks:
       - backend
-      - dokploy-network
-
-    expose:
-      - "80"
-
-    labels:
-      - "traefik.enable=true"
-
-      # HTTPS
-      - "traefik.http.routers.pgadmin.rule=Host(`pgadmin.jagoansatudata.com`)"
-      - "traefik.http.routers.pgadmin.entrypoints=websecure"
-      - "traefik.http.routers.pgadmin.tls.certresolver=letsencrypt"
-
-      # HTTP → HTTPS
-      - "traefik.http.routers.pgadmin-http.rule=Host(`pgadmin.jagoansatudata.com`)"
-      - "traefik.http.routers.pgadmin-http.entrypoints=web"
-      - "traefik.http.routers.pgadmin-http.middlewares=redirect-to-https"
-
-      - "traefik.http.services.pgadmin-svc.loadbalancer.server.port=80"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
 
   nginx:
     image: nginx:1.27-alpine
