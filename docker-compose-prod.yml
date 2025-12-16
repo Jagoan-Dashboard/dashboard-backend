@@ -8,6 +8,7 @@ volumes:
   pg_app_data: {}
   redis_app_data: {}
   nginx_logs: {}
+  pgadmin_data: {}
 
 services:
 
